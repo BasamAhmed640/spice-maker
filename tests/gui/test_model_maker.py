@@ -115,6 +115,9 @@ def test_a_successful_run_fills_the_stage_and_row_tables(qtbot, tmp_path, monkey
     monkeypatch.setitem(
         sys.modules, "boardmodeler.pipeline.make_model", _engine_module(result, calls)
     )
+    monkeypatch.setattr(
+        "boardmodeler.ui.model_maker._agent_availability", lambda: (True, "test agent")
+    )
 
     from boardmodeler.ui.model_maker import ModelMakerWindow
 
@@ -163,6 +166,9 @@ def test_a_blocked_run_still_reports_something_useful(qtbot, tmp_path, monkeypat
     monkeypatch.setitem(
         sys.modules, "boardmodeler.pipeline.make_model", _engine_module(result, calls)
     )
+    monkeypatch.setattr(
+        "boardmodeler.ui.model_maker._agent_availability", lambda: (True, "test agent")
+    )
     from boardmodeler.ui.model_maker import ModelMakerWindow
 
     window = ModelMakerWindow()
@@ -205,3 +211,38 @@ def test_missing_inputs_never_start_a_run(qtbot, tmp_path, monkeypatch) -> None:
 
     assert calls == []
     assert window._result is None
+
+
+def test_no_agent_available_stops_before_any_work(qtbot, tmp_path, monkeypatch) -> None:
+    """The honest pre-flight: say what is missing instead of failing after a long run."""
+    calls: list[_Request] = []
+    monkeypatch.setitem(
+        sys.modules,
+        "boardmodeler.pipeline.make_model",
+        _engine_module(_Result("PASS", "", "X", tmp_path, None, None, None, ()), calls),
+    )
+    monkeypatch.setattr(
+        "boardmodeler.ui.model_maker._agent_availability",
+        lambda: (False, "bob_credentials_unavailable: set BOB_API_KEY"),
+    )
+    shown: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        "PySide6.QtWidgets.QMessageBox.warning",
+        lambda parent, title, text, *a, **k: shown.append((title, text)),
+    )
+    from boardmodeler.ui.model_maker import ModelMakerWindow
+
+    window = ModelMakerWindow()
+    qtbot.addWidget(window)
+    datasheet = tmp_path / "ds.pdf"
+    datasheet.write_bytes(b"%PDF-1.4")
+    window.part_edit.setText("TPS54320")
+    window.datasheet_edit.setText(str(datasheet))
+    window.out_edit.setText(str(tmp_path))
+
+    window.make_button.click()
+
+    assert calls == []
+    assert window._result is None
+    assert shown and shown[0][0] == "No agent available"
+    assert "bob_credentials_unavailable" in shown[0][1]

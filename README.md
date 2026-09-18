@@ -17,6 +17,12 @@ uv run boardmodeler model test --out build/tps54320     # re-judge any time
 uv run boardmodeler model install --out build/tps54320 --user-lib --apply
 ```
 
+**Before the first run:** install Bob Shell (`powershell -c "irm -Uri https://bob.ibm.com/download/bobshell.ps1 | iex"`,
+Node ≥ 24) and create an API key at bob.ibm.com → API keys with **Scope = Inference**; the window stores it with **Save key**.
+Without an agent the run stops immediately with `BLOCKED` naming what is missing — it never substitutes another provider.
+A build costs a few agent turns plus about ten seconds of simulation: the TPS54320 fixtures judge 38 datasheet rows in **10.7 s**
+of real LTspice work once the model exists, and a repeated run makes **zero** further extraction calls.
+
 What each piece guarantees:
 
 * **The spec is frozen before the agent starts.** Limits, tolerances, probe bindings and

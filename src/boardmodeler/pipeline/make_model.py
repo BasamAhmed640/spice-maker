@@ -1,0 +1,1925 @@
+"""Datasheet + part number + agent key -> a judged LTspice model, saved for LTspice.
+
+This module is the single entry point the model maker calls. One run walks six
+stages and never invents a result:
+
+``read``
+    The picked PDF is registered as a :class:`DocumentRecord` in
+    ``<out_dir>/build`` (classification defaults to ``unknown``; the caller decides
+    egress with ``allow_remote``) and the requirement rows come either from
+    ``requirements_json`` (validated, never re-interpreted) or from the configured
+    extraction provider.
+
+``extract``
+    Provider-driven extraction to the D4 records, then the deterministic
+    validation and citation review. A provider that is unavailable is reported
+    with its own reason — D-011, no silent fallback to another provider. Responses
+    are content-addressed under ``<out_dir>/cache``, so a repeat run over the same
+    document makes zero inference requests.
+
+``bind``
+    A deterministic keyword binder maps each requirement row to one probe of the
+    :data:`~boardmodeler.authoring.probes.PROBES` registry, or declares it
+    ``not_testable`` with a concrete reason. The result is written to
+    ``<out_dir>/spec/bindings.json`` so the user can review (and later replay,
+    via ``bindings_json``) exactly what a run was judged against. Rows whose
+    citation cannot be re-verified against the cited page are never bound: they
+    stay ``UNKNOWN``.
+
+``author`` / ``judge``
+    ``prepare_workdir`` freezes the spec, the agent writes the model, and
+    ``build_model`` runs the real harness after every turn. Each harness turn is
+    reported to ``progress`` as a ``judge`` event carrying the turn number and the
+    harness's own counts, so a GUI can show "turn 2/3 — vref too low".
+
+``save``
+    ``<subckt>.lib``, ``<subckt>.asy`` (the agent's symbol is validated and
+    regenerated when it is not a bijection), ``MODEL_CARD.md``, ``EXAMPLE.cir``,
+    ``harness-report.json``, ``spec/`` and ``results.json`` land in ``out_dir``.
+
+Status ladder: ``PASS`` only when every bound row passed a real simulator run;
+``BLOCKED`` when the backend, the provider or LTspice was unavailable; ``FAIL``
+only when the harness measured a fully judged model wrong at the iteration cap;
+``UNKNOWN`` for everything else (a cancelled run, an abandoned model file, a
+tampered spec, rows the harness could not judge). ``detail`` always names the
+concrete next action for a human.
+
+Time is bounded where it belongs: ``turn_timeout_s`` limits one agent invocation
+(Bob Shell runs with it, so a hung agent cannot sit past it and the timed-out
+turn consumes its iteration) and ``deadline_s`` limits the build — but the
+deadline is checked only between turns, never inside a harness run or an
+extraction, so a slow but working verification is never cut short. On deadline
+expiry the status is ``UNKNOWN`` with the deadline and the turn it stopped
+before, and every row the harness already measured is carried in ``rows``.
+
+Nothing raises for an expected failure — a missing datasheet, a document the
+provider refuses, a missing key, absent LTspice, a tampered spec or a
+cancellation all come back as a status with the observed reason. Only
+programming errors (an unsanitised subcircuit name, a non-positive iteration cap)
+raise.
+"""
+
+from __future__ import annotations
+
+import contextlib
+import dataclasses
+import json
+import re
+import threading
+import time
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+from boardmodeler.authoring.backends import (
+    AuthorBackend,
+    AuthorRequest,
+    BobShellBackend,
+    ScriptedBackend,
+)
+from boardmodeler.authoring.card import write_deliverables, write_symbol_for
+from boardmodeler.authoring.harness import HarnessReport
+from boardmodeler.authoring.loop import (
+    BuildOutcome,
+    BuildRequest,
+    build_model,
+    model_file,
+    prepare_workdir,
+)
+from boardmodeler.authoring.probes import PROBES
+from boardmodeler.authoring.spec import SpecSet, load_tps54320_spec, normalize_unit
+from boardmodeler.config import load_config
+from boardmodeler.documents.pdf import page_text, read_pdf
+from boardmodeler.documents.store import DocumentStore, DocumentStoreError
+from boardmodeler.domain.enums import RequirementOrigin, Status
+from boardmodeler.domain.records import DocumentRecord, Requirement
+from boardmodeler.models.library import ModelStoreError, subckt_ports
+from boardmodeler.models.symbolism import symbol_pin_orders, symbol_text, validate_symbol
+from boardmodeler.providers.base import ProviderError
+from boardmodeler.providers.registry import select_provider
+from boardmodeler.requirements.model import validate_requirements
+from boardmodeler.requirements.review import apply_review, verify_citations
+from boardmodeler.simulation.ltspice import locate
+
+__all__ = [
+    "MakeModelRequest",
+    "MakeModelResult",
+    "RowOutcome",
+    "StageEvent",
+    "bind_requirements",
+    "build_backend",
+    "make_model",
+]
+
+STAGES: tuple[str, ...] = ("read", "extract", "bind", "author", "judge", "save")
+
+WORK_DIRNAME = "build"
+"""Agent sandbox, extraction workspace and harness output, under ``out_dir``."""
+
+CACHE_DIRNAME = "cache"
+"""Content-addressed extraction responses, under ``out_dir``."""
+
+SPEC_DIRNAME = "spec"
+REQUIREMENTS_NAME = "requirements.json"
+BINDINGS_NAME = "bindings.json"
+CHARACTERISTICS_NAME = "characteristics.json"
+HARNESS_REPORT_NAME = "harness-report.json"
+RESULTS_NAME = "results.json"
+EXAMPLE_NAME = "EXAMPLE.cir"
+
+LTSPICE_MISSING = (
+    "ltspice_not_found: LTspice was not found; install LTspice or set LTSPICE_EXE "
+    "and re-run 'boardmodeler doctor' to confirm it"
+)
+
+_TEXT_SUFFIXES = frozenset({".txt", ".text", ".md"})
+
+#: The loop reports an exhausted iteration budget with this prefix; it is the
+#: only terminal reason that means "the agent ran out of turns with the harness
+#: still measuring the model wrong" rather than "the build stopped early".
+_CAP_PREFIX = "max_iterations="
+
+#: Serialises the harness instrumentation (see :func:`_observe_reports`). One
+#: process runs one model build at a time; a second concurrent call is reported
+#: rather than interleaving two builds' harness reports.
+_BUILD_LOCK = threading.Lock()
+
+_SUBCKT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+#: The monotonic clock the whole-build deadline reads. Module-level so a test can
+#: drive the deadline deterministically without sleeping.
+_NOW: Callable[[], float] = time.monotonic
+
+#: The physical unit of the number each probe judges, by its ``judge_key``. The
+#: binder refuses to bind a row whose extracted unit disagrees, because the
+#: harness compares the row's limits against exactly this number.
+_JUDGE_UNITS: dict[str, str] = {
+    "vin_at_start": "V",
+    "vin_at_stop": "V",
+    "en_at_start": "V",
+    "en_at_stop": "V",
+    "v_fb": "V",
+    "i_heavy": "A",
+    "i_out_limit": "A",
+    "i_vin_a": "A",
+    "pg_leak_a": "A",
+    "t_ss_s": "s",
+}
+
+
+def _probe_units(probe_id: str) -> str:
+    """The unit of the number ``probe_id`` judges, or ``""`` when undeclared."""
+    probe = PROBES.get(probe_id)
+    if probe is None:
+        return ""
+    return _JUDGE_UNITS.get(probe.judge_key, "")
+
+
+# --------------------------------------------------------------------------- #
+# records
+
+
+@dataclass(frozen=True)
+class MakeModelRequest:
+    """What the caller asks for: a part, its datasheet, and where to save it.
+
+    ``turn_timeout_s`` bounds one agent invocation (Bob Shell runs with it), and
+    ``deadline_s`` bounds the whole build; the deadline is checked only between
+    turns, never inside a harness run or an extraction, so it can never shorten
+    the verification itself.
+    """
+
+    part: str
+    subckt: str
+    datasheet: Path
+    out_dir: Path
+    backend_name: str = "bob"
+    provider: str | None = None
+    max_iterations: int = 3
+    timeout_s: float = 120.0
+    allow_remote: bool = False
+    team_id: str | None = None
+    requirements_json: Path | None = None
+    bindings_json: Path | None = None
+    turn_timeout_s: float = 600.0
+    deadline_s: float = 1500.0
+
+
+@dataclass(frozen=True)
+class StageEvent:
+    """One progress report: which stage, how it stands, and what it produced."""
+
+    stage: str
+    status: str
+    detail: str
+    counts: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class RowOutcome:
+    """One datasheet row and what happened to it (the GUI's table row)."""
+
+    req_id: str
+    statement: str
+    required: str
+    measured: str
+    status: str
+    page: int | None
+
+
+@dataclass(frozen=True)
+class MakeModelResult:
+    """The run's verdict, its per-row outcome, and the files it published."""
+
+    status: str
+    detail: str
+    part: str
+    out_dir: Path
+    card_path: Path | None
+    lib_path: Path | None
+    asy_path: Path | None
+    rows: tuple[RowOutcome, ...]
+    counts: dict[str, int]
+    stages: tuple[StageEvent, ...]
+    #: The parameters this result came from, so a saved ``results.json`` records
+    #: (and :meth:`from_json` restores) exactly the run that produced it —
+    #: including ``turn_timeout_s`` and ``deadline_s``.
+    request: MakeModelRequest | None = None
+
+    def to_json(self) -> str:
+        payload = {
+            "status": self.status,
+            "detail": self.detail,
+            "part": self.part,
+            "out_dir": str(self.out_dir),
+            "card_path": None if self.card_path is None else str(self.card_path),
+            "lib_path": None if self.lib_path is None else str(self.lib_path),
+            "asy_path": None if self.asy_path is None else str(self.asy_path),
+            "counts": {key: self.counts[key] for key in sorted(self.counts)},
+            "rows": [
+                {
+                    "req_id": row.req_id,
+                    "statement": row.statement,
+                    "required": row.required,
+                    "measured": row.measured,
+                    "status": row.status,
+                    "page": row.page,
+                }
+                for row in self.rows
+            ],
+            "stages": [
+                {
+                    "stage": event.stage,
+                    "status": event.status,
+                    "detail": event.detail,
+                    "counts": {key: event.counts[key] for key in sorted(event.counts)},
+                }
+                for event in self.stages
+            ],
+            "request": None if self.request is None else _request_payload(self.request),
+        }
+        return json.dumps(payload, indent=2, sort_keys=True) + "\n"
+
+    @classmethod
+    def from_json(cls, text: str) -> MakeModelResult:
+        """The result a :meth:`to_json` payload describes (rows, stages, request)."""
+        payload = json.loads(text)
+        request = payload.get("request")
+        return cls(
+            status=str(payload["status"]),
+            detail=str(payload["detail"]),
+            part=str(payload["part"]),
+            out_dir=Path(payload["out_dir"]),
+            card_path=_optional_path(payload.get("card_path")),
+            lib_path=_optional_path(payload.get("lib_path")),
+            asy_path=_optional_path(payload.get("asy_path")),
+            rows=tuple(
+                RowOutcome(
+                    req_id=str(row["req_id"]),
+                    statement=str(row.get("statement", "")),
+                    required=str(row.get("required", "")),
+                    measured=str(row.get("measured", "")),
+                    status=str(row["status"]),
+                    page=None if row.get("page") is None else int(row["page"]),
+                )
+                for row in payload.get("rows", ())
+            ),
+            counts={str(key): int(value) for key, value in (payload.get("counts") or {}).items()},
+            stages=tuple(
+                StageEvent(
+                    stage=str(event["stage"]),
+                    status=str(event["status"]),
+                    detail=str(event.get("detail", "")),
+                    counts={
+                        str(key): int(value)
+                        for key, value in (event.get("counts") or {}).items()
+                    },
+                )
+                for event in payload.get("stages", ())
+            ),
+            request=None if request is None else _request_from_payload(request),
+        )
+
+
+def _request_payload(request: MakeModelRequest) -> dict[str, Any]:
+    return {
+        "part": request.part,
+        "subckt": request.subckt,
+        "datasheet": str(request.datasheet),
+        "out_dir": str(request.out_dir),
+        "backend_name": request.backend_name,
+        "provider": request.provider,
+        "max_iterations": int(request.max_iterations),
+        "timeout_s": float(request.timeout_s),
+        "allow_remote": bool(request.allow_remote),
+        "team_id": request.team_id,
+        "requirements_json": (
+            None if request.requirements_json is None else str(request.requirements_json)
+        ),
+        "bindings_json": None if request.bindings_json is None else str(request.bindings_json),
+        "turn_timeout_s": float(request.turn_timeout_s),
+        "deadline_s": float(request.deadline_s),
+    }
+
+
+def _request_from_payload(payload: Mapping[str, Any]) -> MakeModelRequest:
+    return MakeModelRequest(
+        part=str(payload["part"]),
+        subckt=str(payload["subckt"]),
+        datasheet=Path(payload["datasheet"]),
+        out_dir=Path(payload["out_dir"]),
+        backend_name=str(payload.get("backend_name", "bob")),
+        provider=None if payload.get("provider") is None else str(payload["provider"]),
+        max_iterations=int(payload.get("max_iterations", 3)),
+        timeout_s=float(payload.get("timeout_s", 120.0)),
+        allow_remote=bool(payload.get("allow_remote", False)),
+        team_id=None if payload.get("team_id") is None else str(payload["team_id"]),
+        requirements_json=_optional_path(payload.get("requirements_json")),
+        bindings_json=_optional_path(payload.get("bindings_json")),
+        turn_timeout_s=float(payload.get("turn_timeout_s", 600.0)),
+        deadline_s=float(payload.get("deadline_s", 1500.0)),
+    )
+
+
+def _optional_path(value: object) -> Path | None:
+    return None if value is None else Path(str(value))
+
+
+# --------------------------------------------------------------------------- #
+# the binder
+#
+# The table is reviewed, ordered and explicit: the first rule whose phrases all
+# match the requirement's own wording wins. Declines come before the probe rules
+# they protect, because a statement that mentions a threshold but is not that
+# threshold (a hysteresis width, a switch-internal limit, an application pull-up)
+# must be declared untestable rather than stretched onto the nearest probe.
+
+
+@dataclass(frozen=True)
+class _Rule:
+    """One reviewed binding decision."""
+
+    name: str
+    probe: str | None
+    any_of: tuple[str, ...] = ()
+    all_of: tuple[str, ...] = ()
+    none_of: tuple[str, ...] = ()
+    reason: str = ""
+
+
+_THERMAL = (
+    "thermal shutdown",
+    "thermal path",
+    "thermal pad",
+    "thermal resistance",
+    "junction temperature",
+    "overtemperature",
+    "over-temperature",
+)
+_PACKAGE = ("package", "soldered", "solder", "mechanical", "footprint", "pin pitch")
+_BOOT = ("bootstrap", "boot-ph", "boot and ph", "boot pin", "boot capacitor", "boot diode")
+_OSCILLATOR = (
+    "oscillator",
+    "switching frequency",
+    "switching-frequency",
+    "rt/clk",
+    "clock frequency",
+    "frequency range",
+)
+_INTERNAL_SWITCH = (
+    "high-side switch",
+    "low-side switch",
+    "switch current limit",
+    "switch current",
+    "internal switch",
+)
+_AMPLIFIER = (
+    "transconductance",
+    "error amplifier",
+    "amplifier gain",
+    "small-signal",
+    "small signal",
+    "dc gain",
+)
+_PIN_BIAS = (
+    "bias current",
+    "pin sources",
+    "pin sourcing",
+    "sources a current",
+    "sourcing current",
+    "pull-up current source",
+    "pull-up current source",
+)
+_OPERATING_RANGE = (
+    "operates from",
+    "operating range",
+    "operating-range",
+    "power-stage input",
+    "supply split",
+    "control supply",
+    "pvpin",
+)
+
+_RULES: tuple[_Rule, ...] = (
+    _Rule(
+        name="thermal",
+        probe=None,
+        any_of=_THERMAL,
+        reason=(
+            "thermal behaviour is outside the model's scope: there is no thermal network, so "
+            "junction temperature is not a simulated quantity"
+        ),
+    ),
+    _Rule(
+        name="package",
+        probe=None,
+        any_of=_PACKAGE,
+        reason=(
+            "package/mechanical requirement with no simulated electrical quantity; the "
+            "harness measures waveforms, not assembly"
+        ),
+    ),
+    _Rule(
+        name="derived hysteresis",
+        probe=None,
+        any_of=("hysteresis",),
+        reason=(
+            "derived quantity: the hysteresis width is the difference between the rise and "
+            "fall thresholds the harness measures separately, and the harness judges one "
+            "measured number per characteristic, so the width is declared untestable"
+        ),
+    ),
+    _Rule(
+        name="power-good threshold ratio",
+        probe=None,
+        any_of=("pwrgd threshold", "power-good threshold", "power good threshold"),
+        reason=(
+            "the falling and rising power-good thresholds are extracted as one ratio band "
+            "that no single measured edge answers, so the harness does not claim it"
+        ),
+    ),
+    _Rule(
+        name="power-good pull-up",
+        probe=None,
+        any_of=("pwrgd pull-up", "pwrgd pullup", "pwrgd pull up", "power-good pull-up"),
+        reason=(
+            "application-connectivity requirement on the surrounding circuit: the pull-up is "
+            "a deck constant, not a quantity of the model under test"
+        ),
+    ),
+    _Rule(
+        name="power-good internal state",
+        probe=None,
+        any_of=("pulled low", "defined state"),
+        reason=(
+            "internal-state statement (a pin held low while an internal condition such as "
+            "thermal shutdown, UVLO or soft-start holds): the reduced model exposes no such "
+            "state to a pin-level measurement"
+        ),
+    ),
+    _Rule(
+        name="bootstrap path",
+        probe=None,
+        any_of=_BOOT,
+        reason=(
+            "BOOT/PH are not ports of the reduced model, so a bootstrap-path quantity cannot "
+            "be observed at a pin"
+        ),
+    ),
+    _Rule(
+        name="oscillator",
+        probe=None,
+        any_of=_OSCILLATOR,
+        reason=(
+            "the reduced model has no oscillator (it regulates continuously), so an "
+            "oscillator or RT/CLK frequency requirement cannot be observed"
+        ),
+    ),
+    _Rule(
+        name="switching cycles",
+        probe=None,
+        any_of=("hiccup", "switching cycles", "clock cycles"),
+        reason=(
+            "the retry is specified in cycles of an internal oscillator the model does not "
+            "implement (the model's hiccup is a time constant), so a cycle count cannot be "
+            "observed"
+        ),
+    ),
+    _Rule(
+        name="compensation node",
+        probe=None,
+        any_of=("comp node", "comp pin", "start-switching"),
+        reason=(
+            "the COMP node is internal to the reduced model and is not one of its ports, so "
+            "its threshold cannot be measured"
+        ),
+    ),
+    _Rule(
+        name="soft-start pin",
+        probe=None,
+        any_of=("ss/tr", "ss pin", "soft-start pin", "soft start pin"),
+        reason=(
+            "SS/TR is not a port of the reduced model, so an internal-node quantity on it "
+            "cannot be observed"
+        ),
+    ),
+    _Rule(
+        name="internal switch",
+        probe=None,
+        any_of=_INTERNAL_SWITCH,
+        reason=(
+            "the switch current path is internal to the converter: the reduced model has no "
+            "switch branch, so a switch current limit cannot be observed"
+        ),
+    ),
+    _Rule(
+        name="amplifier internals",
+        probe=None,
+        any_of=_AMPLIFIER,
+        reason=(
+            "error-amplifier small-signal parameters are internal to the reduced model and "
+            "the harness defines no pin-level measurement of them"
+        ),
+    ),
+    _Rule(
+        name="pin bias current",
+        probe=None,
+        any_of=_PIN_BIAS,
+        reason=(
+            "the model's input pins are high-impedance comparators with no bias-current "
+            "source, so the datasheet's pin sourcing current cannot be observed"
+        ),
+    ),
+    _Rule(
+        name="operating range",
+        probe=None,
+        any_of=_OPERATING_RANGE,
+        reason=(
+            "operating-range/board-level statement, not a threshold: the harness measures one "
+            "number at one condition, so an envelope is not converted into a PASS"
+        ),
+    ),
+    _Rule(
+        name="line regulation",
+        probe=None,
+        any_of=("line regulation", "line-regulation"),
+        reason=(
+            "line regulation needs a VIN sweep at fixed load; the load_regulation probe "
+            "answers the load-step question and is not a substitute"
+        ),
+    ),
+    _Rule(
+        name="load regulation",
+        probe="load_regulation",
+        any_of=("load regulation", "load step", "output current", "output-current", "rated output"),
+        none_of=("limit",),
+    ),
+    _Rule(
+        name="current limit",
+        probe="current_limit",
+        any_of=("current limit", "current-limit", "peak current", "overcurrent", "current limiting"),
+    ),
+    _Rule(
+        name="uvlo rising edge",
+        probe="uvlo_rise",
+        any_of=("uvlo", "under-voltage lockout", "under voltage lockout"),
+        all_of=("rising",),
+    ),
+    _Rule(
+        name="start-up threshold on vin",
+        probe="uvlo_rise",
+        any_of=("start-up threshold", "startup threshold", "start-up voltage", "startup voltage"),
+        all_of=("vin",),
+    ),
+    _Rule(
+        name="uvlo falling edge",
+        probe="uvlo_fall",
+        any_of=("uvlo", "under-voltage lockout", "under voltage lockout"),
+        all_of=("falling",),
+    ),
+    _Rule(
+        name="enable rising edge",
+        probe="en_rise",
+        any_of=(
+            "en rising",
+            "enable rising",
+            "enable threshold rising",
+            "en threshold rising",
+            "enable turn-on",
+            "en turn-on",
+        ),
+    ),
+    _Rule(
+        name="enable falling edge",
+        probe="en_fall",
+        any_of=(
+            "en falling",
+            "enable falling",
+            "enable threshold falling",
+            "en threshold falling",
+            "enable turn-off",
+            "en turn-off",
+        ),
+    ),
+    _Rule(
+        name="shutdown supply current",
+        probe="shutdown_current",
+        any_of=("shutdown",),
+        all_of=("current",),
+    ),
+    _Rule(
+        name="quiescent supply current",
+        probe="quiescent_current",
+        any_of=(
+            "quiescent",
+            "non-switching",
+            "non switching",
+            "operating supply current",
+            "no-load supply current",
+            "no load supply current",
+            "supply current",
+        ),
+    ),
+    _Rule(
+        name="voltage reference",
+        probe="vref",
+        any_of=(
+            "voltage reference",
+            "reference voltage",
+            "reference accuracy",
+            "reference tolerance",
+            "feedback reference",
+            "regulation reference",
+            "vref",
+        ),
+    ),
+    _Rule(
+        name="power-good pin",
+        probe="pg_threshold",
+        any_of=("pwrgd", "power-good", "power good", "pwr_good", "pg pin"),
+    ),
+    _Rule(
+        name="soft start",
+        probe="soft_start",
+        any_of=("soft-start", "soft start", "start-up ramp", "startup ramp"),
+    ),
+)
+
+_BINDING_NOTE = (
+    "Datasheet requirements -> deterministic probe bindings from the reviewed keyword table in "
+    "boardmodeler.pipeline.make_model. Every requirement id appears exactly once: either bound "
+    "to a probe (with the deck parameters the probe needs) or declared not_testable with the "
+    "concrete reason. A bound requirement must declare a numeric limit whose unit matches the "
+    "quantity the probe measures."
+)
+
+
+def _normalized(text: str) -> str:
+    return " ".join(text.split()).casefold()
+
+
+def _mentions(text: str, phrase: str) -> bool:
+    """Whether ``phrase`` appears in the normalized ``text`` as a whole phrase."""
+    return re.search(rf"(?<![a-z0-9]){re.escape(phrase)}(?![a-z0-9])", text) is not None
+
+
+def _search_text(requirement: Requirement) -> str:
+    """The requirement's own wording: statement plus section/table, never the excerpt.
+
+    The excerpt is the datasheet's surrounding text and routinely mentions other
+    parameters (a shutdown-current row's excerpt contains the whole ENABLE AND
+    UVLO table), so matching on it would bind rows to probes on the strength of a
+    neighbouring line.
+    """
+    parts = [requirement.statement]
+    for ref in requirement.evidence:
+        parts.extend(part for part in (ref.section, ref.table, ref.figure) if part)
+    return _normalized(" ".join(parts))
+
+
+def _subject(requirement: Requirement) -> str:
+    """A short, concrete label for a row no rule could bind."""
+    text = " ".join(requirement.statement.split())
+    return text if len(text) <= 90 else text[:87] + "..."
+
+
+def _rule_matches(rule: _Rule, text: str) -> bool:
+    if rule.all_of and not all(_mentions(text, phrase) for phrase in rule.all_of):
+        return False
+    if rule.any_of and not any(_mentions(text, phrase) for phrase in rule.any_of):
+        return False
+    return not (rule.none_of and any(_mentions(text, phrase) for phrase in rule.none_of))
+
+
+def _has_limits(requirement: Requirement) -> bool:
+    limits = requirement.limits
+    if limits is None:
+        return False
+    return limits.min is not None or limits.typ is not None or limits.max is not None
+
+
+def _unit_decline(requirement: Requirement, probe: str) -> str | None:
+    """Why this row's unit cannot be judged by ``probe``, or ``None`` when it can."""
+    limits = requirement.limits
+    unit = "" if limits is None else str(limits.unit or "").strip()
+    expected = _probe_units(probe)
+    if not expected:
+        return None
+    if not unit:
+        return (
+            f"the extracted limit declares no unit, and the {probe} probe judges a number in "
+            f"{expected}; binding it would compare different quantities"
+        )
+    base, _scale = normalize_unit(unit)
+    if base != expected:
+        return (
+            f"the {probe} probe measures a value in {expected}, but this row declares "
+            f"{unit!r}; binding it would judge the wrong number"
+        )
+    return None
+
+
+def bind_requirements(
+    requirements: Sequence[Requirement], *, unverified: Mapping[str, str] | None = None
+) -> tuple[dict[str, Any], ...]:
+    """Deterministically bind requirement rows to probe ids (or declare them untestable).
+
+    ``unverified`` maps requirement ids whose citation could not be verified to
+    the observed reason; those rows are never bound, because a model must not be
+    credited with a datasheet row nobody could confirm is on the cited page.
+
+    The result is a tuple of binding entries in requirement order, one per row:
+    ``{"req_id", "probe", "params"}`` for a bound row and
+    ``{"req_id", "probe": None, "not_testable_reason"}`` otherwise. The same
+    input always produces the same output, so a run is reproducible from
+    ``bindings.json``.
+    """
+    blocked = dict(unverified or {})
+    entries: list[dict[str, Any]] = []
+    for requirement in requirements:
+        req_id = requirement.req_id
+        if req_id in blocked:
+            entries.append(
+                {
+                    "req_id": req_id,
+                    "probe": None,
+                    "not_testable_reason": f"citation_unverified: {blocked[req_id]}",
+                }
+            )
+            continue
+        if not _has_limits(requirement):
+            entries.append(
+                {
+                    "req_id": req_id,
+                    "probe": None,
+                    "not_testable_reason": (
+                        "the extracted requirement declares no numeric limit, and this harness "
+                        "judges one measured number per characteristic"
+                    ),
+                }
+            )
+            continue
+        text = _search_text(requirement)
+        decline: str | None = None
+        for rule in _RULES:
+            if not _rule_matches(rule, text):
+                continue
+            if rule.probe is None:
+                decline = f"{rule.name}: {rule.reason}"
+                break
+            mismatch = _unit_decline(requirement, rule.probe)
+            if mismatch is not None:
+                decline = f"{rule.name}: {mismatch}"
+                break
+            entries.append({"req_id": req_id, "probe": rule.probe, "params": {}})
+            break
+        else:
+            decline = (
+                f"no deterministic probe measures this statement ({_subject(requirement)}); it "
+                "stays a declared gap rather than being stretched onto the nearest probe"
+            )
+        if decline is not None:
+            entries.append(
+                {"req_id": req_id, "probe": None, "not_testable_reason": decline}
+            )
+    return tuple(entries)
+
+
+# --------------------------------------------------------------------------- #
+# backends
+
+
+class _UnavailableBackend:
+    """A backend name this process cannot build on its own (a scripted test double)."""
+
+    def __init__(self, name: str, reason: str) -> None:
+        self.name = name
+        self.reason = reason
+
+    def availability(self) -> tuple[bool, str]:
+        return False, self.reason
+
+    def author(self, request: AuthorRequest, cancel: threading.Event | None = None):
+        from boardmodeler.authoring.backends import AuthorResult
+
+        return AuthorResult(
+            ok=False,
+            detail=self.reason,
+            usage={},
+            stdout_tail="",
+            session_id=None,
+        )
+
+
+def build_backend(request: MakeModelRequest) -> AuthorBackend:
+    """The backend ``request.backend_name`` names.
+
+    ``bob`` is the real agent. ``scripted`` and ``fixture`` name the offline
+    author: it writes the bundled behavioural regulator template (and a symbol for
+    it) when ``request.subckt`` names one, and writes nothing otherwise — the
+    harness then reports the missing model with its own reason. It is what the
+    GUI's integration runs and anyone without an agent key use; it never pretends
+    to have authored a model it did not write. The offline tests override this
+    function to inject their own scripted backend.
+    """
+    name = str(request.backend_name or "").strip().lower()
+    if name == "bob":
+        return BobShellBackend(
+            team_id=request.team_id, timeout_s=float(request.turn_timeout_s)
+        )
+    if name in ("scripted", "fixture"):
+        return _bundled_author(request)
+    return _UnavailableBackend(
+        name or "unknown",
+        f"{name or 'unknown'}_backend_unavailable: unknown backend name; use 'bob', "
+        "'scripted' or 'fixture'",
+    )
+
+
+def _bundled_author(request: MakeModelRequest) -> ScriptedBackend:
+    """The offline author: the bundled template for the requested subcircuit."""
+    from boardmodeler.models.regulator import write_regulator_library
+
+    def script(turn: int, workdir: Path, prompt: str) -> None:
+        model_dir = Path(workdir) / "model"
+        model_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            lib = write_regulator_library(model_dir / f"{request.subckt}.lib", [request.subckt])
+        except KeyError:
+            return  # no bundled template declares this subcircuit: write nothing
+        ports = list(subckt_ports(lib.read_text(encoding="utf-8"), request.subckt))
+        model_dir.joinpath(f"{request.subckt}.asy").write_text(
+            symbol_text(request.subckt, ports, model_file=f"{request.subckt}.lib"),
+            encoding="utf-8",
+            newline="\n",
+        )
+
+    return ScriptedBackend(script, name="scripted")
+
+
+@contextlib.contextmanager
+def _observe_reports(on_report: Callable[[HarnessReport], None]):
+    """Route every harness report the author loop produces to ``on_report``.
+
+    ``build_model`` offers no per-turn hook, so the one seam it exposes — the
+    module-level ``run_harness`` name — is wrapped for the duration of the build
+    and restored in a ``finally``. :data:`_BUILD_LOCK` keeps two concurrent
+    builds in one process from swapping each other's wrapper.
+    """
+    from boardmodeler.authoring import loop as loop_module
+
+    original = loop_module.run_harness
+
+    def wrapper(
+        *,
+        model_lib: Path,
+        subckt: str,
+        spec: SpecSet,
+        workdir: Path,
+        ltspice: Path,
+        timeout_s: float = 120.0,
+        cancel: threading.Event | None = None,
+    ) -> HarnessReport:
+        report = original(
+            model_lib=model_lib,
+            subckt=subckt,
+            spec=spec,
+            workdir=workdir,
+            ltspice=ltspice,
+            timeout_s=timeout_s,
+            cancel=cancel,
+        )
+        on_report(report)
+        return report
+
+    loop_module.run_harness = wrapper
+    try:
+        yield
+    finally:
+        loop_module.run_harness = original
+
+
+# --------------------------------------------------------------------------- #
+# internal control flow
+
+
+class _Stop(Exception):
+    """An expected failure inside one run, converted to a status by :func:`make_model`."""
+
+    def __init__(self, stage: str, status: str, detail: str) -> None:
+        super().__init__(detail)
+        self.stage = stage
+        self.status = status
+        self.detail = detail
+
+
+class _TurnClock:
+    """The whole-build deadline, observed only between agent turns.
+
+    The owner's rule: bound how many times the agent repeats, never how
+    thoroughly the harness verifies. So the deadline is *armed* only at a turn
+    boundary — before the first turn and right after a harness report — and never
+    while a turn, a harness run or an extraction is in flight. Once armed, the
+    loop's next cancel check stops the build; the harness that already ran keeps
+    every probe's measured row.
+    """
+
+    def __init__(self, cancel: threading.Event | None, deadline_s: float) -> None:
+        self.deadline_s = float(deadline_s)
+        self.started = _NOW()
+        self.expired = False
+        self._cancel = cancel
+
+    def elapsed(self) -> float:
+        return _NOW() - self.started
+
+    def expire_if_past(self) -> str | None:
+        """Arm the deadline when it has passed; return the reason, or ``None``."""
+        if self.expired:
+            return self.reason()
+        if self.elapsed() < self.deadline_s:
+            return None
+        self.expired = True
+        return self.reason()
+
+    def reason(self) -> str:
+        return (
+            f"deadline_exceeded: the {self.deadline_s:g} s build deadline expired after "
+            f"{self.elapsed():.3g} s"
+        )
+
+    def is_set(self) -> bool:
+        """The loop's cancel view: the caller's event, or the armed deadline."""
+        return self.expired or (self._cancel is not None and self._cancel.is_set())
+
+
+def _stop_reason(clock: _TurnClock | None, cancel: threading.Event | None) -> str | None:
+    """The reason the author loop stopped early, in the caller's own words."""
+    if clock is not None and clock.expired:
+        return f"{clock.reason()}; no further agent turn was started"
+    if cancel is not None and cancel.is_set():
+        return "cancelled: the build was cancelled"
+    return None
+
+
+class _StageLog:
+    """Every emitted :class:`StageEvent`, in order, plus the caller's callback."""
+
+    def __init__(self, callback: Callable[[StageEvent], None] | None) -> None:
+        self._callback = callback
+        self.events: list[StageEvent] = []
+
+    def emit(
+        self,
+        stage: str,
+        status: str,
+        detail: str,
+        counts: Mapping[str, int] | None = None,
+    ) -> StageEvent:
+        event = StageEvent(stage=stage, status=status, detail=detail, counts=dict(counts or {}))
+        self.events.append(event)
+        if self._callback is not None:
+            self._callback(event)
+        return event
+
+
+def _checked(request: MakeModelRequest) -> MakeModelRequest:
+    if not isinstance(request, MakeModelRequest):
+        raise TypeError(f"request must be a MakeModelRequest, got {type(request).__name__}")
+    if not str(request.part).strip():
+        raise ValueError("part must be a non-empty part number")
+    if not _SUBCKT_RE.match(str(request.subckt)):
+        raise ValueError(
+            f"subckt {request.subckt!r} is not a sanitized SPICE identifier "
+            "(expected [A-Za-z_][A-Za-z0-9_]*)"
+        )
+    if request.max_iterations < 1:
+        raise ValueError(f"max_iterations must be >= 1, got {request.max_iterations}")
+    if request.timeout_s <= 0:
+        raise ValueError(f"timeout_s must be > 0, got {request.timeout_s}")
+    if request.turn_timeout_s <= 0:
+        raise ValueError(f"turn_timeout_s must be > 0, got {request.turn_timeout_s}")
+    if request.deadline_s <= 0:
+        raise ValueError(f"deadline_s must be > 0, got {request.deadline_s}")
+    return request
+
+
+def _page_count(path: Path) -> int | None:
+    """Pages in ``path``, or ``None`` when it cannot be read as a PDF."""
+    try:
+        return len(read_pdf(path, max_pages=0).pages) or None
+    except Exception:
+        return None
+
+
+def _read_requirements_file(
+    path: Path,
+) -> tuple[dict[str, Any], list[Requirement]]:
+    """``(declared document, rows)`` from a supplied extraction result."""
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise _Stop("read", Status.BLOCKED.value, f"requirements_unreadable: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise _Stop(
+            "read", Status.BLOCKED.value, f"requirements_unreadable: {path} is not JSON: {exc}"
+        ) from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("requirements"), list):
+        raise _Stop(
+            "read",
+            Status.BLOCKED.value,
+            f"requirements_unreadable: {path} has no 'requirements' list",
+        )
+    declared = payload.get("document")
+    declared = declared if isinstance(declared, dict) else {}
+    try:
+        requirements = [Requirement.model_validate(item) for item in payload["requirements"]]
+    except Exception as exc:
+        raise _Stop(
+            "read",
+            Status.BLOCKED.value,
+            f"requirements_invalid: {path} does not match the requirement schema: "
+            f"{type(exc).__name__}: {exc}",
+        ) from exc
+    return declared, requirements
+
+
+def _page_lookup(record: DocumentRecord, store: DocumentStore):
+    """Page text for the registered document, read once and served from memory.
+
+    Citation verification visits every cited page; reading the PDF once (the same
+    eager read ``DocumentStore.add_file`` already performs) costs one pass, where
+    growing the page count per citation costs one pass *per page*.
+    """
+    document = None
+
+    def lookup(doc_id: str, pdf_page: int) -> str | None:
+        nonlocal document
+        if doc_id != record.doc_id:
+            return None
+        try:
+            path = store.original_path(doc_id)
+        except (KeyError, DocumentStoreError, OSError, ValueError):
+            return None
+        if path.suffix.lower() in _TEXT_SUFFIXES:
+            if pdf_page != 0:
+                return None
+            try:
+                return path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                return None
+        if document is None:
+            try:
+                document = read_pdf(path)
+            except Exception:
+                return None
+        if pdf_page >= len(document.pages):
+            return None
+        return page_text(document, pdf_page)
+
+    return lookup
+
+
+def _order_matches_ports(asy_text: str, ports: Sequence[str]) -> bool:
+    """Whether each pin's ``SpiceOrder`` is its position in the subcircuit's port list.
+
+    :func:`~boardmodeler.models.symbolism.validate_symbol` checks the pin-name set
+    and that the ``SpiceOrder`` values are a bijection, but not *which* pin holds
+    *which* order. LTspice passes the subcircuit nodes in ``SpiceOrder`` order, so
+    a permuted symbol silently wires the wrong pins; it is regenerated instead.
+    """
+    pairs = sorted(symbol_pin_orders(asy_text), key=lambda pair: pair[1])
+    expected = [(port, index + 1) for index, port in enumerate(ports)]
+    return pairs == expected
+
+
+def _required_text(characteristic: object) -> str:
+    """The human limit text for one row, e.g. ``min 4 / max 4.5 V``."""
+    unit = getattr(characteristic, "unit", "") or ""
+    parts: list[str] = []
+    for label, value in (
+        ("min", getattr(characteristic, "min_value", None)),
+        ("max", getattr(characteristic, "max_value", None)),
+    ):
+        if value is not None:
+            parts.append(f"{label} {value:g} {unit}".strip())
+    if parts:
+        return " / ".join(parts)
+    typ = getattr(characteristic, "typ_value", None)
+    if typ is not None:
+        return f"typ {typ:g} {unit} (+/-10 %)".strip()
+    return "no numeric limit"
+
+
+# --------------------------------------------------------------------------- #
+# the run
+
+
+class _Run:
+    """One make-model run: the six stages, the state they produce, the result."""
+
+    def __init__(self, request: MakeModelRequest, log: _StageLog) -> None:
+        self.request = request
+        self.log = log
+        self.out_dir = Path(request.out_dir)
+        self.workdir = self.out_dir / WORK_DIRNAME
+        self.cache_dir = self.out_dir / CACHE_DIRNAME
+        self.spec_dir = self.out_dir / SPEC_DIRNAME
+        self.record: DocumentRecord | None = None
+        self.store: DocumentStore | None = None
+        self.supplied: list[Requirement] = []
+        self.declared: dict[str, Any] = {}
+        self.requirements: list[Requirement] = []
+        self.unverified: dict[str, str] = {}
+        self.spec: SpecSet | None = None
+        self.outcome: BuildOutcome | None = None
+        self.clock: _TurnClock | None = None
+        self.report = HarnessReport(part=request.part, model_sha256="", spec_digest="", outcomes=())
+        self.backend_name = ""
+        self.turns = 0
+        self.status = Status.UNKNOWN.value
+        self.detail = ""
+        self.lib_path: Path | None = None
+        self.asy_path: Path | None = None
+        self.card_path: Path | None = None
+        self.files: list[Path] = []
+
+    # ------------------------------------------------------------------ stages
+
+    def read(self) -> None:
+        request = self.request
+        datasheet = Path(request.datasheet)
+        self.log.emit("read", "running", f"registering {datasheet.name!r} as a document")
+        if not datasheet.is_file():
+            raise _Stop(
+                "read",
+                Status.BLOCKED.value,
+                f"datasheet_missing: {datasheet} does not exist; pick the datasheet PDF and re-run",
+            )
+        declared: dict[str, Any] = {}
+        supplied: list[Requirement] = []
+        if request.requirements_json is not None:
+            declared, supplied = _read_requirements_file(Path(request.requirements_json))
+        doc_id, note = self._document_id(declared, datasheet)
+        store = DocumentStore(self.workdir)
+        try:
+            self.record = store.add_file(
+                datasheet,
+                doc_type="datasheet",
+                provenance="user_supplied",
+                classification="unknown",
+                remote_inference_allowed=bool(request.allow_remote),
+                doc_id=doc_id,
+            )
+        except Exception as exc:
+            raise _Stop(
+                "read",
+                Status.BLOCKED.value,
+                f"datasheet_unreadable: {datasheet} could not be registered as a document "
+                f"({type(exc).__name__}: {exc})",
+            ) from exc
+        self.store = store
+        self.supplied = supplied
+        self.declared = declared
+        detail = (
+            f"{self.record.doc_id}: {self.record.page_count} page(s), "
+            f"{self.record.text_extraction} text"
+        )
+        if note:
+            detail = f"{detail}; {note}"
+        self.log.emit("read", "ok", detail, {"pages": int(self.record.page_count)})
+
+    def _document_id(self, declared: Mapping[str, Any], datasheet: Path) -> tuple[str | None, str]:
+        """Which doc id to register the picked PDF under.
+
+        An extraction result that names its document is re-verified against the
+        picked PDF, but only when the PDF can be that document (same page count);
+        otherwise the citations would be checked against a different file and
+        every row would be reported unverified for the wrong reason.
+        """
+        doc_id = str(declared.get("doc_id") or "").strip()
+        if not doc_id:
+            return None, ""
+        pages = declared.get("page_count")
+        if pages is None:
+            return doc_id, ""
+        actual = _page_count(datasheet)
+        if actual is not None and actual != int(pages):
+            return None, (
+                f"the supplied datasheet has {actual} page(s) while the extraction cites "
+                f"{pages}; citations were not re-verified against it"
+            )
+        return doc_id, ""
+
+    def extract(self, cancel: threading.Event | None) -> None:
+        if self.request.requirements_json is not None:
+            self.requirements = self.supplied
+            validation = validate_requirements(
+                self.requirements, documents=self._documents()
+            )
+            if validation.errors:
+                raise _Stop(
+                    "extract",
+                    Status.BLOCKED.value,
+                    "requirements_invalid: "
+                    + "; ".join(
+                        f"{issue.code}: {issue.message}" for issue in validation.errors[:3]
+                    ),
+                )
+            self._verify_citations(trusted=True)
+            counts = self._row_counts()
+            self.log.emit(
+                "extract",
+                "skipped",
+                f"using the supplied extraction result {Path(self.request.requirements_json).name} "
+                f"({len(self.requirements)} rows validated, "
+                f"{counts['unverified']} citation(s) unverified)",
+                counts,
+            )
+            return
+
+        self.log.emit("extract", "running", "asking the extraction provider for the datasheet rows")
+        from boardmodeler.pipeline.project import ProjectError, create_project
+        from boardmodeler.requirements.extract import extract_requirements
+
+        config = load_config()
+        try:
+            selection = select_provider(
+                config,
+                requested=self.request.provider,
+                allow_bob_shell=False,
+                fixture_dir=self.cache_dir,
+            )
+        except ProviderError as exc:
+            raise _Stop(
+                "extract",
+                Status.BLOCKED.value,
+                f"{exc.code}: {exc.detail}; configure a provider or supply requirements_json",
+            ) from exc
+        try:
+            project = create_project(
+                self.workdir,
+                project_id=f"{self.request.subckt.lower()}_model",
+                name=f"{self.request.part} model",
+                notes=[f"created by make_model for {self.request.part}"],
+            )
+        except (ProjectError, OSError, ValueError) as exc:
+            raise _Stop(
+                "extract",
+                Status.BLOCKED.value,
+                f"workspace_unusable: {self.workdir} could not be prepared: {exc}",
+            ) from exc
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            result = extract_requirements(
+                project,
+                provider=selection.provider,
+                cache_dir=self.cache_dir,
+                policy=config.data_policy,
+                allow_remote=True if self.request.allow_remote else None,
+                cancel=cancel,
+            )
+        except ProviderError as exc:
+            raise _Stop(
+                "extract", Status.BLOCKED.value, f"{exc.code}: {exc.detail}"
+            ) from exc
+        except Exception as exc:
+            raise _Stop(
+                "extract",
+                Status.BLOCKED.value,
+                f"provider_error: {type(exc).__name__}: {exc}",
+            ) from exc
+        self.requirements = apply_review(result.requirements, result.review)
+        errors = [issue for issue in result.issues if issue.severity == "error"]
+        if errors:
+            raise _Stop(
+                "extract",
+                Status.BLOCKED.value,
+                "requirements_invalid: "
+                + "; ".join(f"{issue.code}: {issue.message}" for issue in errors[:3]),
+            )
+        self._verify_citations(trusted=False)
+        counts = self._row_counts()
+        counts["cache_hits"] = int(result.cache_hits)
+        self.log.emit(
+            "extract",
+            "ok",
+            f"{result.detail}; {counts['unverified']} citation(s) unverified",
+            counts,
+        )
+
+    def _documents(self) -> dict[str, DocumentRecord]:
+        """The registered document, when this run's rows actually cite it.
+
+        A supplied extraction result may name a document the picked PDF cannot be
+        (see :meth:`_document_id`). There is then nothing in this run to check the
+        citations against, and returning the record anyway would mark every row
+        unverified for the wrong reason.
+        """
+        if self.record is None:
+            return {}
+        cited = {
+            reference.doc_id
+            for requirement in self.requirements
+            for reference in requirement.evidence
+        }
+        if cited and self.record.doc_id not in cited:
+            return {}
+        return {self.record.doc_id: self.record}
+
+    def _verify_citations(self, *, trusted: bool) -> None:
+        """Fill :attr:`unverified` (req_id -> reason) for this run's rows.
+
+        With the cited document registered and readable, the excerpts are checked
+        against its own page text (``trusted=False`` is the extraction path, where
+        the review already ran; the check is deterministic, so it is re-run here
+        where the store resolves the path). Without it, a supplied extraction
+        result is taken at its own ``citation_verified`` word — it *is* the
+        extraction result the caller chose to supply — and the stage detail says
+        so.
+        """
+        documents = self._documents()
+        if documents:
+            assert self.record is not None
+            checks = verify_citations(
+                self.requirements, documents, excerpt_lookup=_page_lookup(self.record, self.store)
+            )
+            self.unverified = {
+                req_id: (
+                    "the excerpt is not on the page it cites, or the citation is incomplete "
+                    f"(doc {self.record.doc_id})"
+                    if not verified
+                    else ""
+                )
+                for req_id, verified in checks.items()
+                if not verified
+            }
+            return
+        if trusted:
+            self.unverified = {
+                requirement.req_id: (
+                    "the supplied extraction result marks this citation unverified and there is "
+                    "no registered document to check it against"
+                )
+                for requirement in self.requirements
+                if requirement.origin is RequirementOrigin.DOCUMENT
+                and not requirement.citation_verified
+            }
+            return
+        self.unverified = {
+            requirement.req_id: (
+                "the datasheet text for the cited document is not available, so the citation "
+                "could not be verified"
+            )
+            for requirement in self.requirements
+            if requirement.origin is RequirementOrigin.DOCUMENT
+        }
+
+    def _row_counts(self) -> dict[str, int]:
+        return {"rows": len(self.requirements), "unverified": len(self.unverified)}
+
+    def bind(self) -> None:
+        request = self.request
+        self.log.emit("bind", "running", "binding datasheet rows to the probe registry")
+        self.spec_dir.mkdir(parents=True, exist_ok=True)
+        requirements_path = self._write_requirements()
+        if request.bindings_json is not None:
+            supplied = Path(request.bindings_json)
+            if not supplied.is_file():
+                raise _Stop(
+                    "bind",
+                    Status.BLOCKED.value,
+                    f"bindings_missing: {supplied} does not exist; drop bindings_json to "
+                    "regenerate the binding from the requirements",
+                )
+            entries = self._supplied_entries(supplied)
+            note = f"binding file supplied by the caller ({supplied.name})"
+        else:
+            entries = bind_requirements(self.requirements, unverified=self.unverified)
+            note = "binding computed from the reviewed keyword table"
+        # The binding this run is judged against is always written for review, and
+        # *it* is what the loader reads, so ``bindings_json`` replays a run exactly.
+        bindings_path = self._write_json(
+            self.spec_dir / BINDINGS_NAME,
+            {
+                "part": request.part,
+                "subckt": request.subckt,
+                "doc_id": "" if self.record is None else self.record.doc_id,
+                "note": _BINDING_NOTE,
+                "bindings": [dict(entry) for entry in entries],
+            },
+        )
+        try:
+            self.spec = load_tps54320_spec(
+                requirements_path, bindings_path, part=request.part, subckt=request.subckt
+            )
+        except (OSError, ValueError) as exc:
+            raise _Stop(
+                "bind",
+                Status.BLOCKED.value,
+                f"spec_invalid: {exc}; fix requirements_json/bindings_json and re-run",
+            ) from exc
+        self._write_json(
+            self.spec_dir / CHARACTERISTICS_NAME, json.loads(self.spec.to_json())
+        )
+        counts = {
+            "testable": len(self.spec.covered()),
+            "not_testable": len(self.spec.uncovered()),
+        }
+        self.log.emit(
+            "bind",
+            "ok",
+            f"{counts['testable']} row(s) judged by probes, "
+            f"{counts['not_testable']} declared not testable; {note}",
+            counts,
+        )
+
+    def _supplied_entries(self, path: Path) -> list[dict[str, Any]]:
+        """The binding entries of a supplied ``bindings_json`` file, shape-checked."""
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except OSError as exc:
+            raise _Stop("bind", Status.BLOCKED.value, f"bindings_unreadable: {exc}") from exc
+        except json.JSONDecodeError as exc:
+            raise _Stop(
+                "bind", Status.BLOCKED.value, f"bindings_unreadable: {path} is not JSON: {exc}"
+            ) from exc
+        entries = payload.get("bindings") if isinstance(payload, dict) else None
+        if not isinstance(entries, list) or not all(isinstance(entry, dict) for entry in entries):
+            raise _Stop(
+                "bind",
+                Status.BLOCKED.value,
+                f"bindings_unreadable: {path} has no 'bindings' list; regenerate it by running "
+                "without bindings_json",
+            )
+        return [dict(entry) for entry in entries]
+
+    def _write_requirements(self) -> Path:
+        """The requirement set this run is judged against, in the loader's fixture shape."""
+        record = self.record
+        document: dict[str, Any] = {"doc_id": "" if record is None else record.doc_id}
+        if record is not None:
+            document.update(
+                {
+                    "title": record.title,
+                    "page_count": record.page_count,
+                    "text_extraction": record.text_extraction,
+                    "file_hash": record.file_hash,
+                }
+            )
+        path = self.spec_dir / REQUIREMENTS_NAME
+        self._write_json(
+            path,
+            {
+                "document": document,
+                "requirements": [
+                    json.loads(requirement.model_dump_json(by_alias=True))
+                    for requirement in self.requirements
+                ],
+            },
+        )
+        return path
+
+    def _write_json(self, path: Path, payload: object) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        return path
+
+    # ------------------------------------------------------------ author/judge
+
+    def author(self, cancel: threading.Event | None) -> None:
+        self.log.emit("author", "running", f"checking the {self.request.backend_name!r} backend")
+        backend = build_backend(self.request)
+        self.backend_name = backend.name
+        usable, reason = backend.availability()
+        if not usable:
+            self.log.emit("author", "failed", reason)
+            self.status, self.detail = Status.BLOCKED.value, reason
+            return
+        install = locate()
+        if install is None:
+            self.log.emit("author", "failed", LTSPICE_MISSING)
+            self.status, self.detail = Status.BLOCKED.value, LTSPICE_MISSING
+            return
+        if self.spec is None:  # pragma: no cover - bind() always sets it or stops
+            self.status, self.detail = Status.UNKNOWN.value, "spec_missing: no specification"
+            return
+        prepare_workdir(spec=self.spec, subckt=self.request.subckt, workdir=self.workdir)
+        self.clock = _TurnClock(cancel, self.request.deadline_s)
+        first_boundary = self.clock.expire_if_past()
+        if first_boundary is not None:
+            reason = f"{first_boundary}; the first agent turn was not started"
+            self.log.emit("author", "failed", reason)
+            self.log.emit("judge", "skipped", reason)
+            self.status, self.detail = Status.UNKNOWN.value, reason
+            return
+        self.log.emit(
+            "judge",
+            "running",
+            "the harness runs after every agent turn; no turn has finished yet",
+        )
+        request = BuildRequest(
+            part=self.request.part,
+            subckt=self.request.subckt,
+            spec=self.spec,
+            workdir=self.workdir,
+            ltspice=install.path,
+            backend=backend,
+            max_iterations=self.request.max_iterations,
+            timeout_s=self.request.timeout_s,
+        )
+        if not _BUILD_LOCK.acquire(blocking=False):
+            reason = (
+                "build_in_progress: another model build is running in this process; wait for it "
+                "to finish and re-run"
+            )
+            self.log.emit("author", "failed", reason)
+            self.status, self.detail = Status.BLOCKED.value, reason
+            return
+        try:
+            with _observe_reports(self._on_report):
+                outcome = build_model(request, self.clock)
+        finally:
+            _BUILD_LOCK.release()
+        self.outcome = outcome
+        self.report = outcome.report
+        model_written = model_file(self.workdir, self.request.subckt).is_file()
+        stopped = (
+            _stop_reason(self.clock, cancel)
+            if outcome.iterations < self.request.max_iterations
+            else None
+        )
+        self.log.emit(
+            "author",
+            "ok" if model_written else "failed",
+            f"{outcome.iterations} turn(s); {stopped or outcome.detail}",
+            {"turns": int(outcome.iterations)},
+        )
+        if self.turns == 0:
+            self.log.emit("judge", "skipped", f"no harness turn ran: {outcome.detail}")
+
+    def _on_report(self, report: HarnessReport) -> None:
+        """One completed harness turn: report it, with the harness's own counts.
+
+        The whole-build deadline is re-armed here, after the harness has finished
+        and before the loop can start another agent turn — never inside the run.
+        """
+        self.report = report
+        self.turns += 1
+        counts = dict(report.counts())
+        counts["turn"] = self.turns
+        failing = ", ".join(outcome.probe_id for outcome in report.failing()) or "none"
+        self.log.emit(
+            "judge",
+            "ok" if report.outcomes else "failed",
+            f"turn {self.turns}: {counts['PASS']} pass, {counts['FAIL']} fail, "
+            f"{counts['UNKNOWN']} unknown; failing: {failing}",
+            counts,
+        )
+        if self.clock is not None:
+            self.clock.expire_if_past()
+
+    # ------------------------------------------------------------------- save
+
+    def save(self) -> None:
+        self.log.emit("save", "running", f"publishing deliverables into {self.out_dir}")
+        notes: list[str] = []
+        source = None if self.spec is None else model_file(self.workdir, self.request.subckt)
+        if source is not None and source.is_file():
+            try:
+                self._publish(source, notes)
+            except (OSError, ValueError, ModelStoreError) as exc:
+                notes.append(f"the model could not be published: {type(exc).__name__}: {exc}")
+                self.lib_path = None
+                self.asy_path = None
+                self.card_path = None
+        else:
+            notes.append(
+                f"no model file was written, so only {SPEC_DIRNAME}/ and {RESULTS_NAME} describe "
+                "this run"
+            )
+        published = [path for path in (self.lib_path, self.asy_path, self.card_path) if path]
+        self.log.emit(
+            "save",
+            "ok" if self.lib_path is not None else "skipped",
+            "; ".join(notes) or f"published {len(published)} model file(s)",
+            {"files": len(published)},
+        )
+
+    def _publish(self, source: Path, notes: list[str]) -> None:
+        request = self.request
+        text = source.read_text(encoding="utf-8", errors="replace")
+        ports = list(subckt_ports(text, request.subckt))
+        if not ports:
+            raise ValueError(f"{source} declares no .subckt {request.subckt}")
+        lib_target = self._write_text(self.out_dir / f"{request.subckt}.lib", text)
+        self.lib_path = lib_target
+        symbol, note = self._publish_symbol(ports, lib_target.name)
+        self.asy_path = symbol
+        notes.append(note)
+        written = write_deliverables(
+            out_dir=self.out_dir,
+            part=request.part,
+            subckt=request.subckt,
+            spec=self.spec,
+            report=self.report,
+            document=self.spec.doc_id if self.spec is not None else None,
+            backend=self.backend_name or None,
+            iterations=None if self.outcome is None else int(self.outcome.iterations),
+        )
+        self.card_path = next(
+            (path for path in written if path.name == "MODEL_CARD.md"), self.out_dir / "MODEL_CARD.md"
+        )
+        example = self.out_dir / "example.cir"
+        if example.is_file():
+            self._write_text(self.out_dir / EXAMPLE_NAME, example.read_text(encoding="utf-8"))
+        if self.report.outcomes:
+            self._write_text(self.out_dir / HARNESS_REPORT_NAME, self.report.to_json())
+        notes.append(
+            f"published {lib_target.name}, {symbol.name}, MODEL_CARD.md, {EXAMPLE_NAME}, "
+            f"{HARNESS_REPORT_NAME} and {SPEC_DIRNAME}/"
+        )
+        notes.append(
+            f"model sha256 {self.report.model_sha256[:12] or 'unknown'}, "
+            f"{self.turns} harness turn(s)"
+        )
+
+    def _publish_symbol(self, ports: Sequence[str], lib_name: str) -> tuple[Path, str]:
+        subckt = self.request.subckt
+        target = self.out_dir / f"{subckt}.asy"
+        source = self.workdir / "model" / f"{subckt}.asy"
+        if source.is_file():
+            text = source.read_text(encoding="utf-8", errors="replace")
+            findings = [finding.code for finding in validate_symbol(text, ports=ports, model_file=lib_name)]
+            if not findings and not _order_matches_ports(text, ports):
+                findings.append("SYM004_spice_order_is_not_the_subcircuit_port_order")
+            if not findings:
+                self._write_text(target, text)
+                return target, "the agent's symbol was validated and kept"
+            note = (
+                "the agent's symbol was rejected ("
+                + "; ".join(findings)
+                + ") and regenerated from the model's declared ports"
+            )
+        else:
+            note = "the agent wrote no symbol; one was generated from the model's declared ports"
+        write_symbol_for(
+            out_path=target,
+            name=subckt,
+            ports=ports,
+            model_file=lib_name,
+            model_name=subckt,
+            description=f"{subckt} authored model",
+        )
+        return target, note
+
+    def _write_text(self, path: Path, text: str) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8", newline="\n")
+        return path
+
+    # ----------------------------------------------------------------- result
+
+    def rows(self) -> tuple[RowOutcome, ...]:
+        if self.spec is None:
+            return ()
+        outcomes = {outcome.probe_id: outcome for outcome in self.report.outcomes}
+        rows: list[RowOutcome] = []
+        for characteristic in self.spec.characteristics:
+            req_id = characteristic.char_id
+            required = _required_text(characteristic)
+            if req_id in self.unverified:
+                rows.append(
+                    RowOutcome(
+                        req_id=req_id,
+                        statement=characteristic.statement,
+                        required=f"citation unverified: {self.unverified[req_id]}",
+                        measured="-",
+                        status=Status.UNKNOWN.value,
+                        page=characteristic.source_page,
+                    )
+                )
+                continue
+            if characteristic.probe is None:
+                rows.append(
+                    RowOutcome(
+                        req_id=req_id,
+                        statement=characteristic.statement,
+                        required=characteristic.not_testable_reason or "no simulation probe",
+                        measured="-",
+                        status=Status.NOT_APPLICABLE.value,
+                        page=characteristic.source_page,
+                    )
+                )
+                continue
+            outcome = outcomes.get(characteristic.probe)
+            measured = "-"
+            if outcome is not None:
+                measured = outcome.judged or "-"
+                if outcome.status == Status.UNKNOWN.value and outcome.unknown_reason:
+                    measured = f"- ({outcome.unknown_reason})"
+            rows.append(
+                RowOutcome(
+                    req_id=req_id,
+                    statement=characteristic.statement,
+                    required=required,
+                    measured=measured,
+                    status=Status.UNKNOWN.value if outcome is None else outcome.status,
+                    page=characteristic.source_page,
+                )
+            )
+        return tuple(rows)
+
+    def decide(self, rows: Sequence[RowOutcome]) -> tuple[str, str]:
+        """``(status, detail)`` for this run, with the next action in the detail."""
+        outcome = self.outcome
+        deadline_stopped_the_loop = (
+            self.clock is not None
+            and self.clock.expired
+            and (outcome is None or outcome.iterations < self.request.max_iterations)
+        )
+        if deadline_stopped_the_loop and (
+            outcome is None or outcome.status == Status.UNKNOWN.value
+        ):
+            return (
+                Status.UNKNOWN.value,
+                f"{self.clock.reason()}; the build stopped before agent turn "
+                f"{self.turns + 1} and the rows below are what the harness measured so far "
+                f"({self.turns} judged revision(s)). Raise deadline_s, or re-run with a faster "
+                "agent or fewer max_iterations.",
+            )
+        if outcome is None:
+            reason = self.detail or "the build did not reach the authoring stage"
+            return self.status, reason
+        if outcome.status == Status.BLOCKED.value:
+            return Status.BLOCKED.value, outcome.detail
+        if outcome.status == Status.PASS.value:
+            unverified = [row.req_id for row in rows if row.status == Status.UNKNOWN.value]
+            if unverified:
+                return (
+                    Status.UNKNOWN.value,
+                    "every bound row passed its simulator run, but "
+                    f"{len(unverified)} row(s) could not be verified against their cited page "
+                    f"({', '.join(unverified[:5])}); point requirements_json at the extraction "
+                    "result whose citations verify, or supply the datasheet the rows came from, "
+                    "and re-run",
+                )
+            judged = sum(
+                1 for row in rows if row.status in (Status.PASS.value, Status.FAIL.value)
+            )
+            return (
+                Status.PASS.value,
+                f"every one of the {len(rows)} datasheet row(s) is accounted for: {judged} bound "
+                f"row(s) passed real LTspice runs and the rest are declared not testable with a "
+                f"reason. The model is in {self.out_dir}; open "
+                f"{self.request.subckt}.asy in LTspice or run 'boardmodeler model install "
+                f"--out {self.out_dir} --user-lib --apply'.",
+            )
+        if _confirmed_wrong(outcome, self.request.max_iterations):
+            failing = ", ".join(o.probe_id for o in outcome.report.failing())
+            return (
+                Status.FAIL.value,
+                f"the harness measured the model outside the datasheet limits after "
+                f"{outcome.iterations} turn(s) (failing: {failing}); review those rows in "
+                f"{self.out_dir / 'MODEL_CARD.md'} and re-run with more turns or a fixed model",
+            )
+        return Status.UNKNOWN.value, outcome.detail
+
+
+def _confirmed_wrong(outcome: BuildOutcome, max_iterations: int) -> bool:
+    """The loop used its whole budget and the harness measured every bound row.
+
+    "Harness-confirmed" is the point: a model that is judged wrong in every
+    probed respect at the cap is FAIL, while a model the harness could not judge
+    (or a run that stopped early) stays UNKNOWN — an unmeasured row is never
+    evidence of wrongness.
+    """
+    return (
+        outcome.status == Status.UNKNOWN.value
+        and outcome.detail.startswith(_CAP_PREFIX)
+        and outcome.iterations == max_iterations
+        and bool(outcome.report.failing())
+        and not outcome.report.unknown()
+    )
+
+
+# --------------------------------------------------------------------------- #
+# entry point
+
+
+def make_model(
+    request: MakeModelRequest,
+    progress: Callable[[StageEvent], None] | None = None,
+    cancel: threading.Event | None = None,
+) -> MakeModelResult:
+    """Make, judge and save an LTspice model for ``request.part``.
+
+    Never raises for an expected failure; see the module docstring for the stage
+    contract and the status ladder. ``progress`` receives every
+    :class:`StageEvent` in order (the ``judge`` events carry the harness's own
+    per-turn counts); ``cancel`` stops the agent loop and the harness at the next
+    safe point and reports ``UNKNOWN(cancelled: ...)``.
+    """
+    request = _checked(request)
+    log = _StageLog(progress)
+    run = _Run(request, log)
+    try:
+        run.out_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        detail = f"output_dir_unusable: {type(exc).__name__}: {exc}"
+        log.emit("read", "failed", detail)
+        return _empty_result(request, log, detail)
+    try:
+        run.read()
+        run.extract(cancel)
+        run.bind()
+        run.author(cancel)
+        run.save()
+    except _Stop as stop:
+        log.emit(stop.stage, "failed", stop.detail)
+        run.status, run.detail = stop.status, stop.detail
+        run.save()
+    rows = run.rows()
+    status, detail = run.decide(rows)
+    result = MakeModelResult(
+        status=status,
+        detail=detail,
+        part=request.part,
+        out_dir=run.out_dir,
+        card_path=run.card_path,
+        lib_path=run.lib_path,
+        asy_path=run.asy_path,
+        rows=rows,
+        counts=dict(run.report.counts()),
+        stages=tuple(log.events),
+        request=request,
+    )
+    try:
+        run._write_text(run.out_dir / RESULTS_NAME, result.to_json())
+    except OSError as exc:
+        note = f"{RESULTS_NAME} could not be written: {type(exc).__name__}: {exc}"
+        log.emit("save", "failed", note, {"files": 0})
+        result = dataclasses.replace(
+            result, detail=f"{result.detail}; {note}", stages=tuple(log.events)
+        )
+    return result
+
+
+def _empty_result(request: MakeModelRequest, log: _StageLog, detail: str) -> MakeModelResult:
+    return MakeModelResult(
+        status=Status.BLOCKED.value,
+        detail=detail,
+        part=request.part,
+        out_dir=Path(request.out_dir),
+        card_path=None,
+        lib_path=None,
+        asy_path=None,
+        rows=(),
+        counts={status.value: 0 for status in Status},
+        stages=tuple(log.events),
+    )

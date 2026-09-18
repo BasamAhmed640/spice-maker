@@ -363,6 +363,20 @@ QProgressBar::chunk {{ background: {CGA["blue"]}; }}
             )
             return
 
+        usable, reason = _agent_availability()
+        if not usable:
+            self.key_edit.setFocus()
+            QMessageBox.warning(
+                self,
+                "No agent available",
+                "Nothing was started, because the agent that writes the model is not usable "
+                "yet:\n\n"
+                f"{reason}\n\n"
+                "Paste your Bob API key above and press Save key (bob.ibm.com → API keys, "
+                "Scope = Inference), or install Bob Shell.",
+            )
+            return
+
         subckt = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in part).upper()
         request = MakeModelRequest(
             part=part,
@@ -543,6 +557,16 @@ QProgressBar::chunk {{ background: {CGA["blue"]}; }}
             self._worker.cancel()
             self._worker.wait(5000)
         super().closeEvent(event)  # type: ignore[arg-type]
+
+
+def _agent_availability() -> tuple[bool, str]:
+    """Can the agent run at all? Checked before a long run instead of after it fails."""
+    try:
+        from boardmodeler.authoring.backends import BobShellBackend
+
+        return BobShellBackend().availability()
+    except Exception as exc:  # pragma: no cover - import/config problems are reported
+        return False, f"the agent backend could not be loaded: {exc}"
 
 
 def _colour(value: str) -> object:

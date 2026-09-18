@@ -33,6 +33,13 @@ ever recorded without an observed simulator artifact.
 |Loop safety paths (scripted)|fail-then-pass ends PASS after 2 turns with the turn-1 feedback in the turn-2 prompt · spec edit → `UNKNOWN(spec_tampered)` with **zero** simulations run · cap → UNKNOWN naming the failing probe · unavailable backend → BLOCKED with the reason verbatim|
 |Bob integration|argv verified against IBM's docs: `bob run --format json --max-turns <n> [--team-id <t>] <prompt>`; `status:error` → failure; timeout/cancel kills the process tree; a sentinel key never appears in results, argv, or messages; availability reports `bob_shell_not_installed` / `bob_credentials_unavailable`|
 |Suites|`uv run pytest -q tests/authoring` → **103 passed** (independently re-run); `tests/gui/test_model_maker.py` → 3 passed; `tests/test_cli_model.py` → 5 passed|
+|Chain (`pipeline/make_model.py`)|six stages read/extract/bind/author/judge/save; TPS54320 fixtures + scripted author + **real LTspice** → **PASS in 10.7 s for 38 rows** (9 bound rows PASS, 29 `NOT_APPLICABLE` with written reasons), publishes lib + symbol + card + example + `results.json`|
+|Discrimination through the chain|perturbed model → one FAIL row (`v_fb = 0.5 V` vs `min 0.792 / max 0.808 V`); missing port → that row UNKNOWN `port_missing:PG`|
+|Honest stops|no LTspice → BLOCKED `ltspice_not_found` with **zero** agent turns; no `bob` on PATH → BLOCKED `bob_shell_not_installed` **verbatim** (no silent fallback to another provider); cancel → UNKNOWN `cancelled`; agent edits the spec → UNKNOWN `spec_tampered` with no simulation run|
+|Cost of a repeat run|extraction cached: second run over the same datasheet → **0** provider calls (4 cache hits)|
+|Binder|deterministic: two runs write byte-identical `bindings.json`, and its map equals the reviewed `probes.json` exactly|
+|Suites|`uv run pytest -q -m "not ltspice"` → **796 passed, 1 skipped, 0 failed**; `tests/authoring tests/pipeline/test_make_model.py tests/gui` → **128 passed** (real LTspice runs included)|
+|Time bounds|per agent turn 600 s, whole build deadline 1500 s checked **only between turns**; the harness always runs every bound probe — a probe that cannot finish is `UNKNOWN(run_timeout)`, never a skipped row|
 |Window (`boardmodeler ui`)|model maker: part number · datasheet · output folder · agent key (+ keyring save) · stage table · datasheet-row table · install/open/retest. Fixed 980×700, retro styling|
 |Setup wizard|fixed 960×620; the key-hints line moved into a reserved strip so it can no longer be overlapped by Qt's button bar (clipping observed in the owner's screenshot, now gone)|
 

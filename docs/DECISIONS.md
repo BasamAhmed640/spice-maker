@@ -446,6 +446,14 @@ about the datasheet; (c) generating the model from a template and calling it
 agent-authored — the owner asked for authorship, and the template path remains
 available as a *seed* the agent may read, not as the answer.
 
+**Time bounds (owner's rule, 2026-09-18):** bound how often the *agent* repeats, never how
+thoroughly the *harness* verifies. Concretely: at most `max_iterations` author turns (2 in
+the window, 3 by default), 600 s per agent invocation, and a 1500 s deadline checked only at
+iteration boundaries — never mid-probe, never mid-extraction. The probe set, the per-probe
+timeout and the number of judged rows are not reduced for speed: a probe that cannot finish
+is `UNKNOWN(run_timeout)` on its own row. When a bound bites, the result is `UNKNOWN` naming
+which bound stopped it, carrying every row measured up to that point.
+
 **Cost of the drift, recorded honestly:** the UI (3.4 kloc), the circuit checker and
 schematic layer (4.0 kloc), and the board demonstration were built against the earlier
 spec and are not part of this path. They are left in place, dormant, rather than
