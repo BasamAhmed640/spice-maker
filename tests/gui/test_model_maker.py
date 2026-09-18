@@ -129,7 +129,7 @@ def test_a_successful_run_fills_the_stage_and_row_tables(qtbot, tmp_path, monkey
     window.datasheet_edit.setText(str(datasheet))
     window.out_edit.setText(str(tmp_path / "out"))
 
-    window.make_button.click()
+    window.go_button.click()
     qtbot.waitUntil(lambda: window._result is not None, timeout=10_000)
 
     assert calls and calls[0].part == "TPS54320" and calls[0].subckt == "TPS54320"
@@ -179,7 +179,7 @@ def test_a_blocked_run_still_reports_something_useful(qtbot, tmp_path, monkeypat
     window.datasheet_edit.setText(str(datasheet))
     window.out_edit.setText(str(tmp_path))
 
-    window.make_button.click()
+    window.go_button.click()
     qtbot.waitUntil(lambda: window._result is not None, timeout=10_000)
 
     assert window.status_label.text().startswith("BLOCKED")
@@ -204,10 +204,10 @@ def test_missing_inputs_never_start_a_run(qtbot, tmp_path, monkeypatch) -> None:
     )
 
     window.part_edit.setText("")
-    window.make_button.click()  # no part number
+    window.go_button.click()  # no part number
     window.part_edit.setText("TPS54320")
     window.datasheet_edit.setText(str(tmp_path / "does-not-exist.pdf"))
-    window.make_button.click()  # datasheet does not exist
+    window.go_button.click()  # datasheet does not exist
 
     assert calls == []
     assert window._result is None
@@ -240,7 +240,7 @@ def test_no_agent_available_stops_before_any_work(qtbot, tmp_path, monkeypatch) 
     window.datasheet_edit.setText(str(datasheet))
     window.out_edit.setText(str(tmp_path))
 
-    window.make_button.click()
+    window.go_button.click()
 
     assert calls == []
     assert window._result is None

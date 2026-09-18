@@ -394,7 +394,7 @@ class MainWindow(QMainWindow):
         self.action_settings = QAction("Settings...", self)
         self.action_settings.triggered.connect(self.open_settings)
 
-        self.action_installer = QAction("Setup wizard...", self)
+        self.action_installer = QAction("Setup...", self)
         self.action_installer.triggered.connect(self.open_installer)
 
         self.action_quit = QAction("Quit", self)
@@ -557,9 +557,9 @@ class MainWindow(QMainWindow):
         return False
 
     def open_installer(self) -> int:
-        from boardmodeler.ui.installer import InstallerWizard
+        from boardmodeler.ui.setup_dialog import SetupDialog
 
-        wizard = InstallerWizard(parent=self)
+        wizard = SetupDialog(self)
         return int(wizard.exec())
 
     # ------------------------------------------------------------------ worker

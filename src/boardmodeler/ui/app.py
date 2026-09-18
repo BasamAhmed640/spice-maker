@@ -36,7 +36,7 @@ def main(argv: Sequence[str] | None = None, *, exec_app: bool = True) -> int:
     )
     parser.add_argument("--project", type=Path, default=None, help="project directory to open")
     parser.add_argument(
-        "--installer", action="store_true", help="launch the setup wizard instead of the app"
+        "--installer", action="store_true", help="open the setup page instead of the model maker"
     )
     parser.add_argument(
         "--board-ui",
@@ -47,14 +47,12 @@ def main(argv: Sequence[str] | None = None, *, exec_app: bool = True) -> int:
 
     app = build_application([sys.argv[0]])
     if args.installer:
-        from boardmodeler.ui.installer import InstallerWizard
+        from boardmodeler.ui.setup_dialog import SetupDialog
 
-        wizard = InstallerWizard()
-        if args.project:
-            wizard.set_answers({"project_dir": str(args.project)})
         if not exec_app:
+            SetupDialog()
             return 0
-        return int(wizard.exec())
+        return int(SetupDialog().exec())
 
     if args.board_ui:
         from boardmodeler.ui.main_window import MainWindow

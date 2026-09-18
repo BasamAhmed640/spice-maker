@@ -21,7 +21,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def installer_main(argv: Sequence[str] | None = None) -> int:
-    """Run the retro installer wizard (INTERFACES §4)."""
-    from boardmodeler.ui.installer import main as wizard_main
+    """Run the setup page (INTERFACES §4)."""
+    from boardmodeler.ui.setup_dialog import main as setup_main
 
-    return wizard_main(argv)
+    return setup_main(argv)

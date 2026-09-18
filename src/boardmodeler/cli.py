@@ -1226,12 +1226,9 @@ def main(argv: list[str] | None = None) -> int:
         return ui_main(forwarded)
 
     if args.command == "setup":
-        from boardmodeler.ui.installer import main as setup_main
+        from boardmodeler.ui.setup_dialog import main as setup_main
 
-        forwarded = ["--json"] if getattr(args, "json", False) else []
-        if args.project is not None:
-            forwarded += ["--project", str(args.project)]
-        return setup_main(forwarded)
+        return setup_main(["--json"] if getattr(args, "json", False) else [])
 
     if args.command == "run" and args.run_command == "tests":
         return _cmd_run_tests(args)

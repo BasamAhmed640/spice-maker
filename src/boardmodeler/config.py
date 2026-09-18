@@ -99,6 +99,12 @@ class AppConfig(BaseModel):
     )
     data_policy: DataPolicy = Field(default_factory=DataPolicy)
     max_repair_iterations: int = Field(default=3, ge=0, le=10)
+    #: Where finished models are saved by default (setup page).
+    default_model_dir: str | None = None
+    #: Copy a finished .lib/.asy into the per-user LTspice library on install (setup page).
+    install_to_ltspice_lib: bool = False
+    #: Search the web for supporting material while a model is being made (setup page).
+    web_reinforcement: bool = True
     default_project_dir: str | None = None
     log_level: str = "INFO"
 
