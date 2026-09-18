@@ -79,6 +79,8 @@ import json
 import re
 import socket
 import tempfile
+import threading
+import time
 import urllib.error
 import urllib.parse
 from collections.abc import Callable, Iterator, Mapping, Sequence
@@ -669,25 +671,34 @@ def build_candidate_prompt(part: str, max_sources: int) -> str:
     )
 
 
-def query_agent_backend(prompt: str, workdir: Path) -> tuple[str, str]:
+def query_agent_backend(
+    prompt: str,
+    workdir: Path,
+    *,
+    cancel: threading.Event | None = None,
+    timeout_s: float | None = None,
+) -> tuple[str, str]:
     """One read-only turn of the configured agent backend: ``(reply, note)``.
 
     ``note`` is empty when the backend produced text, otherwise it names why no
-    turn could be made (``agent_backend_unavailable: ...``). The credential is
-    handled by the backend itself and never appears here. Never raises; a
-    callable seam so tests can answer without any agent, network or credential.
+    turn could be made (``agent_backend_unavailable: ...``). ``cancel`` is the
+    build's cancellation event, threaded to the backend so a CANCEL stops a hung
+    agent; ``timeout_s`` bounds this one invocation when the search has a budget.
+    The credential is handled by the backend itself and never appears here. Never
+    raises; a callable seam so tests can answer without any agent, network or
+    credential.
     """
     try:
         from boardmodeler.authoring.backends import AuthorRequest, BobShellBackend
 
-        backend = BobShellBackend()
+        backend = BobShellBackend(timeout_s=timeout_s)
         usable, reason = backend.availability()
         if not usable:
             return "", f"agent_backend_unavailable: {reason}"
         request = AuthorRequest(
             prompt=prompt, workdir=Path(workdir), model_dir=Path(workdir), max_turns=1
         )
-        result = backend.author(request, None)
+        result = backend.author(request, cancel)
         if not result.ok:
             return "", f"agent_backend_failed: {result.detail}"
         if not result.stdout_tail.strip():
@@ -807,22 +818,40 @@ def reinforce(
     enabled: bool = True,
     max_sources: int = 6,
     fetch_timeout_s: float = 30.0,
+    timeout_s: float | None = None,
+    cancel: threading.Event | None = None,
 ) -> ReinforcementReport:
     """Find supporting sources around a model build and record what was retrieved.
 
     Writes ``<out_dir>/spec/supporting.json`` (indent 2, sorted keys, LF) and
-    returns the same report. Statuses:
+    returns the same report. ``timeout_s`` bounds the whole search (``None``
+    leaves it unbounded); when it expires the stage is ``unavailable`` with a
+    reason naming the budget and the build continues. ``cancel`` is the build's
+    cancellation event, passed to the candidate agent turn. Statuses:
 
     * ``skipped`` — ``enabled`` is False; zero candidate lookups, zero fetches;
     * ``unavailable`` — enabled, but nothing could be retrieved (no candidates,
-      every fetch refused, or only unreadable bodies). Never a failure: the
-      build continues, and every reason is on its source record;
+      every fetch refused, only unreadable bodies, or the search budget ran out).
+      Never a failure: the build continues, and every reason is on its source
+      record;
     * ``ok`` — at least one candidate's bytes were retrieved and hashed.
 
     This function never raises for a retrieval, agent or provider problem; only
     a filesystem error while writing the report can propagate.
     """
     out_root = Path(out_dir)
+    deadline = None if timeout_s is None else time.monotonic() + float(timeout_s)
+
+    def budget_left() -> float | None:
+        if deadline is None:
+            return None
+        return max(0.0, deadline - time.monotonic())
+
+    def budget_reason() -> str:
+        return (
+            "search_budget_exceeded: the supporting-material search did not finish within "
+            f"{float(timeout_s):g} s"
+        )
 
     def finish(
         status: str,
@@ -851,11 +880,16 @@ def reinforce(
             "unavailable",
             f"max_sources_invalid: nothing requested (max_sources={max_sources})",
         )
+    if budget_left() == 0.0:
+        return finish("unavailable", budget_reason())
 
     if candidate_provider is None:
         with tempfile.TemporaryDirectory(prefix="boardmodeler-reinforce-") as scratch:
             reply, note = query_agent_backend(
-                build_candidate_prompt(part, max_sources), Path(scratch)
+                build_candidate_prompt(part, max_sources),
+                Path(scratch),
+                cancel=cancel,
+                timeout_s=budget_left(),
             )
         candidates = [] if note else None
         if candidates is None:
@@ -865,18 +899,27 @@ def reinforce(
         if not candidates and not note:
             note = "candidate_provider_empty: the candidate provider listed no sources"
 
+    if budget_left() == 0.0:
+        return finish("unavailable", budget_reason())
     if not candidates:
         return finish("unavailable", note or "no_candidates: nothing to retrieve")
 
-    fetch: Callable[[str], tuple[bytes, str]] = (
-        fetcher
-        if fetcher is not None
-        else partial(default_fetcher, timeout_s=float(fetch_timeout_s))
-    )
     now = _utc_now()
     prior = _prior_retrievals(out_root)
     records: list[SourceRecord] = []
     for url, claim in candidates:
+        left = budget_left()
+        if left == 0.0:
+            return finish("unavailable", budget_reason())
+        if fetcher is not None:
+            fetch: Callable[[str], tuple[bytes, str]] = fetcher
+        else:
+            per_fetch = (
+                float(fetch_timeout_s)
+                if left is None
+                else max(min(float(fetch_timeout_s), left), 1e-6)
+            )
+            fetch = partial(default_fetcher, timeout_s=per_fetch)
         data, media_type, failure = _fetch(url, fetch)
         if data is None:
             records.append(

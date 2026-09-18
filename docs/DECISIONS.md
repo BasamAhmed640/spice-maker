@@ -469,7 +469,11 @@ supporting material while a model is made. The stage records errata, application
 vendor-model caveats, but only text this tool actually retrieved, stored verbatim with its
 URL and hash; an agent's claim we could not fetch is kept as `retrieved=false` with the
 reason. Nothing in it can change a status — the datasheet rows stay the only oracle — so it
-can inform a reader without ever upgrading a model's claims. The fetcher refuses any
+can inform a reader without ever upgrading a model's claims. The search is cancel-aware
+(the build's cancellation event reaches the agent turn) and carries its own budget
+(`reinforce_timeout_s`, default 300 s, `None` unbounded); when that budget expires the stage
+records `unavailable` with the reason and the build continues. This budget applies to the
+search only: the author loop stays unbounded. The fetcher refuses any
 destination that is not a public internet host (loopback, private, link-local, multicast
 or reserved addresses, and any name that resolves to one of those or does not resolve at
 all), and re-checks that policy on every redirect hop.

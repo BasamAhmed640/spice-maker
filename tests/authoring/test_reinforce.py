@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import email.message
 import json
+import threading
 import urllib.error
 from datetime import UTC, datetime
 from io import BytesIO
@@ -310,7 +311,7 @@ def test_malformed_agent_reply_yields_no_candidates(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, reply: str
 ) -> None:
     monkeypatch.setattr(
-        reinforce_module, "query_agent_backend", lambda prompt, workdir: (reply, "")
+        reinforce_module, "query_agent_backend", lambda prompt, workdir, **kwargs: (reply, "")
     )
 
     def fetch(url: str) -> tuple[bytes, str]:
@@ -329,7 +330,7 @@ def test_agent_reply_candidates_are_fetched_and_hashed(
 ) -> None:
     reply = json.dumps({"sources": [{"url": URL, "claim": "UVLO and soft start notes"}]})
     monkeypatch.setattr(
-        reinforce_module, "query_agent_backend", lambda prompt, workdir: (reply, "")
+        reinforce_module, "query_agent_backend", lambda prompt, workdir, **kwargs: (reply, "")
     )
     body = b"UVLO threshold is 4.3 V typical."
 
@@ -370,10 +371,87 @@ def test_agent_backend_note_becomes_the_unavailable_detail(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     note = "agent_backend_unavailable: bob_shell_not_installed: install bob"
-    monkeypatch.setattr(reinforce_module, "query_agent_backend", lambda prompt, workdir: ("", note))
+    monkeypatch.setattr(
+        reinforce_module, "query_agent_backend", lambda prompt, workdir, **kwargs: ("", note)
+    )
     report = reinforce(part=PART, spec_digest=DIGEST, out_dir=tmp_path)
     assert report.status == "unavailable"
     assert report.detail == note
+    assert report.sources == ()
+
+
+def test_query_agent_backend_threads_the_cancel_event_and_the_budget(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from boardmodeler.authoring import backends as backends_module
+    from boardmodeler.authoring.backends import AuthorRequest, AuthorResult
+
+    seen: dict[str, object] = {}
+
+    class _FakeBackend:
+        def __init__(self, *, timeout_s: float | None = None) -> None:
+            seen["timeout_s"] = timeout_s
+
+        def availability(self) -> tuple[bool, str]:
+            return True, "ok"
+
+        def author(
+            self, request: AuthorRequest, cancel: threading.Event | None = None
+        ) -> AuthorResult:
+            seen["cancel"] = cancel
+            seen["prompt"] = request.prompt
+            return AuthorResult(ok=True, detail="ok", usage={}, stdout_tail="{}", session_id=None)
+
+    monkeypatch.setattr(backends_module, "BobShellBackend", _FakeBackend)
+    event = threading.Event()
+
+    reply, note = reinforce_module.query_agent_backend(
+        "find sources", tmp_path, cancel=event, timeout_s=12.5
+    )
+
+    assert note == "" and reply == "{}"
+    assert seen["cancel"] is event, "the build's cancel event must reach the backend"
+    assert seen["timeout_s"] == 12.5
+
+
+def test_reinforce_threads_the_cancel_event_to_the_candidate_query(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[object] = []
+
+    def query(prompt: str, workdir: Path, **kwargs: object) -> tuple[str, str]:
+        seen.append(kwargs.get("cancel"))
+        return "", "agent_backend_unavailable: none"
+
+    monkeypatch.setattr(reinforce_module, "query_agent_backend", query)
+    event = threading.Event()
+
+    report = reinforce(part=PART, spec_digest=DIGEST, out_dir=tmp_path, cancel=event)
+
+    assert seen == [event]
+    assert report.status == "unavailable"
+
+
+def test_an_expired_search_budget_is_recorded_as_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ticks = iter([1000.0, 2000.0])
+    monkeypatch.setattr(reinforce_module.time, "monotonic", lambda: next(ticks, 2000.0))
+
+    def provider(part: str) -> list[tuple[str, str]]:
+        raise AssertionError("an expired budget must not query candidates")
+
+    report = reinforce(
+        part=PART,
+        spec_digest=DIGEST,
+        out_dir=tmp_path,
+        candidate_provider=provider,
+        timeout_s=5.0,
+    )
+
+    assert report.status == "unavailable"
+    assert report.detail.startswith("search_budget_exceeded:")
+    assert "5 s" in report.detail
     assert report.sources == ()
 
 

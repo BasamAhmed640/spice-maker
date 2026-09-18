@@ -28,9 +28,9 @@ CGA: dict[str, str] = {
     "white": "#ffffff",
 }
 
-#: Controls only. A window adding its own rules must scope its background by object name
-#: (a bare ``QWidget`` rule ties with ``QPushButton`` on specificity and, being later,
-#: repaints every button).
+#: Controls and dialogs only. A window adding its own rules must scope its background by
+#: object name (a bare ``QWidget`` rule ties with ``QPushButton`` on specificity and, being
+#: later, repaints every button).
 RETRO_STYLESHEET = f"""
 QPushButton {{
     background: {CGA["grey"]}; color: {CGA["black"]}; border: 2px solid {CGA["white"]};
@@ -53,4 +53,5 @@ QProgressBar {{ background: {CGA["black"]}; color: {CGA["bright_green"]};
                 border: 2px solid {CGA["bright_blue"]}; text-align: center; }}
 QProgressBar::chunk {{ background: {CGA["blue"]}; }}
 QLabel {{ color: {CGA["grey"]}; font-family: Consolas; font-size: 10pt; }}
+QDialog {{ background: {CGA["black"]}; }}
 """

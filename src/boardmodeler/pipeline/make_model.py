@@ -208,6 +208,10 @@ class MakeModelRequest:
     #: the persistent setting; ``True``/``False`` override it for one run. Supporting
     #: material never feeds a verdict -- the datasheet rows remain the only oracle.
     reinforce: bool | None = None
+    #: Budget for the supporting-material search only. ``None`` leaves it unbounded; the
+    #: author loop is never bounded by this (``max_iterations``/``turn_timeout_s`` stay
+    #: ``None``), so the search cannot weaken a tested claim.
+    reinforce_timeout_s: float | None = 300.0
 
 
 @dataclass(frozen=True)
@@ -346,6 +350,10 @@ def _request_payload(request: MakeModelRequest) -> dict[str, Any]:
             None if request.turn_timeout_s is None else float(request.turn_timeout_s)
         ),
         "stall_patience": int(request.stall_patience),
+        "reinforce": None if request.reinforce is None else bool(request.reinforce),
+        "reinforce_timeout_s": (
+            None if request.reinforce_timeout_s is None else float(request.reinforce_timeout_s)
+        ),
     }
 
 
@@ -369,6 +377,12 @@ def _request_from_payload(payload: Mapping[str, Any]) -> MakeModelRequest:
             None if payload.get("turn_timeout_s") is None else float(payload["turn_timeout_s"])
         ),
         stall_patience=int(payload.get("stall_patience", 2)),
+        reinforce=None if payload.get("reinforce") is None else bool(payload["reinforce"]),
+        reinforce_timeout_s=(
+            None
+            if payload.get("reinforce_timeout_s") is None
+            else float(payload["reinforce_timeout_s"])
+        ),
     )
 
 
@@ -1509,7 +1523,7 @@ class _Run:
             self.status, self.detail = Status.UNKNOWN.value, "spec_missing: no specification"
             return
         prepare_workdir(spec=self.spec, subckt=self.request.subckt, workdir=self.workdir)
-        self._gather_supporting_material()
+        self._gather_supporting_material(cancel)
         self.log.emit(
             "judge",
             "running",
@@ -1552,14 +1566,15 @@ class _Run:
         if self.turns == 0:
             self.log.emit("judge", "skipped", f"no harness turn ran: {outcome.detail}")
 
-    def _gather_supporting_material(self) -> None:
+    def _gather_supporting_material(self, cancel: threading.Event | None) -> None:
         """One bounded search for supporting material, recorded but never a verdict.
 
         Errata, application notes and vendor-model caveats about the part can change how a
         reader interprets a model, so they are gathered here and listed on the card. They
         cannot change a status: only the frozen datasheet rows judge the model. The stage
-        never fails the build — disabled, unreachable and empty results are all reported as
-        such, and the run continues.
+        never fails the build — disabled, unreachable, cancelled and empty results are all
+        reported as such, and the run continues. ``cancel`` is the build's event; it and
+        ``reinforce_timeout_s`` bound only this search, never the author loop.
         """
         enabled = self.request.reinforce
         if enabled is None:
@@ -1576,6 +1591,8 @@ class _Run:
                 spec_digest=digest,
                 out_dir=self.workdir,
                 enabled=bool(enabled),
+                timeout_s=self.request.reinforce_timeout_s,
+                cancel=cancel,
             )
         except Exception as exc:  # pragma: no cover - the stage must never break a build
             self.log.emit("reinforce", "skipped", f"reinforcement unavailable: {exc}"[:160])
