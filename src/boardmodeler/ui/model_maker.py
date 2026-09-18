@@ -351,7 +351,17 @@ QProgressBar::chunk {{ background: {CGA["blue"]}; }}
             return
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        from boardmodeler.pipeline.make_model import MakeModelRequest
+        try:
+            from boardmodeler.pipeline.make_model import MakeModelRequest
+        except ImportError as exc:  # pragma: no cover - only while the engine is absent
+            QMessageBox.warning(
+                self,
+                "Engine not available",
+                "The model-making engine is not installed in this build:\n\n"
+                f"{exc}\n\n"
+                "Update the checkout (git pull) and try again.",
+            )
+            return
 
         subckt = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in part).upper()
         request = MakeModelRequest(
