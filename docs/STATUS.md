@@ -89,6 +89,15 @@ rather than asserted (`tools/measure_models.py` writes `build/model-measurements
 |Suites|`uv run pytest -q` → **1112 passed, 1 skipped, 0 failed** (6 m 27 s, LTspice included); `uv run ruff check .` and `uv run ruff format --check .` → clean|
 |Environment note|two full-suite runs died with a Windows fatal access violation inside `pypdf` while several agents and LTspice runs shared the machine; the same call reproduced `NameError: name '_LENGTH_LIMIT' is not defined` in a tight loop. The pypdf files match their RECORD and the symbol is defined, and clearing the `__pycache__` directories made 36 subsequent reads clean and the suite green — recorded here so a future crash is not mistaken for a code regression|
 
+### Delivery of the two builds (2026-09-18, same day)
+
+|What|Observed|
+|---|---|
+|Gate|`no-mistakes axi run` on `feature/api-key-agents-and-installer`: review found five items (per-provider request parameters, Bob `team_id` dropped on the new default backend, unbounded injected-backend search, unguarded config read in the GO slot, unvalidated `agent_max_tokens`) and fixed them in `bc6a149`; `document` refreshed the provider/setup/CLI docs in `4dc439d` and `541ea5d`; `test` ran the suite; `pr` and `ci` were **skipped automatically because `gh` is not installed**, which is why the pull request was opened through the API instead|
+|General repo|branch pushed at `541ea5da`; pull request [#1](https://github.com/BasamAhmed640/spice-maker/pull/1) is open against `main` for review|
+|Bob-only repo|`github.com/BasamAhmed640/spice-maker-bob` published at `dd6ceb5` = the general head `541ea5da` + one commit that trims `CATALOG` to `(bob,)` and states the restriction in the README; its own suite runs green there once the git-ignored datasheet originals are present (1115 passed, 1 skipped on the second run)|
+|Installer from the validated head|`releases\SpiceMaker-win-Setup.exe` **63,089,442 B** (payload 122.8 MiB, +11 KB over the previous build), installed silently; the installed executable's md5 equals the fresh build's, the window title is byte-exact `Spice Maker — IC model maker`, `--cli setup --json` reports `agent_api_key … source=keyring` and ten accepted providers including `opencode`, `-m boardmodeler.cli doctor --json` passes the LTspice smoke test, and the frozen binary re-judged a real model package **PASS, 8 PASS / 0 FAIL** in 13.0 s with the `.raw` files rewritten by real runs|
+
 ## Completed phases
 
 ### Phase 0 — environment, contracts, simulator smoke test

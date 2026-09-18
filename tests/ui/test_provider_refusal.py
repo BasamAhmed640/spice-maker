@@ -112,7 +112,17 @@ def test_choosing_a_provider_is_what_replaces_the_unaccepted_id(
 
     page = _page(qtbot)
     combo = page.provider_combo
-    assert combo is not None, "a multi-provider build shows the row"
+    if combo is None:
+        # A build with one provider has no row to choose from: it says so, and SAVE
+        # leaves the stored id alone rather than rewriting it behind the user's back.
+        assert agent_providers.only_provider() is not None
+        assert page.restricted_note is not None, "a single-provider build says which one"
+        page._save()
+
+        saved = json.loads(isolated_config.read_text(encoding="utf-8"))
+        assert saved["agent_provider"] == UNACCEPTED
+        return
+
     choices = [combo.itemData(index) for index in range(combo.count())]
     assert choices == list(agent_providers.ids()), "the row never invents an entry"
 
