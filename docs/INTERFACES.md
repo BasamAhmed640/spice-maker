@@ -221,16 +221,23 @@ offending pin, naming the observed net and the expected domain.
 ```python
 # schematic/mutate.py
 @dataclass(frozen=True)
-class Mutation:
-    fault_id: str; description: str; edits: list[EditSpec]
-@dataclass(frozen=True)
 class EditSpec:
     file: str                 # path relative to the project root
     path: str                 # locator inside the file (e.g. "components.csv:U1.value")
-    old: str; new: str
-MUTATORS: dict[str, Callable[[NeutralProject], Mutation]]
-def apply_mutation(project_dir: Path, mutation: Mutation, out_dir: Path) -> Path
+    old: str; new: str; note: str = ""
+@dataclass(frozen=True)
+class Mutation:
+    fault_id: str; description: str; edits: tuple[EditSpec, ...] = ()
+    expected_detection: str = ""; expected_status: str = "FAIL"
+    metadata: Mapping[str, str] = field(default_factory=dict)
+MUTATORS: dict[str, Callable[[Path], Mutation]]   # project directory -> Mutation
+def resolve_edit(project_dir: Path, request: str) -> EditSpec
+    # "<file>:<locator>=<value>" -> an EditSpec, or MutationError
+def apply_edits(project_dir: Path, edits: Sequence[EditSpec], out_dir: Path,
+                *, fault_id: str = "manual") -> Path
     # copy-on-write: the original project directory is never modified
+def mutate_project(project_dir: Path, fault_id: str, out_dir: Path) -> Mutation
+def fault_ids() -> tuple[str, ...]
 ```
 
 ## 4. GUI (`ui/`) and the installer wizard
@@ -281,15 +288,17 @@ through setup. Requirements:
 
 ```
 boardmodeler version [--json]
-boardmodeler doctor [--json] [--no-smoke]
-boardmodeler setup [--json]                       # retro installer wizard
-boardmodeler ui [--project DIR]
-boardmodeler run tests --project DIR [--scope S] [--test ID] [--json] [--out F] [--list-tests] [--strict]
-boardmodeler demo build --out DIR [--json]
-boardmodeler circuit check --project DIR --circuit FILE [--fault-matrix] [--json] [--out F]
-boardmodeler run mutations --project DIR --report F [--json]
-boardmodeler export --project DIR --out DIR [--json]
-boardmodeler extract --project DIR --doc FILE [--provider NAME] [--allow-remote] [--json]
+boardmodeler doctor [--json] [--no-smoke] [--smoke-workdir DIR]
+boardmodeler setup [--json] [--project DIR]      # retro installer wizard
+boardmodeler ui [--project DIR] [--installer]
+boardmodeler run tests --project DIR [--scope S] [--test ID] [--list-tests] [--json] [--out F]
+                                     [--timeout S] [--ltspice EXE] [--ascii-raw] [--strict]
+boardmodeler demo build --out DIR [--json] [--no-probe]
+boardmodeler circuit check --project DIR [--circuit FILE] [--scope S] [--fault-matrix]
+                           [--json] [--out F] [--report F] [--strict]
+boardmodeler run mutations --project DIR --report F [--fault ID] [--json]
+boardmodeler export --project DIR --out DIR [--json] [--model ID]
+boardmodeler extract --project DIR [--doc FILE] [--provider NAME] [--allow-remote] [--json]
 boardmodeler --self-test [--json]
 ```
 

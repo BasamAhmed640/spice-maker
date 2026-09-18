@@ -147,6 +147,8 @@ property behind a number chosen to make a test green).
 
 ---
 
+## D-006 — Simulator invocation
+
 **Date:** 2026-09-18
 **Decision:** all simulator invocations are
 `LTspice.exe -b [-ascii (extra switches...)] <absolute deck path>` with
@@ -314,12 +316,13 @@ defects in the demonstration itself, each of which had made a claim unfalsifiabl
    fixture's own stimulus as a rail violation. The load steps now land after each
    rail is regulating, and the values live in the fixture.
 
-**Deliberately left failing.** With those fixed, four of the ten scenarios still
-report FAIL: `staggered_rails` and `load_step` dip the 3V3 rail to 3.126 V/3.130 V
-against its declared 3.135 V floor when a load steps, `brownout_short_interrupt`
-collapses during the dip, and `pullup_missing`'s removal isolates the sideband node
-so LTspice drops it from the `.raw` and the level requirement becomes UNKNOWN with
-its reason. These are reported as findings about the fixture and the reduced models.
+**Deliberately left failing.** With those fixed, three of the ten scenarios report
+FAIL: `staggered_rails` and `load_step` dip the 3V3 rail to 3.126 V/3.130 V against
+its declared 3.135 V floor when a load steps, and `brownout_short_interrupt`
+collapses during the dip. A fourth, `pullup_missing`, is UNKNOWN: its removal
+isolates the sideband node so LTspice drops it from the `.raw` and the level
+requirement cannot be evaluated, and it is reported with that reason. These are
+reported as findings about the fixture and the reduced models.
 Widening the ±5 % window, or omitting the load until the number flips, would be
 choosing the answer rather than measuring it — which is the one thing this project
 must not do.
