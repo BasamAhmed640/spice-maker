@@ -42,6 +42,7 @@ __all__ = [
     "BobShellBackend",
     "ProcessRunner",
     "ScriptedBackend",
+    "UnavailableBackend",
     "parse_result_object",
     "run_bob_shell",
     "stdout_tail",
@@ -68,6 +69,9 @@ BOB_CREDENTIALS_UNAVAILABLE = (
 STDOUT_TAIL_LINES = 40
 """Lines of child output kept in :class:`AuthorResult.stdout_tail`."""
 
+TEXT_ONLY_INSTRUCTION = "Reply with the answer text itself; do not create or modify any file."
+"""Prompt line appended for an ``expect_text`` turn (Bob Shell has no other way to ask)."""
+
 _TOKEN_STAT_KEYS = (
     "total_tokens",
     "input_tokens",
@@ -80,12 +84,20 @@ _POLL_S = 0.2
 
 @dataclass(frozen=True)
 class AuthorRequest:
-    """One authoring turn: what the agent is told and where it may write."""
+    """One authoring turn: what the agent is told and where it may write.
+
+    ``expect_text`` asks for a *read-only* turn whose answer is the reply text
+    itself: the API-key backend then writes no file at all and returns the text in
+    :attr:`AuthorResult.stdout_tail`. Backends whose process decides for itself
+    what to write (Bob Shell) treat it as advice: the prompt asks for text only,
+    but the files a CLI writes are still whatever it wrote.
+    """
 
     prompt: str
     workdir: Path
     model_dir: Path
     max_turns: int
+    expect_text: bool = False
 
 
 @dataclass(frozen=True)
@@ -293,7 +305,11 @@ class BobShellBackend:
         return True, f"bob shell at {executable}; credential source: {source}"
 
     def argv(self, request: AuthorRequest) -> list[str]:
-        """The documented command line; the API key is *never* an argument."""
+        """The documented command line; the API key is *never* an argument.
+
+        ``expect_text`` only changes the prompt (Bob's own files are still whatever
+        it wrote); the argv shape, ``--max-turns`` and the prompt position do not.
+        """
         executable = shutil.which(BOB_EXECUTABLE) or BOB_EXECUTABLE
         argv = [
             str(executable),
@@ -305,7 +321,10 @@ class BobShellBackend:
         ]
         if self.team_id:
             argv.extend(["--team-id", self.team_id])
-        argv.append(request.prompt)
+        prompt = request.prompt
+        if request.expect_text:
+            prompt = f"{prompt.rstrip()}\n\n{TEXT_ONLY_INSTRUCTION}"
+        argv.append(prompt)
         return argv
 
     def author(self, request: AuthorRequest, cancel: threading.Event | None = None) -> AuthorResult:
@@ -343,7 +362,9 @@ class BobShellBackend:
                 if self.timeout_s is None
                 else f"bob_shell_timeout: bob run did not finish within {self.timeout_s:g} s"
             )
-            return AuthorResult(ok=False, detail=detail, usage={}, stdout_tail=tail, session_id=None)
+            return AuthorResult(
+                ok=False, detail=detail, usage={}, stdout_tail=tail, session_id=None
+            )
         if cancel is not None and cancel.is_set():
             return AuthorResult(
                 ok=False,
@@ -418,6 +439,11 @@ class ScriptedBackend:
     starting at 1; whatever it writes to ``workdir`` is what the harness sees.
     The turn number and prompt are exposed so tests can prove that harness
     feedback actually reaches the next turn.
+
+    A *text* turn (:attr:`AuthorRequest.expect_text`, the read-only reinforcement
+    question) is answered with no text and does not run the script or consume a
+    turn number: this double writes model files by construction, so pretending it
+    had prose to give would be a lie and would shift every authoring turn number.
     """
 
     def __init__(self, script: Callable[[int, Path, str], None], name: str = "scripted") -> None:
@@ -439,6 +465,14 @@ class ScriptedBackend:
                 stdout_tail="",
                 session_id=None,
             )
+        if request.expect_text:
+            return AuthorResult(
+                ok=True,
+                detail="scripted text turn: this double has no text to give",
+                usage={},
+                stdout_tail="",
+                session_id=None,
+            )
         self.turns += 1
         turn = self.turns
         self.script(turn, Path(request.workdir), request.prompt)
@@ -449,3 +483,23 @@ class ScriptedBackend:
             stdout_tail="",
             session_id=f"scripted-{turn}",
         )
+
+
+class UnavailableBackend:
+    """A backend this build (or this machine) cannot run, and exactly why.
+
+    Used where a name is refused — an unknown ``backend_name``, a provider id this
+    build does not accept, a config file that does not load. It is never a silent
+    substitute for a working backend: ``availability()`` reports the reason and the
+    loop stops with ``BLOCKED`` naming it (D-011, AGENTS rule 5).
+    """
+
+    def __init__(self, name: str, reason: str) -> None:
+        self.name = name
+        self.reason = reason
+
+    def availability(self) -> tuple[bool, str]:
+        return False, self.reason
+
+    def author(self, request: AuthorRequest, cancel: threading.Event | None = None) -> AuthorResult:
+        return AuthorResult(ok=False, detail=self.reason, usage={}, stdout_tail="", session_id=None)

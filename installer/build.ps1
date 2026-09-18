@@ -1,0 +1,85 @@
+<#
+.SYNOPSIS
+  Build Spice Maker and package it as a one-click installer with Velopack.
+
+.DESCRIPTION
+  1. Renders the pepper splash (product name and version in the title block) and the
+     multi-size icon with installer\render_assets.py.
+  2. Freezes the app with PyInstaller in onedir mode (Velopack cannot use --onefile):
+     installer\SpiceMaker.spec packs installer\entry.py into dist\SpiceMaker\SpiceMaker.exe
+     with the pepper icon and the boardmodeler package alongside it.
+  3. Runs vpk pack: releases\Setup.exe — one click, no wizard pages, with the animated
+     splash whose bottom 12 px Velopack paints its progress bar over.
+
+  The installer carries the app and nothing else. It never downloads or installs
+  LTspice, Bob Shell or Python: the LTspice executable path and its smoke test live in
+  the app's own SETUP page, and no build step writes into an LTspice directory.
+  The app reads no repository data at run time — the datasheet, the save folder and the
+  models all come from the user — so nothing but the icon ships besides the package.
+
+  One-time setup:
+    uv sync --all-extras          # pyinstaller + pillow + velopack into .venv
+    dotnet tool install -g vpk    # needs the .NET SDK; keep vpk on the same version
+                                  # as the velopack Python package
+
+  Run from the project root (the repo root, where pyproject.toml lives):
+    .\installer\build.ps1 -Version 1.0.0
+#>
+param(
+    [Parameter(Mandatory = $true)][string] $Version,
+    [string] $Name = "Spice Maker",   # splash title block and the Add/Remove entry
+    [string] $PackId = "SpiceMaker"   # installs to %LocalAppData%\SpiceMaker
+)
+$ErrorActionPreference = "Stop"
+$repo = Split-Path $PSScriptRoot -Parent
+$assets = Join-Path $PSScriptRoot "assets"
+$exe = "SpiceMaker"                   # must match NAME in installer\SpiceMaker.spec
+$python = Join-Path $repo ".venv\Scripts\python.exe"
+if (-not (Test-Path $python)) { $python = "python" }
+
+function Invoke-Step([string] $what, [scriptblock] $cmd) {
+    Write-Host "==> $what"
+    & $cmd
+    if ($LASTEXITCODE -ne 0) { throw "$what failed (exit $LASTEXITCODE)" }
+}
+
+Push-Location $repo
+try {
+    Invoke-Step "Render splash and icon" {
+        & $python "$PSScriptRoot\render_assets.py" --name $Name --version $Version --out $assets
+    }
+
+    Invoke-Step "Freeze the app with PyInstaller" {
+        # The spec carries every analysis option (entry script, icon, data files, the
+        # run-time provider imports), so the output is identical on any checkout.
+        & $python -m PyInstaller --noconfirm --clean "$PSScriptRoot\SpiceMaker.spec"
+    }
+
+    Invoke-Step "Package with Velopack" {
+        # vpk refuses a version that is already in releases\; rebuilding a version
+        # replaces that version's artifacts instead of failing.
+        Get-ChildItem "releases" -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name.Contains($Version) } |
+            Remove-Item -Force
+        vpk pack `
+            --packId $PackId `
+            --packTitle $Name `
+            --packVersion $Version `
+            --packDir "dist\$exe" `
+            --mainExe "$exe.exe" `
+            --icon "$assets\pepper.ico" `
+            --splashImage "$assets\pepper-splash.gif" `
+            --splashProgressColor "#B52A1F" `
+            --outputDir releases
+    }
+
+    # Velopack 1.2 names the bundle "<packId>-<channel>-Setup.exe"; publish the same
+    # bytes under the plain name the download link uses. The canonical file stays put
+    # because assets.win.json lists it.
+    Invoke-Step "Publish releases\Setup.exe" {
+        Copy-Item "releases\$PackId-win-Setup.exe" "releases\Setup.exe" -Force
+    }
+} finally {
+    Pop-Location
+}
+Write-Host "Done. Setup.exe and the update packages are in .\releases"

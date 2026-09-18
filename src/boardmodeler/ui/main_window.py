@@ -295,7 +295,7 @@ class MainWindow(QMainWindow):
         self.last_result_event: dict[str, Any] | None = None
         self.last_error_event: dict[str, Any] | None = None
 
-        self.setWindowTitle("BoardModeler")
+        self.setWindowTitle("Spice Maker")
 
         # ------------------------------------------------------------- widgets
         self.inputs = InputsPanel(self)
@@ -434,7 +434,7 @@ class MainWindow(QMainWindow):
             return False
         self._project = project
         self.inputs.set_project(project.root, project.config)
-        self.setWindowTitle(f"BoardModeler - {project.config.name} [{project.config.project_id}]")
+        self.setWindowTitle(f"Spice Maker - {project.config.name} [{project.config.project_id}]")
         self.review.set_project_dir(project.root)
         self._waveform_refs = []
         self.waveform_selector.clear()

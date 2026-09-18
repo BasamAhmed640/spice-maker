@@ -36,7 +36,9 @@ DELIVERABLE_FILES = ("MODEL_CARD.md", "example.cir", "install.md")
 _STATUS_ORDER = {"FAIL": 0, "UNKNOWN": 1, "PASS": 2, "NOT_APPLICABLE": 3}
 
 
-def _status_by_characteristic(report: HarnessReport) -> dict[str, tuple[str, str, dict[str, float | str]]]:
+def _status_by_characteristic(
+    report: HarnessReport,
+) -> dict[str, tuple[str, str, dict[str, float | str]]]:
     """``char_id -> (status, detail, measured)`` from the report's probe outcomes."""
     judged: dict[str, tuple[str, str, dict[str, float | str]]] = {}
     for outcome in report.outcomes:
@@ -344,11 +346,7 @@ def plan_install(
             shutil.copy2(source, target)
             copied.append(target)
 
-    listed = (
-        (lib_target, asy_target)
-        if user_lib
-        else (root / lib.name, root / asy.name)
-    )
+    listed = (lib_target, asy_target) if user_lib else (root / lib.name, root / asy.name)
     steps = (
         f"{lib.name} -> {listed[0]}",
         f"{asy.name} -> {listed[1]}",
@@ -408,7 +406,9 @@ def write_deliverables(
     written.append(card)
 
     example = out_dir / "example.cir"
-    example.write_text(_example_deck(subckt=subckt, model_file=model_file), encoding="utf-8", newline="\n")
+    example.write_text(
+        _example_deck(subckt=subckt, model_file=model_file), encoding="utf-8", newline="\n"
+    )
     written.append(example)
 
     for name, text in (("install.md", _install_text(part=part, subckt=subckt, lib=model_file)),):

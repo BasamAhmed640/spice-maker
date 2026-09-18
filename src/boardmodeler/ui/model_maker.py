@@ -52,6 +52,7 @@ _STATUS_COLOUR = {
     "skipped": "#aaaaaa",
 }
 
+
 class MakeModelWorker(QThread):
     """Runs ``make_model`` off the UI thread; cancellation reaches the agent process."""
 
@@ -82,12 +83,31 @@ class MakeModelWorker(QThread):
         self.finished_result.emit(result)
 
 
+def _window_title() -> str:
+    """The build's own name: a restricted catalog says whose build this is (D-015)."""
+    from boardmodeler import agent_providers
+
+    only = agent_providers.only_provider()
+    suffix = f" · {only.label} only" if only is not None else ""
+    return f"Spice Maker — IC model maker{suffix}"
+
+
+def _configured_provider() -> object:
+    """The agent provider the persisted settings ask for (this build's default otherwise)."""
+    from boardmodeler import agent_providers
+    from boardmodeler.config import load_config
+
+    config = load_config()
+    return agent_providers.by_id(config.agent_provider) or agent_providers.default_provider()
+
+
 def _agent_availability() -> tuple[bool, str]:
     """Can the agent run at all? Checked before a long run instead of after it fails."""
     try:
-        from boardmodeler.authoring.backends import BobShellBackend
+        from boardmodeler.authoring.api_backend import build_api_backend
 
-        return BobShellBackend().availability()
+        backend = build_api_backend(_configured_provider().id)
+        return backend.availability()
     except Exception as exc:  # pragma: no cover - import/config problems are reported
         return False, f"the agent backend could not be loaded: {exc}"
 
@@ -103,7 +123,7 @@ class ModelMakerWindow(QMainWindow):
 
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("BoardModeler — IC model maker")
+        self.setWindowTitle(_window_title())
         self.setFixedSize(900, 600)
         self._worker: MakeModelWorker | None = None
         self._result: object | None = None
@@ -298,6 +318,7 @@ class ModelMakerWindow(QMainWindow):
             )
             return
 
+        provider = _configured_provider()
         usable, reason = _agent_availability()
         if not usable:
             self.setup_hint.setText("no agent key — press SETUP")
@@ -305,8 +326,8 @@ class ModelMakerWindow(QMainWindow):
                 self,
                 "No agent available",
                 "Nothing was started, because the agent that writes the model is not usable "
-                f"yet:\n\n{reason}\n\nPress SETUP and store your Bob API key "
-                "(bob.ibm.com → API keys, Scope = Inference), or install Bob Shell.",
+                f"yet:\n\n{reason}\n\nPress SETUP and store your {provider.label} API key "
+                f"({provider.key_hint}), or pick another provider there.",
             )
             return
         self.setup_hint.setText("")
@@ -318,7 +339,8 @@ class ModelMakerWindow(QMainWindow):
             subckt=subckt,
             datasheet=datasheet,
             out_dir=out_dir,
-            backend_name="bob",
+            backend_name="api",
+            provider=provider.id,
         )
         self._out_dir = out_dir
         self._start(request)
@@ -416,7 +438,9 @@ class ModelMakerWindow(QMainWindow):
         for row in range(self.stages.rowCount()):
             if self.stages.item(row, 0).text() == stage:
                 self.stages.item(row, 1).setText(status)
-                self.stages.item(row, 1).setForeground(_colour(_STATUS_COLOUR.get(status, "#ffffff")))
+                self.stages.item(row, 1).setForeground(
+                    _colour(_STATUS_COLOUR.get(status, "#ffffff"))
+                )
                 self.stages.item(row, 2).setText(detail)
                 break
         else:
@@ -491,7 +515,7 @@ def _default_model_dir() -> str:
         configured = load_config().default_model_dir
     except Exception:  # pragma: no cover - a broken config must not block the window
         configured = None
-    return configured or str(Path.home() / "BoardModeler")
+    return configured or str(Path.home() / "Spice Maker")
 
 
 def _window_stylesheet() -> str:

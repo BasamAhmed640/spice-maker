@@ -1,9 +1,13 @@
 """Setup: the handful of settings that persist between sessions, on one page.
 
 Everything a model build does not need to be asked again each time lives here and only
-here: where LTspice is, the agent's API key, the folder finished models land in, the
-LTspice user library and whether the web is searched for supporting material. The main
-window carries none of it.
+here: where LTspice is, which agent provider answers the API key, the key itself, the
+folder finished models land in, the LTspice user library and whether the web is searched
+for supporting material. The main window carries none of it.
+
+The agent rows are built from :mod:`boardmodeler.agent_providers`: a build whose catalog
+holds one provider shows no provider row at all and keeps that provider's own key label,
+so a Bob-only build is this page exactly as it was.
 
 The page is sized to its content — no fixed-height frame with dead space under it.
 """
@@ -20,6 +24,7 @@ from pathlib import Path
 
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QFileDialog,
     QGridLayout,
@@ -31,12 +36,13 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from boardmodeler import agent_providers
+from boardmodeler.agent_providers import AgentProvider
 from boardmodeler.config import AppConfig, config_path, load_config, save_config
 from boardmodeler.ui.theme import CGA, RETRO_STYLESHEET
 
 __all__ = ["SetupDialog", "describe_settings", "ltspice_user_lib", "main"]
 
-_BOB_KEY_NAME = "bob_shell"
 _HINT = f"color: {CGA['bright_cyan']}; font-family: Consolas; font-size: 9pt;"
 _STATUS = f"color: {CGA['grey']}; font-family: Consolas; font-size: 9pt;"
 
@@ -47,17 +53,26 @@ def ltspice_user_lib(home: Path | None = None) -> Path:
     return base / "AppData" / "Local" / "LTspice" / "lib"
 
 
+def selected_provider(config: AppConfig) -> AgentProvider:
+    """The provider ``config`` asks for, falling back to this build's default."""
+    return agent_providers.by_id(config.agent_provider) or agent_providers.default_provider()
+
+
 def describe_settings(config: AppConfig) -> dict[str, object]:
     """The persisted settings as data, for ``boardmodeler setup --json`` and tests."""
     from boardmodeler.security.credentials import describe_credential
 
+    provider = selected_provider(config)
     return {
         "config_path": str(config_path()),
         "ltspice_path": config.ltspice.path,
         "model_dir": config.default_model_dir,
         "web_reinforcement": config.web_reinforcement,
         "ltspice_user_lib": str(ltspice_user_lib()),
-        "bob_api_key": describe_credential(_BOB_KEY_NAME),
+        "agent_provider": provider.id,
+        "agent_model": config.agent_model or provider.model,
+        "agent_api_key": describe_credential(provider.credential),
+        "accepted_providers": list(agent_providers.ids()),
     }
 
 
@@ -66,9 +81,10 @@ class SetupDialog(QDialog):
 
     def __init__(self, parent: object | None = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("BoardModeler setup")
+        self.setWindowTitle("Spice Maker setup")
         self.setStyleSheet(RETRO_STYLESHEET)
         self._config = load_config()
+        self._provider = selected_provider(self._config)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 10, 12, 10)
@@ -77,6 +93,7 @@ class SetupDialog(QDialog):
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(7)
         layout.addLayout(grid)
+        row = 0
 
         # --- LTspice ---------------------------------------------------------
         self.ltspice_edit = QLineEdit(self._resolved_ltspice())
@@ -84,47 +101,86 @@ class SetupDialog(QDialog):
         choose_exe.clicked.connect(self._choose_ltspice)
         smoke = QPushButton("RUN SMOKE TEST")
         smoke.clicked.connect(self._run_smoke)
-        grid.addWidget(QLabel("LTSPICE"), 0, 0)
-        grid.addWidget(self.ltspice_edit, 0, 1)
-        grid.addWidget(choose_exe, 0, 2)
-        grid.addWidget(smoke, 0, 3)
+        grid.addWidget(QLabel("LTSPICE"), row, 0)
+        grid.addWidget(self.ltspice_edit, row, 1)
+        grid.addWidget(choose_exe, row, 2)
+        grid.addWidget(smoke, row, 3)
+        row += 1
         self.ltspice_status = QLabel("")
         self.ltspice_status.setStyleSheet(_STATUS)
-        grid.addWidget(self.ltspice_status, 1, 1, 1, 3)
+        grid.addWidget(self.ltspice_status, row, 1, 1, 3)
+        row += 1
 
-        # --- agent key -------------------------------------------------------
+        # --- the agent: which provider, and its API key ----------------------
+        self.restricted_note: QLabel | None = None
+        only = agent_providers.only_provider()
+        if only is not None:
+            self.restricted_note = QLabel(f"This build accepts the {only.label} API only.")
+            self.restricted_note.setStyleSheet(_HINT)
+            grid.addWidget(self.restricted_note, row, 1, 1, 3)
+            row += 1
+        self.provider_combo: QComboBox | None = None
+        if len(agent_providers.CATALOG) > 1:
+            combo = QComboBox()
+            for provider in agent_providers.CATALOG:
+                combo.addItem(provider.label, provider.id)
+            combo.setCurrentIndex(max(0, combo.findData(self._provider.id)))
+            combo.currentIndexChanged.connect(self._on_provider_changed)
+            self.provider_combo = combo
+            grid.addWidget(QLabel("AGENT"), row, 0)
+            grid.addWidget(combo, row, 1, 1, 3)
+            row += 1
+
+        self.key_label = QLabel(self._provider.key_label)
         self.key_edit = QLineEdit()
         self.key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        self.key_edit.setPlaceholderText("paste your Bob API key (Scope = Inference)")
+        self.key_edit.setPlaceholderText(f"paste your {self._provider.label} API key")
         save_key = QPushButton("SAVE KEY")
         save_key.clicked.connect(self._save_key)
-        grid.addWidget(QLabel("BOB API KEY"), 2, 0)
-        grid.addWidget(self.key_edit, 2, 1)
-        grid.addWidget(save_key, 2, 2, 1, 2)
+        grid.addWidget(self.key_label, row, 0)
+        grid.addWidget(self.key_edit, row, 1)
+        grid.addWidget(save_key, row, 2, 1, 2)
+        row += 1
         self.key_status = QLabel("")
         self.key_status.setStyleSheet(_STATUS)
-        grid.addWidget(self.key_status, 3, 1, 1, 3)
-        hint = QLabel("bob.ibm.com → API keys → Scope = Inference  ·  stored in the Windows credential store")
-        hint.setStyleSheet(_HINT)
-        hint.setMaximumWidth(620)
-        grid.addWidget(hint, 4, 1, 1, 3)
+        grid.addWidget(self.key_status, row, 1, 1, 3)
+        row += 1
+        self.key_hint = QLabel("")
+        self.key_hint.setStyleSheet(_HINT)
+        self.key_hint.setMaximumWidth(620)
+        grid.addWidget(self.key_hint, row, 1, 1, 3)
+        row += 1
+        #: The model id row: only providers that take one from this application show it.
+        self.model_label = QLabel("MODEL")
+        self.model_edit = QLineEdit()
+        grid.addWidget(self.model_label, row, 0)
+        grid.addWidget(self.model_edit, row, 1, 1, 3)
 
         # --- where models go -------------------------------------------------
-        self.model_dir_edit = QLineEdit(self._config.default_model_dir or str(Path.home() / "BoardModeler"))
+        row += 1
+        self.model_dir_edit = QLineEdit(
+            self._config.default_model_dir or str(Path.home() / "Spice Maker")
+        )
         choose_dir = QPushButton("Choose…")
         choose_dir.clicked.connect(self._choose_model_dir)
-        grid.addWidget(QLabel("MODEL FOLDER"), 5, 0)
-        grid.addWidget(self.model_dir_edit, 5, 1)
-        grid.addWidget(choose_dir, 5, 2, 1, 2)
+        grid.addWidget(QLabel("MODEL FOLDER"), row, 0)
+        grid.addWidget(self.model_dir_edit, row, 1)
+        grid.addWidget(choose_dir, row, 2, 1, 2)
+        row += 1
 
         library = QLabel(str(ltspice_user_lib()))
-        library.setStyleSheet(f"color: {CGA['bright_green']}; font-family: Consolas; font-size: 9pt;")
-        grid.addWidget(QLabel("LTSPICE LIBRARY"), 6, 0)
-        grid.addWidget(library, 6, 1, 1, 3)
+        library.setStyleSheet(
+            f"color: {CGA['bright_green']}; font-family: Consolas; font-size: 9pt;"
+        )
+        grid.addWidget(QLabel("LTSPICE LIBRARY"), row, 0)
+        grid.addWidget(library, row, 1, 1, 3)
+        row += 1
 
-        self.reinforce_check = QCheckBox("search the web for supporting material while making a model")
+        self.reinforce_check = QCheckBox(
+            "search the web for supporting material while making a model"
+        )
         self.reinforce_check.setChecked(self._config.web_reinforcement)
-        grid.addWidget(self.reinforce_check, 7, 1, 1, 3)
+        grid.addWidget(self.reinforce_check, row, 1, 1, 3)
 
         # --- actions ---------------------------------------------------------
         row = QHBoxLayout()
@@ -139,6 +195,7 @@ class SetupDialog(QDialog):
         row.addWidget(close)
         layout.addLayout(row)
 
+        self._show_provider(self._provider)
         self._refresh_status()
         self.adjustSize()
         self.setFixedSize(self.size())
@@ -152,10 +209,37 @@ class SetupDialog(QDialog):
         install = locate()
         return str(install.path) if install is not None else ""
 
+    def _show_provider(self, provider: AgentProvider) -> None:
+        """Point the key and model rows at ``provider`` without touching the config."""
+        self._provider = provider
+        self.key_label.setText(provider.key_label)
+        self.key_edit.setPlaceholderText(f"paste your {provider.label} API key")
+        self.key_hint.setText(f"{provider.key_hint}\n{provider.docs}")
+        self.model_edit.setText(self._model_for(provider))
+        self.model_label.setVisible(provider.model_editable)
+        self.model_edit.setVisible(provider.model_editable)
+
+    def _model_for(self, provider: AgentProvider) -> str:
+        """The model shown for ``provider``: the stored one only if it is that provider's."""
+        stored = (self._config.agent_model or "").strip()
+        if stored and agent_providers.by_id(self._config.agent_provider) is provider:
+            return stored
+        return provider.model or ""
+
+    def _on_provider_changed(self) -> None:
+        assert self.provider_combo is not None  # only connected when the row exists
+        provider = agent_providers.by_id(self.provider_combo.currentData())
+        if provider is None:  # pragma: no cover - the combo only holds catalog ids
+            return
+        self._show_provider(provider)
+        self._refresh_status()
+        self.adjustSize()
+
     def _refresh_status(self) -> None:
         from boardmodeler.security.credentials import describe_credential
 
-        self.key_status.setText(f"stored key: {describe_credential(_BOB_KEY_NAME)}")
+        provider = self._provider
+        self.key_status.setText(f"stored key: {describe_credential(provider.credential)}")
         chosen = self._config.ltspice.path
         self.ltspice_status.setText(
             "using the path set here" if chosen else "path discovered automatically"
@@ -163,7 +247,10 @@ class SetupDialog(QDialog):
 
     def _choose_ltspice(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
-            self, "Where is LTspice.exe?", self.ltspice_edit.text() or str(Path.home()), "LTspice (*.exe)"
+            self,
+            "Where is LTspice.exe?",
+            self.ltspice_edit.text() or str(Path.home()),
+            "LTspice (*.exe)",
         )
         if path:
             self.ltspice_edit.setText(path)
@@ -205,18 +292,23 @@ class SetupDialog(QDialog):
         try:
             from boardmodeler.security.credentials import set_credential
 
-            set_credential(_BOB_KEY_NAME, value)
+            set_credential(self._provider.credential, value)
         except Exception as exc:
             QMessageBox.warning(self, "Could not store the key", str(exc))
             return
         self.key_edit.clear()
         self._refresh_status()
-        self.saved_label.setText("key stored in the Windows credential store")
+        self.saved_label.setText(
+            f"{self._provider.label} key stored in the Windows credential store"
+        )
 
     def _save(self) -> None:
         self._config.ltspice.path = self.ltspice_edit.text().strip() or None
         self._config.default_model_dir = self.model_dir_edit.text().strip() or None
         self._config.web_reinforcement = self.reinforce_check.isChecked()
+        self._config.agent_provider = self._provider.id
+        if self._provider.model_editable:
+            self._config.agent_model = self.model_edit.text().strip() or None
         try:
             path = save_config(self._config)
         except Exception as exc:
@@ -229,7 +321,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     """``boardmodeler setup`` / ``boardmodeler ui --installer`` entry point."""
     parser = argparse.ArgumentParser(
         prog="boardmodeler setup",
-        description="Persistent settings: LTspice path, agent key, model folder, web reinforcement",
+        description=(
+            "Persistent settings: LTspice path, agent provider and API key, model folder, "
+            "web reinforcement"
+        ),
     )
     parser.add_argument(
         "--json", action="store_true", help="print the resolved settings instead of a window"

@@ -28,13 +28,12 @@ a 1 MiB size cap, a content-type allowlist (``text/html``, ``text/plain``,
 host. A refusal, timeout, HTTP error or unreadable body is recorded on the
 source as a ``reason``; nothing raises out of :func:`reinforce`.
 
-When no ``candidate_provider`` is injected, the stage asks the configured agent
-backend (Bob Shell through
-:class:`~boardmodeler.authoring.backends.BobShellBackend`) for candidate URLs,
-through :func:`query_agent_backend`. The prompt forbids guessing URLs and
-demands a strict JSON reply; any reply that is not exactly the requested shape
-yields zero candidates. This module never invents a URL and never hard-codes a
-vendor URL.
+When no ``candidate_provider`` is injected, the stage asks the build's own agent
+backend (the one the author loop is using, or the configured provider when none
+was injected) for candidate URLs, through :func:`query_agent_backend`. The prompt
+forbids guessing URLs and demands a strict JSON reply; any reply that is not
+exactly the requested shape yields zero candidates. This module never invents a
+URL and never hard-codes a vendor URL.
 
 Report file (``<out_dir>/spec/supporting.json``, UTF-8, LF, indent 2, keys
 sorted)::
@@ -89,13 +88,16 @@ from datetime import UTC, datetime
 from functools import partial
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from pypdf import PdfReader
 
 from boardmodeler.authoring.probes import PROBES
 from boardmodeler.domain.hashing import sha256_bytes
+
+if TYPE_CHECKING:  # the backends module imports nothing from here, but keep it lazy
+    from boardmodeler.authoring.backends import AuthorBackend
 
 __all__ = [
     "FetchRefused",
@@ -451,18 +453,26 @@ def _fetch(
     except Exception as exc:
         return None, None, _reason_for(exc)
     if not isinstance(result, (tuple, list)) or len(result) != 2:
-        return None, None, (
-            "fetcher_contract: expected a (bytes, content_type) pair, got "
-            f"{type(result).__name__}"
+        return (
+            None,
+            None,
+            (
+                "fetcher_contract: expected a (bytes, content_type) pair, got "
+                f"{type(result).__name__}"
+            ),
         )
     data, content_type = result
     if not isinstance(data, bytes):
         return None, None, f"fetcher_contract: payload is {type(data).__name__}, expected bytes"
     media_type = _media_type(content_type)
     if media_type not in _ACCEPTED_CONTENT_TYPES:
-        return None, None, (
-            f"content_type_refused: {media_type!r} (accepted: "
-            "text/html, text/plain, application/pdf)"
+        return (
+            None,
+            None,
+            (
+                f"content_type_refused: {media_type!r} (accepted: "
+                "text/html, text/plain, application/pdf)"
+            ),
         )
     return data, media_type, None
 
@@ -675,30 +685,48 @@ def query_agent_backend(
     prompt: str,
     workdir: Path,
     *,
+    backend: AuthorBackend | None = None,
     cancel: threading.Event | None = None,
     timeout_s: float | None = None,
 ) -> tuple[str, str]:
-    """One read-only turn of the configured agent backend: ``(reply, note)``.
+    """One read-only turn of the agent backend: ``(reply, note)``.
+
+    ``backend`` is the build's own backend, so the search runs on the same agent
+    the author loop uses; without one the configured provider is built through
+    :func:`~boardmodeler.authoring.api_backend.build_api_backend` (the catalog's
+    default provider when nothing is configured). The turn is a text turn
+    (``expect_text``): it must not write a file, and the answer is returned as it
+    was given.
 
     ``note`` is empty when the backend produced text, otherwise it names why no
     turn could be made (``agent_backend_unavailable: ...``). ``cancel`` is the
     build's cancellation event, threaded to the backend so a CANCEL stops a hung
-    agent; ``timeout_s`` bounds this one invocation when the search has a budget.
-    The credential is handled by the backend itself and never appears here. Never
-    raises; a callable seam so tests can answer without any agent, network or
-    credential.
+    agent; ``timeout_s`` bounds this one invocation when the search has a budget
+    (a default is used when the budget is unbounded, because one HTTP request
+    still needs an upper bound). The credential is handled by the backend itself
+    and never appears here. Never raises; a callable seam so tests can answer
+    without any agent, network or credential.
     """
     try:
-        from boardmodeler.authoring.backends import AuthorRequest, BobShellBackend
+        from boardmodeler.authoring.backends import AuthorRequest
 
-        backend = BobShellBackend(timeout_s=timeout_s)
-        usable, reason = backend.availability()
+        chosen = backend
+        if chosen is None:
+            from boardmodeler.authoring.api_backend import DEFAULT_TIMEOUT_S, build_api_backend
+
+            limit = DEFAULT_TIMEOUT_S if timeout_s is None else float(timeout_s)
+            chosen = build_api_backend(timeout_s=limit)
+        usable, reason = chosen.availability()
         if not usable:
             return "", f"agent_backend_unavailable: {reason}"
         request = AuthorRequest(
-            prompt=prompt, workdir=Path(workdir), model_dir=Path(workdir), max_turns=1
+            prompt=prompt,
+            workdir=Path(workdir),
+            model_dir=Path(workdir),
+            max_turns=1,
+            expect_text=True,
         )
-        result = backend.author(request, cancel)
+        result = chosen.author(request, cancel)
         if not result.ok:
             return "", f"agent_backend_failed: {result.detail}"
         if not result.stdout_tail.strip():
@@ -794,11 +822,9 @@ def _prior_retrievals(out_dir: Path) -> dict[str, SourceRecord]:
     path = out_dir / _SPEC_DIR / _SUPPORTING_FILENAME
     try:
         previous = ReinforcementReport.from_json(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError, KeyError, TypeError):
+    except OSError, ValueError, KeyError, TypeError:
         return {}
-    return {
-        record.url: record for record in previous.sources if record.retrieved and record.sha256
-    }
+    return {record.url: record for record in previous.sources if record.retrieved and record.sha256}
 
 
 def _write_report(out_dir: Path, text: str) -> Path:
@@ -813,6 +839,7 @@ def reinforce(
     part: str,
     spec_digest: str,
     out_dir: Path,
+    backend: AuthorBackend | None = None,
     candidate_provider: Callable[[str], Sequence[tuple[str, str]]] | None = None,
     fetcher: Callable[[str], tuple[bytes, str]] | None = None,
     enabled: bool = True,
@@ -824,7 +851,9 @@ def reinforce(
     """Find supporting sources around a model build and record what was retrieved.
 
     Writes ``<out_dir>/spec/supporting.json`` (indent 2, sorted keys, LF) and
-    returns the same report. ``timeout_s`` bounds the whole search (``None``
+    returns the same report. ``backend`` is the build's own author backend — the
+    search then runs on the agent the author loop uses; without it the configured
+    provider is built. ``timeout_s`` bounds the whole search (``None``
     leaves it unbounded); when it expires the stage is ``unavailable`` with a
     reason naming the budget and the build continues. ``cancel`` is the build's
     cancellation event, passed to the candidate agent turn. Statuses:
@@ -888,6 +917,7 @@ def reinforce(
             reply, note = query_agent_backend(
                 build_candidate_prompt(part, max_sources),
                 Path(scratch),
+                backend=backend,
                 cancel=cancel,
                 timeout_s=budget_left(),
             )

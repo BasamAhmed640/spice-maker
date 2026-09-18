@@ -14,7 +14,7 @@ pytestmark = pytest.mark.gui
 def test_build_application_is_a_singleton(qapp) -> None:
     app = build_application(["boardmodeler"])
     assert app is build_application(["boardmodeler"])
-    assert app.applicationName() == "BoardModeler"
+    assert app.applicationName() == "Spice Maker"
 
 
 def test_main_opens_the_window_for_a_project(qapp, tmp_path: Path) -> None:

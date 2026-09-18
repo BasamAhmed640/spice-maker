@@ -106,8 +106,17 @@ def test_a_successful_run_fills_the_stage_and_row_tables(qtbot, tmp_path, monkey
         lib_path=tmp_path / "TPS54320.lib",
         asy_path=tmp_path / "TPS54320.asy",
         rows=(
-            _Row("REQ_1", "UVLO rising 4.0-4.5 V", "min 4 / max 4.5 V", "vin_uvlo_rise=4.21 V", "PASS", 4),
-            _Row("REQ_2", "Output current 0-3 A", "min 0 / max 3 A", "i_out_limit=3.4 A", "FAIL", 3),
+            _Row(
+                "REQ_1",
+                "UVLO rising 4.0-4.5 V",
+                "min 4 / max 4.5 V",
+                "vin_uvlo_rise=4.21 V",
+                "PASS",
+                4,
+            ),
+            _Row(
+                "REQ_2", "Output current 0-3 A", "min 0 / max 3 A", "i_out_limit=3.4 A", "FAIL", 3
+            ),
             _Row("REQ_3", "Thermal shutdown", "no simulation probe", "-", "NOT_APPLICABLE", 9),
         ),
         counts={"PASS": 1, "FAIL": 1, "NOT_APPLICABLE": 1},
@@ -117,6 +126,11 @@ def test_a_successful_run_fills_the_stage_and_row_tables(qtbot, tmp_path, monkey
     )
     monkeypatch.setattr(
         "boardmodeler.ui.model_maker._agent_availability", lambda: (True, "test agent")
+    )
+    from boardmodeler import agent_providers
+
+    monkeypatch.setattr(
+        "boardmodeler.ui.model_maker._configured_provider", agent_providers.default_provider
     )
 
     from boardmodeler.ui.model_maker import ModelMakerWindow
@@ -133,9 +147,13 @@ def test_a_successful_run_fills_the_stage_and_row_tables(qtbot, tmp_path, monkey
     qtbot.waitUntil(lambda: window._result is not None, timeout=10_000)
 
     assert calls and calls[0].part == "TPS54320" and calls[0].subckt == "TPS54320"
-    assert calls[0].backend_name == "bob"
+    assert calls[0].backend_name == "api"
+    assert calls[0].provider == "bob"
 
-    stages = {window.stages.item(r, 0).text(): window.stages.item(r, 1).text() for r in range(window.stages.rowCount())}
+    stages = {
+        window.stages.item(r, 0).text(): window.stages.item(r, 1).text()
+        for r in range(window.stages.rowCount())
+    }
     assert {"read", "extract", "bind", "author", "judge", "save"} <= set(stages)
     assert window.stages.rowCount() == 6
 
@@ -199,9 +217,7 @@ def test_missing_inputs_never_start_a_run(qtbot, tmp_path, monkeypatch) -> None:
 
     window = ModelMakerWindow()
     qtbot.addWidget(window)
-    monkeypatch.setattr(
-        "PySide6.QtWidgets.QMessageBox.warning", lambda *a, **k: None, raising=True
-    )
+    monkeypatch.setattr("PySide6.QtWidgets.QMessageBox.warning", lambda *a, **k: None, raising=True)
 
     window.part_edit.setText("")
     window.go_button.click()  # no part number

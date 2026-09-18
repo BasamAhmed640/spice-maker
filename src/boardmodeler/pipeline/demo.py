@@ -1953,9 +1953,7 @@ def _perturbs_a_rail_inside_the_window(deck_text: str) -> bool:
     return False
 
 
-def _transient_sensitive_requirements(
-    neutral: NeutralProject, case: TestCase
-) -> dict[str, str]:
+def _transient_sensitive_requirements(neutral: NeutralProject, case: TestCase) -> dict[str, str]:
     """Requirements whose verdict that *case* cannot support on this model.
 
     A scenario that moves a rail inside the requirement's window asks for the model's
@@ -1970,14 +1968,16 @@ def _transient_sensitive_requirements(
     because a strap held up by a rail follows that rail when it moves.
     """
     bound = set(case.requirement_ids)
-    sensitive = [rid for rid in (RAIL_WINDOW_REQUIREMENT, STRAP_STABILITY_REQUIREMENT) if rid in bound]
+    sensitive = [
+        rid for rid in (RAIL_WINDOW_REQUIREMENT, STRAP_STABILITY_REQUIREMENT) if rid in bound
+    ]
     if not sensitive:
         return {}
     try:
         deck_text = deck_for_scenario(neutral, case.scenario_id, out=neutral.root).render(
             neutral.root
         )
-    except (KeyError, ValueError):
+    except KeyError, ValueError:
         return {}
     if not _perturbs_a_rail_inside_the_window(deck_text):
         return {}

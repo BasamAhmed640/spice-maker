@@ -703,9 +703,7 @@ def build_model(request: BuildRequest, cancel: threading.Event | None = None) ->
         progressed = _digest(path) != before and (previous is None or signature != previous)
         stalled = 0 if progressed else stalled + 1
         history.append(
-            _turn_line(
-                turn, progressed=progressed, report=report, timed_out=timed_out, note=note
-            )
+            _turn_line(turn, progressed=progressed, report=report, timed_out=timed_out, note=note)
         )
         if report.outcomes and report.passed():
             return _outcome(

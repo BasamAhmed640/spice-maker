@@ -38,9 +38,7 @@ def _sample(window, widget, *, dx: int = 12) -> tuple[tuple[int, int, int], tupl
     # geometry() is relative to the central widget; map to the window
     top_left = widget.mapTo(window, widget.rect().topLeft())
     background = image.pixelColor(top_left.x() + dx, top_left.y() + rect.height() // 2)
-    centre = image.pixelColor(
-        top_left.x() + rect.width() // 2, top_left.y() + rect.height() // 2
-    )
+    centre = image.pixelColor(top_left.x() + rect.width() // 2, top_left.y() + rect.height() // 2)
     return (
         (background.red(), background.green(), background.blue()),
         (centre.red(), centre.green(), centre.blue()),

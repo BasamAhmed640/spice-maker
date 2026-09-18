@@ -151,3 +151,79 @@ def test_the_ltspice_library_is_shown_read_only(dialog) -> None:
         if str(ltspice_user_lib()) in child.text()
     ]
     assert shown, "the LTspice user library path must be visible"
+
+
+def test_choosing_a_provider_points_the_key_row_at_its_own_credential(
+    dialog, isolated_config: Path, monkeypatch
+) -> None:
+    """The key row follows the provider row: label, model default and stored name."""
+    stored: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        "boardmodeler.security.credentials.set_credential",
+        lambda name, value: stored.append((name, value)),
+    )
+    assert dialog.provider_combo is not None
+    assert dialog.restricted_note is None, "a build with a choice must not claim to be restricted"
+    ids = [dialog.provider_combo.itemData(i) for i in range(dialog.provider_combo.count())]
+    assert ids[0] == "bob"
+    assert dialog.key_label.text() == "BOB API KEY"
+    assert dialog.model_edit.isVisible() is False, "Bob's CLI picks its own model"
+
+    dialog.provider_combo.setCurrentIndex(ids.index("openai"))
+    assert dialog.key_label.text() == "OPENAI API KEY"
+    assert dialog.model_edit.isVisible() is True
+    assert dialog.model_edit.text()
+
+    dialog.key_edit.setText(SECRET)
+    dialog._save_key()
+    dialog._save()
+
+    assert stored == [("openai", SECRET)]
+    saved = json.loads(isolated_config.read_text(encoding="utf-8"))
+    assert saved["agent_provider"] == "openai"
+    assert saved["agent_model"] == dialog.model_edit.text()
+    assert SECRET not in isolated_config.read_text(encoding="utf-8")
+
+
+def test_a_single_provider_catalog_keeps_the_bob_only_page(
+    qtbot, isolated_config: Path, monkeypatch
+) -> None:
+    """The Bob-only build is one catalog entry away: no provider row, Bob's own label."""
+    from boardmodeler import agent_providers
+
+    bob = agent_providers.by_id("bob")
+    assert bob is not None
+    monkeypatch.setattr(agent_providers, "CATALOG", (bob,))
+
+    from boardmodeler.ui.setup_dialog import SetupDialog
+
+    page = SetupDialog()
+    qtbot.addWidget(page)
+    page.show()
+    qtbot.waitExposed(page)
+
+    assert page.provider_combo is None
+    assert page.key_label.text() == "BOB API KEY"
+    assert page.model_edit.isVisible() is False
+    assert page.restricted_note is not None
+    assert "IBM Bob API only" in page.restricted_note.text()
+    assert page.height() == page.sizeHint().height()
+    assert page.width() == page.sizeHint().width()
+
+    from boardmodeler.ui.model_maker import ModelMakerWindow
+
+    window = ModelMakerWindow()
+    qtbot.addWidget(window)
+    assert window.windowTitle().endswith("· IBM Bob only")
+
+
+def test_an_unknown_provider_in_the_config_falls_back_to_bob(dialog, isolated_config: Path) -> None:
+    """A hand-edited config naming a provider this build lacks must not break the page."""
+    from boardmodeler.config import load_config
+    from boardmodeler.ui.setup_dialog import describe_settings, selected_provider
+
+    config = load_config(isolated_config)
+    config.agent_provider = "not-a-provider"
+    described = describe_settings(config)
+    assert described["agent_provider"] == "bob"
+    assert selected_provider(config).id == "bob"
