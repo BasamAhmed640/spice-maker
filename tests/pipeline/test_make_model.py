@@ -665,11 +665,11 @@ def test_extraction_is_cached_by_content_hash_so_a_second_run_makes_zero_calls(
 
 
 # --------------------------------------------------------------------------- #
-# time boxing: one agent turn is bounded, the verification never is
+# stopping on progress: no cap, no deadline, one turn bound if the caller sets one
 
 
 def _canned_report(spec, outcome_char: str, *, status: str = "FAIL"):
-    """One harness report with a single judged probe, for deadline/exit tests."""
+    """One harness report with a single judged probe, for the stopping-rule tests."""
     from boardmodeler.authoring.harness import HarnessReport, ProbeOutcome
 
     probe = spec.by_id(outcome_char).probe
@@ -693,24 +693,24 @@ def _canned_report(spec, outcome_char: str, *, status: str = "FAIL"):
     )
 
 
-def test_the_deadline_is_checked_between_turns_and_keeps_the_measured_rows(
+def test_a_stalled_agent_stops_the_build_and_keeps_the_measured_rows(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """A turn that outlives the deadline finishes; the *next* turn is not started.
+    """An agent that repeats itself ends the build: no cap, no deadline, no clock.
 
-    No LTspice is involved: the harness is a canned report (the same seam the
-    author-loop tests use), so this pins the boundary behaviour, not the
-    simulator.
+    The scripted agent writes the same bytes every turn and the canned harness
+    reports the same failure, so turn 1 is progress and turns 2-3 are not. The
+    build must stop as UNKNOWN naming the stall and the probe, keep the measured
+    row, and never claim a verdict the simulator did not produce. No LTspice is
+    involved: the harness is the same canned-report seam the author-loop tests
+    use, so this pins the stopping rule, not the simulator.
     """
     from boardmodeler.authoring import loop as loop_module
 
-    now = [1000.0]
-    monkeypatch.setattr(engine, "_NOW", lambda: now[0])
     reports = []
 
     def canned_harness(*, model_lib, subckt, spec, workdir, ltspice, timeout_s=120.0, cancel=None):
-        del model_lib, workdir, ltspice, timeout_s
-        assert not (cancel is not None and cancel.is_set()), "the deadline must not reach a run"
+        del model_lib, workdir, ltspice, timeout_s, cancel
         report = _canned_report(spec, VREF_ID)
         reports.append(report)
         return report
@@ -721,44 +721,53 @@ def test_the_deadline_is_checked_between_turns_and_keeps_the_measured_rows(
     def script(turn: int, workdir: Path, prompt: str) -> None:
         model_dir = workdir / "model"
         model_dir.mkdir(parents=True, exist_ok=True)
-        buck_library(model_dir / f"{SUBCKT}.lib")
-        now[0] += 60.0  # the turn takes longer than the whole deadline
+        buck_library(model_dir / f"{SUBCKT}.lib")  # the same wrong model, every turn
 
     backend = use_backend(monkeypatch, ScriptedBackend(script))
-    result, events, _wall = run(tmp_path, deadline_s=10.0, max_iterations=3)
+    result, events, _wall = run(tmp_path)  # no max_iterations: there is no cap
 
-    assert backend.turns == 1, "the turn in flight was allowed to finish"
+    assert backend.turns == 3, "one turn that moved, then two that changed nothing"
     assert result.status == "UNKNOWN"
-    assert "deadline_exceeded" in result.detail and "turn 2" in result.detail
-    # The harness ran to completion (one full report) and its row survives.
-    assert len(reports) == 1
-    assert [event.counts["turn"] for event in judge_events(events)] == [1]
+    assert "stopped making progress" in result.detail
+    assert "3 turn(s)" in result.detail and "vref" in result.detail
+    assert len(reports) == 3
+    assert [event.counts["turn"] for event in judge_events(events)] == [1, 2, 3]
     failed = next(row for row in result.rows if row.req_id == VREF_ID)
     assert failed.status == "FAIL" and failed.measured == "v_fb = 0.5 V"
     assert result.counts["FAIL"] == 1
 
 
-def test_a_deadline_already_past_stops_before_the_first_turn(
+def test_a_capped_run_with_every_row_measured_wrong_is_fail(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    ticks = {"n": 0}
+    """The cap is checked before the stall, so a capped all-FAIL run keeps its FAIL.
 
-    def clock() -> float:
-        # The first read starts the clock; every later read is past the deadline.
-        ticks["n"] += 1
-        return 1000.0 if ticks["n"] == 1 else 1100.0
+    The canned harness fails the reference row every turn and reports no UNKNOWN,
+    so the cap is reached with every bound row fully judged — the one case the
+    status ladder calls ``FAIL`` rather than ``UNKNOWN``.
+    """
+    from boardmodeler.authoring import loop as loop_module
 
-    monkeypatch.setattr(engine, "_NOW", clock)
+    def canned_harness(*, model_lib, subckt, spec, workdir, ltspice, timeout_s=120.0, cancel=None):
+        del model_lib, workdir, ltspice, timeout_s, cancel
+        return _canned_report(spec, VREF_ID)
+
+    monkeypatch.setattr(loop_module, "run_harness", canned_harness)
     monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
-    backend = use_backend(monkeypatch, ScriptedBackend(template_script()))
 
-    result, events, _wall = run(tmp_path, deadline_s=1.0)
+    def script(turn: int, workdir: Path, prompt: str) -> None:
+        model_dir = workdir / "model"
+        model_dir.mkdir(parents=True, exist_ok=True)
+        buck_library(model_dir / f"{SUBCKT}.lib")  # unchanging bytes, and no progress
 
-    assert result.status == "UNKNOWN"
-    assert "deadline_exceeded" in result.detail
-    assert backend.turns == 0
-    assert judge_events(events) == []
-    assert sum(row.status == "UNKNOWN" for row in result.rows) == 9
+    use_backend(monkeypatch, ScriptedBackend(script))
+    result, _events, _wall = run(tmp_path, max_iterations=2)
+
+    assert result.status == "FAIL", result.detail
+    assert "outside the datasheet limits" in result.detail and "vref" in result.detail
+    assert result.counts["FAIL"] == 1 and result.counts["UNKNOWN"] == 0
+    failed = next(row for row in result.rows if row.req_id == VREF_ID)
+    assert failed.status == "FAIL" and failed.measured == "v_fb = 0.5 V"
 
 
 def test_the_bob_backend_receives_the_turn_timeout(tmp_path: Path) -> None:
@@ -770,29 +779,44 @@ def test_the_bob_backend_receives_the_turn_timeout(tmp_path: Path) -> None:
     assert backend.timeout_s == 42.5
     assert backend.team_id == "team-9"
 
+    # The default is no per-turn limit at all: the agent runs until it is done.
+    unlimited = engine.build_backend(make_request(tmp_path, backend_name="bob"))
+    assert isinstance(unlimited, BobShellBackend)
+    assert unlimited.timeout_s is None
 
-def test_the_saved_result_round_trips_including_the_timeouts(tmp_path: Path) -> None:
+
+def test_the_saved_result_round_trips_including_the_turn_bounds(tmp_path: Path) -> None:
     from boardmodeler.pipeline.make_model import MakeModelResult
 
-    request = make_request(tmp_path, turn_timeout_s=42.5, deadline_s=99.0)
-    result = MakeModelResult(
-        status="UNKNOWN",
-        detail="d",
-        part=PART,
-        out_dir=tmp_path,
-        card_path=None,
-        lib_path=None,
-        asy_path=None,
-        rows=(),
-        counts={"PASS": 0},
-        stages=(),
-        request=request,
-    )
+    def saved(request):
+        return MakeModelResult(
+            status="UNKNOWN",
+            detail="d",
+            part=PART,
+            out_dir=tmp_path,
+            card_path=None,
+            lib_path=None,
+            asy_path=None,
+            rows=(),
+            counts={"PASS": 0},
+            stages=(),
+            request=request,
+        )
+
+    request = make_request(tmp_path, turn_timeout_s=42.5, max_iterations=5, stall_patience=3)
+    result = saved(request)
     restored = MakeModelResult.from_json(result.to_json())
     assert restored == result
     assert restored.request is not None
     assert restored.request.turn_timeout_s == 42.5
-    assert restored.request.deadline_s == 99.0
+    assert restored.request.max_iterations == 5
+    assert restored.request.stall_patience == 3
+
+    uncapped = MakeModelResult.from_json(saved(make_request(tmp_path)).to_json())
+    assert uncapped.request is not None
+    assert uncapped.request.max_iterations is None
+    assert uncapped.request.turn_timeout_s is None
+    assert uncapped.request.stall_patience == 2
 
 
 # --------------------------------------------------------------------------- #
@@ -832,5 +856,9 @@ def test_an_unsanitized_subcircuit_name_is_a_programming_error(tmp_path: Path) -
         make_model(make_request(tmp_path, subckt="2N7000-BUCK"))
     with pytest.raises(ValueError, match="max_iterations"):
         make_model(make_request(tmp_path, max_iterations=0))
+    with pytest.raises(ValueError, match="stall_patience"):
+        make_model(make_request(tmp_path, stall_patience=0))
     with pytest.raises(ValueError, match="timeout_s"):
         make_model(make_request(tmp_path, timeout_s=0.0))
+    with pytest.raises(ValueError, match="turn_timeout_s"):
+        make_model(make_request(tmp_path, turn_timeout_s=0.0))

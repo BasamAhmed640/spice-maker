@@ -256,6 +256,11 @@ class BobShellBackend:
     The credential is looked up through the repo helpers first (keyring entry,
     then ``BOARDMODELER_BOB_SHELL_API_KEY``) and then as a plain ``BOB_API_KEY``
     environment variable. It is only ever placed in the child *environment*.
+
+    ``timeout_s`` is ``None`` by default: the agent runs until it is done and the
+    build stops on its own progress rule instead of a clock. A caller that wants
+    one invocation bounded passes a positive number, and the runner's timeout
+    path applies exactly as before.
     """
 
     name = BOB_CREDENTIAL_NAME
@@ -266,14 +271,14 @@ class BobShellBackend:
         team_id: str | None = None,
         env: Mapping[str, str] | None = None,
         runner: ProcessRunner | None = None,
-        timeout_s: float = 900.0,
+        timeout_s: float | None = None,
     ) -> None:
-        if timeout_s <= 0:
-            raise ValueError(f"timeout_s must be > 0, got {timeout_s}")
+        if timeout_s is not None and timeout_s <= 0:
+            raise ValueError(f"timeout_s must be > 0 or None, got {timeout_s}")
         self.team_id = team_id
         self.env = dict(env) if env is not None else None
         self.runner: ProcessRunner = runner if runner is not None else run_bob_shell
-        self.timeout_s = float(timeout_s)
+        self.timeout_s = None if timeout_s is None else float(timeout_s)
 
     # ------------------------------------------------------------- contract
 
@@ -316,11 +321,14 @@ class BobShellBackend:
         argv = self.argv(request)
         child_env = dict(self.env if self.env is not None else os.environ)
         child_env[BOB_API_KEY_ENV] = key
+        # The runner takes a number, and an infinite deadline is one that never
+        # arrives — that is what ``timeout_s=None`` (no limit) means here.
+        timeout_s = float("inf") if self.timeout_s is None else self.timeout_s
         try:
             process = self.runner(
                 argv,
                 cwd=Path(request.workdir),
-                timeout_s=self.timeout_s,
+                timeout_s=timeout_s,
                 env=child_env,
                 cancel=cancel,
             )
@@ -329,13 +337,13 @@ class BobShellBackend:
 
         tail = stdout_tail(process.stdout, secrets=[key])
         if process.timed_out:
-            return AuthorResult(
-                ok=False,
-                detail=(f"bob_shell_timeout: bob run did not finish within {self.timeout_s:g} s"),
-                usage={},
-                stdout_tail=tail,
-                session_id=None,
+            detail = (
+                "bob_shell_timeout: bob run was stopped by its runner, but no turn timeout "
+                "is configured"
+                if self.timeout_s is None
+                else f"bob_shell_timeout: bob run did not finish within {self.timeout_s:g} s"
             )
+            return AuthorResult(ok=False, detail=detail, usage={}, stdout_tail=tail, session_id=None)
         if cancel is not None and cancel.is_set():
             return AuthorResult(
                 ok=False,

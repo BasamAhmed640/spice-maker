@@ -1,4 +1,4 @@
-"""The author loop: fail-then-pass, tampering, the iteration cap, and BLOCKED.
+"""The author loop: fail-then-pass, tampering, the cap, stalls, and BLOCKED.
 
 ``spec.py``/``harness.py`` are authored in parallel. When they have not landed
 yet this module installs contract-shaped stand-ins in ``sys.modules`` so the loop
@@ -6,6 +6,10 @@ is provable on its own; when they have landed the real classes are used. Either
 way ``run_harness`` is monkeypatched with a deterministic double, because what is
 under test here is the loop's contract (when it runs the harness, when it stops,
 and what it reports), not LTspice.
+
+The stop conditions are satisfaction and progress: ``max_iterations`` is ``None``
+by default, and an agent that repeats itself ends the build through
+``stall_patience`` instead of through a clock.
 """
 
 from __future__ import annotations
@@ -13,13 +17,14 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+import re
 import sys
 import threading
 import types
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from boardmodeler.authoring.backends import ScriptedBackend
+from boardmodeler.authoring.backends import AuthorResult, ScriptedBackend
 from boardmodeler.domain.hashing import canonical_json_bytes, sha256_file
 
 PART = "TPS54320"
@@ -235,6 +240,18 @@ def probe_id() -> str:
     return next(iter(PROBES), "uvlo_rise")
 
 
+def probe_ids(count: int) -> tuple[str, ...]:
+    """``count`` distinct probe ids the registry knows (deterministic, first-seen)."""
+    try:
+        from boardmodeler.authoring.probes import PROBES
+    except Exception:  # pragma: no cover - the registry ships with the harness
+        PROBES = {}  # type: ignore[assignment]
+    known = tuple(str(name) for name in PROBES)
+    if len(known) >= count:
+        return known[:count]
+    return tuple(f"probe_{index + 1}" for index in range(count))
+
+
 def build_spec(probe: str | None = None) -> SpecSet:
     probed = characteristic(probe=probe or probe_id())
     uncovered = characteristic(
@@ -336,7 +353,9 @@ def make_request(
     spec: SpecSet,
     backend: object,
     *,
-    max_iterations: int = 4,
+    max_iterations: int | None = None,
+    stall_patience: int = 2,
+    turn_timeout_s: float | None = None,
     workdir: Path | None = None,
 ) -> object:
     return loop.BuildRequest(
@@ -347,6 +366,8 @@ def make_request(
         ltspice=tmp_path / "LTspice.exe",
         backend=backend,
         max_iterations=max_iterations,
+        stall_patience=stall_patience,
+        turn_timeout_s=turn_timeout_s,
         timeout_s=TIMEOUT_S,
     )
 
@@ -387,10 +408,8 @@ def test_fail_then_pass_reaches_pass_on_turn_two(monkeypatch, tmp_path: Path) ->
     assert outcome.iterations == 2
     assert [entry.status for entry in outcome.report.outcomes] == ["PASS"]
     assert len(outcome.history) == 2
-    assert outcome.history[0].startswith("turn 1: scripted turn 1; harness")
-    assert probe in outcome.history[0]
-    assert "FAIL" in outcome.history[0]
-    assert outcome.history[1].startswith("turn 2: scripted turn 2; harness")
+    assert outcome.history[0] == f"turn 1: progress; failing {probe}"
+    assert outcome.history[1] == "turn 2: progress; failing none"
 
     assert len(double.calls) == 2
     assert double.calls[0]["model_lib"] == workdir / "model" / f"{SUBCKT}.lib"
@@ -453,6 +472,11 @@ def test_tampering_with_the_frozen_spec_aborts_before_any_simulation(
 def test_the_iteration_cap_is_unknown_and_names_the_failing_probe(
     monkeypatch, tmp_path: Path
 ) -> None:
+    """A capped build stops at the cap even when the agent is also not progressing.
+
+    The caller's ``max_iterations`` is checked before the stall rule, so an
+    explicit budget is always the reason that is reported for a capped run.
+    """
     probe = probe_id()
     spec = build_spec(probe)
     workdir = tmp_path / "build"
@@ -473,6 +497,10 @@ def test_the_iteration_cap_is_unknown_and_names_the_failing_probe(
     assert outcome.iterations == 3
     assert len(double.calls) == 3
     assert len(outcome.history) == 3
+    assert outcome.history[0] == f"turn 1: progress; failing {probe}"
+    assert outcome.history[1] == f"turn 2: no progress; failing {probe}"
+    assert outcome.history[2] == f"turn 3: no progress; failing {probe}"
+    assert loop.STALLED_PREFIX not in outcome.detail, "the caller's cap is the reason here"
     assert probe in outcome.detail
     assert "FAIL" in outcome.detail
     assert "max_iterations=3" in outcome.detail
@@ -482,6 +510,285 @@ def test_the_iteration_cap_is_unknown_and_names_the_failing_probe(
     assert double.reports[0].feedback() in prompts[1]
     assert double.reports[0].feedback() in prompts[2]
     assert double.reports[1].feedback() in prompts[2]
+
+
+# ---------------------------------------- progress-based stopping (no clock)
+
+FIVE = probe_ids(5)
+
+
+def turn_of(text: str) -> int:
+    """The turn number a scripted agent stamped into the model, for verdict functions."""
+    found = re.findall(r"turn (\d+)", text)
+    return int(found[-1]) if found else 0
+
+
+class RevisionHarness:
+    """A ``run_harness`` double whose report is a function of the model text.
+
+    ``verdict(text)`` is the whole outcome list as ``(probe_id, status)`` pairs,
+    so a test can make the failing set shrink, change, or repeat exactly as it
+    needs. Every outcome carries a char id, which is what the real
+    ``HarnessReport.passed`` requires before it will call a report a pass.
+    """
+
+    def __init__(self, verdict, spec) -> None:
+        self.verdict = verdict
+        self.spec = spec
+        self.calls: list[dict[str, object]] = []
+        self.reports: list[HarnessReport] = []
+
+    def __call__(
+        self,
+        *,
+        model_lib,
+        subckt: str,
+        spec,
+        workdir,
+        ltspice,
+        timeout_s: float = 120.0,
+        cancel: threading.Event | None = None,
+    ) -> HarnessReport:
+        path = Path(model_lib)
+        text = path.read_text(encoding="utf-8")
+        outcomes = tuple(
+            ProbeOutcome(
+                probe_id=name,
+                status=status,
+                measured={"measured_v": 1.0},
+                detail=f"{name} measured 1.0 V: {status}",
+                unknown_reason=None,
+                run_dir=str(Path(workdir) / name),
+                char_ids=(CHAR_ID,),
+            )
+            for name, status in self.verdict(text)
+        )
+        self.calls.append({"model_lib": path, "subckt": subckt, "text": text, "cancel": cancel})
+        report = HarnessReport(
+            part=spec.part,
+            model_sha256=sha256_file(path),
+            spec_digest=spec.digest(),
+            outcomes=outcomes,
+        )
+        self.reports.append(report)
+        return report
+
+
+def test_no_hidden_cap_an_agent_that_improves_six_times_reaches_pass(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Six improving turns end in PASS: ``max_iterations=None`` is not a cap in disguise.
+
+    Each turn fixes one more probe, so the failing set shrinks every turn and the
+    loop keeps going well past any implicit budget until the harness passes.
+    """
+    spec = build_spec(FIVE[0])
+    workdir = tmp_path / "build"
+    loop.prepare_workdir(spec=spec, subckt=SUBCKT, workdir=workdir)
+
+    def verdict(text: str) -> tuple[tuple[str, str], ...]:
+        fixed = turn_of(text) - 1  # turn n has fixed the first n-1 probes
+        return tuple(
+            (name, "PASS" if index < fixed else "FAIL") for index, name in enumerate(FIVE)
+        )
+
+    double = RevisionHarness(verdict, spec)
+    monkeypatch.setattr(loop, "run_harness", double)
+
+    def script(turn: int, path: Path, prompt: str) -> None:
+        write_model(path, f"* turn {turn}\n")
+
+    outcome = loop.build_model(make_request(tmp_path, spec, ScriptedBackend(script)), None)
+
+    assert outcome.status == "PASS", (outcome.detail, outcome.history)
+    assert outcome.iterations == 6
+    assert len(double.calls) == 6
+    assert len(outcome.history) == 6
+    for turn, line in enumerate(outcome.history, start=1):
+        assert line.startswith(f"turn {turn}: progress; failing "), line
+        assert "no progress" not in line
+    assert outcome.history[-1] == "turn 6: progress; failing none"
+    assert outcome.report is double.reports[-1]
+    assert outcome.report.passed() is True
+
+
+def test_a_repeating_agent_stops_after_stall_patience_no_progress_turns(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Byte-identical model text every turn: two no-progress turns and the loop stops."""
+    spec = build_spec(FIVE[0])
+    workdir = tmp_path / "build"
+    loop.prepare_workdir(spec=spec, subckt=SUBCKT, workdir=workdir)
+    double = RevisionHarness(lambda text: ((FIVE[0], "FAIL"),), spec)
+    monkeypatch.setattr(loop, "run_harness", double)
+
+    def script(turn: int, path: Path, prompt: str) -> None:
+        write_model(path, "* the same wrong model, every single time\n")
+
+    outcome = loop.build_model(make_request(tmp_path, spec, ScriptedBackend(script)), None)
+
+    assert outcome.status == "UNKNOWN"
+    assert outcome.iterations == 3, outcome.history  # turn 1 moved; turns 2 and 3 did not
+    assert loop.STALLED_PREFIX in outcome.detail
+    assert "stopped making progress" in outcome.detail
+    assert "2 consecutive turn(s)" in outcome.detail
+    assert "3 turn(s)" in outcome.detail
+    assert FIVE[0] in outcome.detail
+    assert outcome.report is double.reports[-1]
+    assert outcome.report.model_sha256 == double.reports[-1].model_sha256
+    assert len(double.calls) == 3
+    assert outcome.history[0] == f"turn 1: progress; failing {FIVE[0]}"
+    assert outcome.history[1] == f"turn 2: no progress; failing {FIVE[0]}"
+    assert outcome.history[2] == f"turn 3: no progress; failing {FIVE[0]}"
+
+
+def test_an_agent_that_improves_twice_then_stalls_stops_at_the_stall(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Two improving turns buy two more attempts: the stall, not a cap, ends this build."""
+    spec = build_spec(FIVE[0])
+    workdir = tmp_path / "build"
+    loop.prepare_workdir(spec=spec, subckt=SUBCKT, workdir=workdir)
+
+    def verdict(text: str) -> tuple[tuple[str, str], ...]:
+        if "v2" in text:
+            return ((FIVE[0], "PASS"), (FIVE[1], "FAIL"))
+        return ((FIVE[0], "FAIL"), (FIVE[1], "FAIL"))
+
+    double = RevisionHarness(verdict, spec)
+    monkeypatch.setattr(loop, "run_harness", double)
+
+    def script(turn: int, path: Path, prompt: str) -> None:
+        write_model(path, "* v1\n" if turn == 1 else "* v2\n")
+
+    outcome = loop.build_model(make_request(tmp_path, spec, ScriptedBackend(script)), None)
+
+    assert outcome.status == "UNKNOWN"
+    assert outcome.iterations == 4, outcome.history  # past a 3-turn cap: no cap is set
+    assert loop.STALLED_PREFIX in outcome.detail
+    assert FIVE[1] in outcome.detail
+    assert len(double.calls) == 4
+    assert outcome.history[0] == f"turn 1: progress; failing {FIVE[0]}, {FIVE[1]}"
+    assert outcome.history[1] == f"turn 2: progress; failing {FIVE[1]}"
+    assert outcome.history[2] == f"turn 3: no progress; failing {FIVE[1]}"
+    assert outcome.history[3] == f"turn 4: no progress; failing {FIVE[1]}"
+
+
+def test_max_iterations_still_caps_an_agent_that_would_otherwise_continue(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """A changed failure mode counts as progress, so only the caller's cap can stop this."""
+    spec = build_spec(FIVE[0])
+    workdir = tmp_path / "build"
+    loop.prepare_workdir(spec=spec, subckt=SUBCKT, workdir=workdir)
+
+    def verdict(text: str) -> tuple[tuple[str, str], ...]:
+        odd = turn_of(text) % 2 == 1
+        return (
+            ((FIVE[0], "FAIL"), (FIVE[1], "PASS"))
+            if odd
+            else ((FIVE[0], "PASS"), (FIVE[1], "FAIL"))
+        )
+
+    double = RevisionHarness(verdict, spec)
+    monkeypatch.setattr(loop, "run_harness", double)
+
+    def script(turn: int, path: Path, prompt: str) -> None:
+        write_model(path, f"* turn {turn}\n")
+
+    outcome = loop.build_model(
+        make_request(tmp_path, spec, ScriptedBackend(script), max_iterations=3), None
+    )
+
+    assert outcome.status == "UNKNOWN"
+    assert outcome.iterations == 3
+    assert len(double.calls) == 3
+    assert "max_iterations=3" in outcome.detail
+    assert FIVE[0] in outcome.detail
+    assert all("no progress" not in line for line in outcome.history)
+    assert outcome.report is double.reports[-1]
+
+
+def test_cancellation_during_a_turn_ends_unknown_cancelled(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """The caller's cancel still wins: no harness run, no verdict, ``cancelled``."""
+    spec = build_spec(FIVE[0])
+    workdir = tmp_path / "build"
+    loop.prepare_workdir(spec=spec, subckt=SUBCKT, workdir=workdir)
+    double = RevisionHarness(lambda text: ((FIVE[0], "FAIL"),), spec)
+    monkeypatch.setattr(loop, "run_harness", double)
+    cancel = threading.Event()
+
+    def script(turn: int, path: Path, prompt: str) -> None:
+        write_model(path, "* a model the harness never got to judge\n")
+        cancel.set()
+
+    outcome = loop.build_model(make_request(tmp_path, spec, ScriptedBackend(script)), cancel)
+
+    assert outcome.status == "UNKNOWN"
+    assert outcome.detail.startswith("cancelled")
+    assert outcome.iterations == 1
+    assert double.calls == []
+    assert outcome.report.outcomes == ()
+    assert outcome.history[-1].startswith("turn 1:")
+
+
+class BlockingBackend:
+    """A backend that only finishes when its turn is cancelled — a hung agent.
+
+    It waits for the cancel event the loop passes it (which is how a real backend
+    kills a hung process tree), writes the model anyway, and reports itself as
+    cancelled, so the loop must tell its own turn timeout apart from a caller
+    cancellation.
+    """
+
+    name = "blocking"
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def availability(self) -> tuple[bool, str]:
+        return True, "blocking backend"
+
+    def author(self, request: object, cancel: threading.Event | None = None) -> AuthorResult:
+        self.calls += 1
+        stopped = cancel is not None and cancel.wait(timeout=30.0)
+        write_model(Path(request.workdir), "* the blocking model\n")
+        return AuthorResult(
+            ok=not stopped,
+            detail="cancelled: the blocking turn was stopped" if stopped else "blocking turn",
+            usage={},
+            stdout_tail="",
+            session_id=None,
+        )
+
+
+def test_a_turn_timeout_is_reported_as_its_own_reason_and_spends_the_turn(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """``turn_timeout_s`` bounds one invocation; the timed-out turn is not retried free."""
+    spec = build_spec(FIVE[0])
+    workdir = tmp_path / "build"
+    loop.prepare_workdir(spec=spec, subckt=SUBCKT, workdir=workdir)
+    double = RevisionHarness(lambda text: ((FIVE[0], "FAIL"),), spec)
+    monkeypatch.setattr(loop, "run_harness", double)
+    backend = BlockingBackend()
+
+    outcome = loop.build_model(
+        make_request(tmp_path, spec, backend, turn_timeout_s=0.05, max_iterations=2), None
+    )
+
+    assert backend.calls == 2, "the timed-out turn was spent, not retried for free"
+    assert outcome.status == "UNKNOWN"
+    assert len(double.calls) == 2, "the harness judged the bytes that were on disk"
+    assert "turn_timeout" not in outcome.detail
+    assert "max_iterations=2" in outcome.detail
+    assert outcome.history[0].startswith(f"turn 1: progress; failing {FIVE[0]}; ")
+    assert "turn_timeout" in outcome.history[0] and "0.05 s" in outcome.history[0]
+    assert "cancelled" not in outcome.history[0], "the loop's own reason, not the backend's"
+    assert outcome.history[1].startswith(f"turn 2: no progress; failing {FIVE[0]}; ")
+    assert "turn_timeout" in outcome.history[1]
 
 
 def test_blocked_propagates_the_availability_reason_verbatim(monkeypatch, tmp_path: Path) -> None:
@@ -774,9 +1081,22 @@ def test_build_outcome_json_round_trips() -> None:
     assert restored.report.passed() is False
 
 
-def test_max_iterations_must_be_positive(tmp_path: Path) -> None:
+def test_loop_request_bounds_are_validated_and_no_cap_is_the_default(
+    tmp_path: Path
+) -> None:
     import pytest
 
     spec = build_spec()
+    backend = UnavailableBackend()
+
+    assert make_request(tmp_path, spec, backend).max_iterations is None
+    assert make_request(tmp_path, spec, backend, max_iterations=None).stall_patience == 2
+
     with pytest.raises(ValueError, match="max_iterations"):
-        make_request(tmp_path, spec, UnavailableBackend(), max_iterations=0)
+        make_request(tmp_path, spec, backend, max_iterations=0)
+    with pytest.raises(ValueError, match="max_iterations"):
+        make_request(tmp_path, spec, backend, max_iterations=-2)
+    with pytest.raises(ValueError, match="stall_patience"):
+        make_request(tmp_path, spec, backend, stall_patience=0)
+    with pytest.raises(ValueError, match="turn_timeout_s"):
+        make_request(tmp_path, spec, backend, turn_timeout_s=0.0)

@@ -64,6 +64,7 @@ class _Request:
     provider: str | None = None
     requirements_json: Path | None = None
     bindings_json: Path | None = None
+    reinforce: bool | None = None
 
 
 class _Stage:
@@ -167,6 +168,25 @@ def test_json_mode_emits_the_rows_for_automation(
     assert payload["status"] == "UNKNOWN"
     assert payload["rows"][0]["req_id"] == "REQ_1"
     assert payload["counts"] == {"UNKNOWN": 1}
+
+
+def test_the_reinforcement_switch_reaches_the_request(
+    tmp_path: Path, datasheet: Path, monkeypatch, capsys
+) -> None:
+    """--no-reinforce must reach the engine; the default follows the persisted setting."""
+    calls: list[_Request] = []
+    _install_fake_engine(
+        monkeypatch, _Result("PASS", "", "TPS54320", tmp_path, (), {}), calls
+    )
+    base = ["model", "build", "--part", "TPS54320", "--datasheet", str(datasheet), "--out", str(tmp_path)]
+
+    cli.main([*base, "--json"])
+    capsys.readouterr()
+    assert calls[-1].reinforce is None
+
+    cli.main([*base, "--json", "--no-reinforce"])
+    capsys.readouterr()
+    assert calls[-1].reinforce is False
 
 
 def test_strict_turns_a_non_pass_into_a_failure_exit(

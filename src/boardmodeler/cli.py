@@ -229,7 +229,18 @@ def build_parser() -> argparse.ArgumentParser:
     model_build.add_argument(
         "--allow-remote", action="store_true", help="permit sending the datasheet to the provider"
     )
-    model_build.add_argument("--iterations", type=int, default=4, help="author/try cycles (default 4)")
+    model_build.add_argument(
+        "--no-reinforce",
+        action="store_true",
+        help="do not search the web for supporting material about the part",
+    )
+    model_build.add_argument(
+        "--iterations",
+        type=int,
+        default=None,
+        help="stop after this many author turns (default: run until every datasheet row is "
+        "satisfied, or until the agent stops improving)",
+    )
     model_build.add_argument("--timeout", type=float, default=120.0, help="seconds per simulation")
     model_build.add_argument("--json", action="store_true")
     model_build.add_argument(
@@ -978,6 +989,7 @@ def _cmd_model_build_from_datasheet(args: argparse.Namespace, *, subckt: str, em
         max_iterations=args.iterations,
         timeout_s=args.timeout,
         allow_remote=args.allow_remote,
+        reinforce=False if args.no_reinforce else None,
     )
     quiet = args.json
 

@@ -79,6 +79,7 @@ def render_card(
     document: str | None = None,
     backend: str | None = None,
     iterations: int | None = None,
+    reinforcement: object | None = None,
 ) -> str:
     """The model card, findings first, every number taken from an observed outcome."""
     judged = _status_by_characteristic(report)
@@ -155,6 +156,8 @@ def render_card(
                 )
             )
 
+    lines += _supporting_material_section(reinforcement)
+
     lines += [
         "",
         "## Scope",
@@ -176,6 +179,69 @@ def render_card(
         "",
     ]
     return "\n".join(lines)
+
+
+def _supporting_material_section(reinforcement: object | None) -> list[str]:
+    """What the web search turned up, kept strictly apart from the verdicts.
+
+    Only text this tool actually retrieved is listed as fact; anything the agent merely
+    claimed is listed as unverified with the reason we could not confirm it. Nothing here
+    can change a status — that is what the judged table above is for.
+    """
+    if reinforcement is None:
+        return []
+    status = getattr(reinforcement, "status", "skipped")
+    sources = tuple(getattr(reinforcement, "sources", ()) or ())
+    caveats = tuple(getattr(reinforcement, "caveats", ()) or ())
+    suggested = tuple(getattr(reinforcement, "suggested_probes", ()) or ())
+    detail = getattr(reinforcement, "detail", "")
+
+    lines = ["", "## Supporting material (searched, not evidence for the verdicts)", ""]
+    if status != "ok":
+        lines.append(
+            f"The search did not produce usable sources this run (`{status}`: {detail or 'no detail'})."
+        )
+        lines.append("")
+        lines.append(
+            "This affects nothing above: the rows were judged by simulation against the "
+            "datasheet as usual."
+        )
+        return lines
+
+    retrieved = [source for source in sources if getattr(source, "retrieved", False)]
+    unverified = [source for source in sources if not getattr(source, "retrieved", False)]
+    if retrieved:
+        lines += [
+            "Sources retrieved at build time (text stored verbatim with its hash):",
+            "",
+        ]
+        for source in retrieved:
+            digest = str(getattr(source, "sha256", "") or "")[:12]
+            lines.append(
+                f"- <{getattr(source, 'url', '')}> — {_escape_cell(str(getattr(source, 'claim', '')))}"
+                + (f" (sha256 {digest})" if digest else "")
+            )
+        lines.append("")
+    if unverified:
+        lines += ["Claimed but not retrievable at build time (treated as unverified):", ""]
+        for source in unverified:
+            reason = str(getattr(source, "reason", "") or "not retrieved")
+            lines.append(
+                f"- <{getattr(source, 'url', '')}> — {_escape_cell(str(getattr(source, 'claim', '')))} "
+                f"({_escape_cell(reason)})"
+            )
+        lines.append("")
+    if caveats:
+        lines += ["Caveats read out of the retrieved text:", ""]
+        lines += [f"- {_escape_cell(str(caveat))}" for caveat in caveats]
+        lines.append("")
+    if suggested:
+        lines += [
+            "Probes the retrieved text suggests adding (not run for this model): "
+            + ", ".join(f"`{name}`" for name in suggested),
+            "",
+        ]
+    return lines
 
 
 def write_symbol_for(
@@ -316,6 +382,7 @@ def write_deliverables(
     document: str | None = None,
     backend: str | None = None,
     iterations: int | None = None,
+    reinforcement: object | None = None,
 ) -> tuple[Path, ...]:
     """Write the card and a runnable example to ``out_dir``; return what was written."""
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -333,6 +400,7 @@ def write_deliverables(
             document=document,
             backend=backend,
             iterations=iterations,
+            reinforcement=reinforcement,
         ),
         encoding="utf-8",
         newline="\n",

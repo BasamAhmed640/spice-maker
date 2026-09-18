@@ -8,6 +8,7 @@ is what proves the timeout/cancel paths actually kill the child tree.
 from __future__ import annotations
 
 import json
+import math
 import os
 import threading
 import time
@@ -247,6 +248,41 @@ def test_a_timeout_reports_the_timeout_reason(
     assert authored.ok is False
     assert authored.detail.startswith("bob_shell_timeout")
     assert "5 s" in authored.detail
+
+
+def test_a_backend_without_a_timeout_never_bounds_the_run(
+    bob_env: Credential, keyed: str, tmp_path: Path
+) -> None:
+    """``timeout_s=None`` is the default: the agent runs until it is done."""
+    recorder = Recorder(completed(payload_line() + "\n"))
+    backend = BobShellBackend(env={"PATH": "x"}, runner=recorder)
+
+    authored = backend.author(request(tmp_path))
+
+    assert backend.timeout_s is None
+    assert authored.ok is True
+    assert math.isinf(recorder.calls[0]["timeout_s"]), "no deadline is an infinite one"
+
+
+def test_a_non_positive_timeout_is_still_refused() -> None:
+    with pytest.raises(ValueError, match="timeout_s"):
+        BobShellBackend(timeout_s=0.0)
+    with pytest.raises(ValueError, match="timeout_s"):
+        BobShellBackend(timeout_s=-1.0)
+
+
+def test_a_stop_without_a_configured_timeout_says_so(
+    bob_env: Credential, keyed: str, tmp_path: Path
+) -> None:
+    """A runner that stopped the child itself cannot blame a limit that is not set."""
+    recorder = Recorder(completed("partial", returncode=-1, timed_out=True))
+    backend = BobShellBackend(env={"PATH": "x"}, runner=recorder)
+
+    authored = backend.author(request(tmp_path))
+
+    assert authored.ok is False
+    assert authored.detail.startswith("bob_shell_timeout")
+    assert "no turn timeout is configured" in authored.detail
 
 
 def test_a_set_cancel_event_stops_before_launching(

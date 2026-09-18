@@ -28,9 +28,11 @@ stages and never invents a result:
 
 ``author`` / ``judge``
     ``prepare_workdir`` freezes the spec, the agent writes the model, and
-    ``build_model`` runs the real harness after every turn. Each harness turn is
-    reported to ``progress`` as a ``judge`` event carrying the turn number and the
-    harness's own counts, so a GUI can show "turn 2/3 — vref too low".
+    ``build_model`` runs the real harness after every turn — until the harness is
+    satisfied, until the agent stops improving, or until the caller's iteration
+    cap, whichever comes first. Each harness turn is reported to ``progress`` as a
+    ``judge`` event carrying the turn number and the harness's own counts, so a
+    GUI can show "turn 2 — vref too low".
 
 ``save``
     ``<subckt>.lib``, ``<subckt>.asy`` (the agent's symbol is validated and
@@ -41,16 +43,17 @@ Status ladder: ``PASS`` only when every bound row passed a real simulator run;
 ``BLOCKED`` when the backend, the provider or LTspice was unavailable; ``FAIL``
 only when the harness measured a fully judged model wrong at the iteration cap;
 ``UNKNOWN`` for everything else (a cancelled run, an abandoned model file, a
-tampered spec, rows the harness could not judge). ``detail`` always names the
-concrete next action for a human.
+tampered spec, an agent that stopped making progress, rows the harness could not
+judge). ``detail`` always names the concrete next action for a human.
 
-Time is bounded where it belongs: ``turn_timeout_s`` limits one agent invocation
-(Bob Shell runs with it, so a hung agent cannot sit past it and the timed-out
-turn consumes its iteration) and ``deadline_s`` limits the build — but the
-deadline is checked only between turns, never inside a harness run or an
-extraction, so a slow but working verification is never cut short. On deadline
-expiry the status is ``UNKNOWN`` with the deadline and the turn it stopped
-before, and every row the harness already measured is carried in ``rows``.
+The author loop runs until the agent is done, not until a clock stops it: there
+is no build deadline. ``max_iterations`` is ``None`` by default — no cap — and the
+loop stops on satisfaction, on ``max_iterations`` when a caller sets one, or after
+``stall_patience`` consecutive turns that change nothing the harness can see; a
+capped or stalled run still reports every row the harness measured. Only
+``turn_timeout_s`` names a time, and it is ``None`` by default: set, it bounds one
+agent invocation, which is reported as that turn's own reason and consumes the
+turn. ``timeout_s`` bounds a single simulation run, not the build.
 
 Nothing raises for an expected failure — a missing datasheet, a document the
 provider refuses, a missing key, absent LTspice, a tampered spec or a
@@ -66,7 +69,6 @@ import dataclasses
 import json
 import re
 import threading
-import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -88,6 +90,7 @@ from boardmodeler.authoring.loop import (
     prepare_workdir,
 )
 from boardmodeler.authoring.probes import PROBES
+from boardmodeler.authoring.reinforce import ReinforcementReport, reinforce
 from boardmodeler.authoring.spec import SpecSet, load_tps54320_spec, normalize_unit
 from boardmodeler.config import load_config
 from boardmodeler.documents.pdf import page_text, read_pdf
@@ -147,10 +150,6 @@ _BUILD_LOCK = threading.Lock()
 
 _SUBCKT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
-#: The monotonic clock the whole-build deadline reads. Module-level so a test can
-#: drive the deadline deterministically without sleeping.
-_NOW: Callable[[], float] = time.monotonic
-
 #: The physical unit of the number each probe judges, by its ``judge_key``. The
 #: binder refuses to bind a row whose extracted unit disagrees, because the
 #: harness compares the row's limits against exactly this number.
@@ -184,10 +183,11 @@ def _probe_units(probe_id: str) -> str:
 class MakeModelRequest:
     """What the caller asks for: a part, its datasheet, and where to save it.
 
-    ``turn_timeout_s`` bounds one agent invocation (Bob Shell runs with it), and
-    ``deadline_s`` bounds the whole build; the deadline is checked only between
-    turns, never inside a harness run or an extraction, so it can never shorten
-    the verification itself.
+    ``max_iterations=None`` (the default) has no cap: the author loop runs until
+    the harness is satisfied or the agent stops making progress, which is what
+    ``stall_patience`` counts. ``turn_timeout_s`` is ``None`` by default — no time
+    limit on the agent — and bounds one agent invocation when set. ``timeout_s``
+    bounds a single simulation run. There is no build deadline.
     """
 
     part: str
@@ -196,14 +196,18 @@ class MakeModelRequest:
     out_dir: Path
     backend_name: str = "bob"
     provider: str | None = None
-    max_iterations: int = 3
+    max_iterations: int | None = None
     timeout_s: float = 120.0
     allow_remote: bool = False
     team_id: str | None = None
     requirements_json: Path | None = None
     bindings_json: Path | None = None
-    turn_timeout_s: float = 600.0
-    deadline_s: float = 1500.0
+    turn_timeout_s: float | None = None
+    stall_patience: int = 2
+    #: Search the web for supporting material before the agent starts. ``None`` follows
+    #: the persistent setting; ``True``/``False`` override it for one run. Supporting
+    #: material never feeds a verdict -- the datasheet rows remain the only oracle.
+    reinforce: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -244,7 +248,7 @@ class MakeModelResult:
     stages: tuple[StageEvent, ...]
     #: The parameters this result came from, so a saved ``results.json`` records
     #: (and :meth:`from_json` restores) exactly the run that produced it —
-    #: including ``turn_timeout_s`` and ``deadline_s``.
+    #: including ``max_iterations``, ``stall_patience`` and ``turn_timeout_s``.
     request: MakeModelRequest | None = None
 
     def to_json(self) -> str:
@@ -330,7 +334,7 @@ def _request_payload(request: MakeModelRequest) -> dict[str, Any]:
         "out_dir": str(request.out_dir),
         "backend_name": request.backend_name,
         "provider": request.provider,
-        "max_iterations": int(request.max_iterations),
+        "max_iterations": None if request.max_iterations is None else int(request.max_iterations),
         "timeout_s": float(request.timeout_s),
         "allow_remote": bool(request.allow_remote),
         "team_id": request.team_id,
@@ -338,8 +342,10 @@ def _request_payload(request: MakeModelRequest) -> dict[str, Any]:
             None if request.requirements_json is None else str(request.requirements_json)
         ),
         "bindings_json": None if request.bindings_json is None else str(request.bindings_json),
-        "turn_timeout_s": float(request.turn_timeout_s),
-        "deadline_s": float(request.deadline_s),
+        "turn_timeout_s": (
+            None if request.turn_timeout_s is None else float(request.turn_timeout_s)
+        ),
+        "stall_patience": int(request.stall_patience),
     }
 
 
@@ -351,14 +357,18 @@ def _request_from_payload(payload: Mapping[str, Any]) -> MakeModelRequest:
         out_dir=Path(payload["out_dir"]),
         backend_name=str(payload.get("backend_name", "bob")),
         provider=None if payload.get("provider") is None else str(payload["provider"]),
-        max_iterations=int(payload.get("max_iterations", 3)),
+        max_iterations=(
+            None if payload.get("max_iterations") is None else int(payload["max_iterations"])
+        ),
         timeout_s=float(payload.get("timeout_s", 120.0)),
         allow_remote=bool(payload.get("allow_remote", False)),
         team_id=None if payload.get("team_id") is None else str(payload["team_id"]),
         requirements_json=_optional_path(payload.get("requirements_json")),
         bindings_json=_optional_path(payload.get("bindings_json")),
-        turn_timeout_s=float(payload.get("turn_timeout_s", 600.0)),
-        deadline_s=float(payload.get("deadline_s", 1500.0)),
+        turn_timeout_s=(
+            None if payload.get("turn_timeout_s") is None else float(payload["turn_timeout_s"])
+        ),
+        stall_patience=int(payload.get("stall_patience", 2)),
     )
 
 
@@ -865,9 +875,7 @@ def build_backend(request: MakeModelRequest) -> AuthorBackend:
     """
     name = str(request.backend_name or "").strip().lower()
     if name == "bob":
-        return BobShellBackend(
-            team_id=request.team_id, timeout_s=float(request.turn_timeout_s)
-        )
+        return BobShellBackend(team_id=request.team_id, timeout_s=request.turn_timeout_s)
     if name in ("scripted", "fixture"):
         return _bundled_author(request)
     return _UnavailableBackend(
@@ -954,55 +962,6 @@ class _Stop(Exception):
         self.detail = detail
 
 
-class _TurnClock:
-    """The whole-build deadline, observed only between agent turns.
-
-    The owner's rule: bound how many times the agent repeats, never how
-    thoroughly the harness verifies. So the deadline is *armed* only at a turn
-    boundary — before the first turn and right after a harness report — and never
-    while a turn, a harness run or an extraction is in flight. Once armed, the
-    loop's next cancel check stops the build; the harness that already ran keeps
-    every probe's measured row.
-    """
-
-    def __init__(self, cancel: threading.Event | None, deadline_s: float) -> None:
-        self.deadline_s = float(deadline_s)
-        self.started = _NOW()
-        self.expired = False
-        self._cancel = cancel
-
-    def elapsed(self) -> float:
-        return _NOW() - self.started
-
-    def expire_if_past(self) -> str | None:
-        """Arm the deadline when it has passed; return the reason, or ``None``."""
-        if self.expired:
-            return self.reason()
-        if self.elapsed() < self.deadline_s:
-            return None
-        self.expired = True
-        return self.reason()
-
-    def reason(self) -> str:
-        return (
-            f"deadline_exceeded: the {self.deadline_s:g} s build deadline expired after "
-            f"{self.elapsed():.3g} s"
-        )
-
-    def is_set(self) -> bool:
-        """The loop's cancel view: the caller's event, or the armed deadline."""
-        return self.expired or (self._cancel is not None and self._cancel.is_set())
-
-
-def _stop_reason(clock: _TurnClock | None, cancel: threading.Event | None) -> str | None:
-    """The reason the author loop stopped early, in the caller's own words."""
-    if clock is not None and clock.expired:
-        return f"{clock.reason()}; no further agent turn was started"
-    if cancel is not None and cancel.is_set():
-        return "cancelled: the build was cancelled"
-    return None
-
-
 class _StageLog:
     """Every emitted :class:`StageEvent`, in order, plus the caller's callback."""
 
@@ -1034,14 +993,14 @@ def _checked(request: MakeModelRequest) -> MakeModelRequest:
             f"subckt {request.subckt!r} is not a sanitized SPICE identifier "
             "(expected [A-Za-z_][A-Za-z0-9_]*)"
         )
-    if request.max_iterations < 1:
-        raise ValueError(f"max_iterations must be >= 1, got {request.max_iterations}")
+    if request.max_iterations is not None and request.max_iterations < 1:
+        raise ValueError(f"max_iterations must be >= 1 or None, got {request.max_iterations}")
+    if request.stall_patience < 1:
+        raise ValueError(f"stall_patience must be >= 1, got {request.stall_patience}")
     if request.timeout_s <= 0:
         raise ValueError(f"timeout_s must be > 0, got {request.timeout_s}")
-    if request.turn_timeout_s <= 0:
-        raise ValueError(f"turn_timeout_s must be > 0, got {request.turn_timeout_s}")
-    if request.deadline_s <= 0:
-        raise ValueError(f"deadline_s must be > 0, got {request.deadline_s}")
+    if request.turn_timeout_s is not None and request.turn_timeout_s <= 0:
+        raise ValueError(f"turn_timeout_s must be > 0 or None, got {request.turn_timeout_s}")
     return request
 
 
@@ -1174,8 +1133,8 @@ class _Run:
         self.unverified: dict[str, str] = {}
         self.spec: SpecSet | None = None
         self.outcome: BuildOutcome | None = None
-        self.clock: _TurnClock | None = None
         self.report = HarnessReport(part=request.part, model_sha256="", spec_digest="", outcomes=())
+        self.reinforcement: ReinforcementReport | None = None
         self.backend_name = ""
         self.turns = 0
         self.status = Status.UNKNOWN.value
@@ -1550,14 +1509,7 @@ class _Run:
             self.status, self.detail = Status.UNKNOWN.value, "spec_missing: no specification"
             return
         prepare_workdir(spec=self.spec, subckt=self.request.subckt, workdir=self.workdir)
-        self.clock = _TurnClock(cancel, self.request.deadline_s)
-        first_boundary = self.clock.expire_if_past()
-        if first_boundary is not None:
-            reason = f"{first_boundary}; the first agent turn was not started"
-            self.log.emit("author", "failed", reason)
-            self.log.emit("judge", "skipped", reason)
-            self.status, self.detail = Status.UNKNOWN.value, reason
-            return
+        self._gather_supporting_material()
         self.log.emit(
             "judge",
             "running",
@@ -1571,6 +1523,8 @@ class _Run:
             ltspice=install.path,
             backend=backend,
             max_iterations=self.request.max_iterations,
+            stall_patience=self.request.stall_patience,
+            turn_timeout_s=self.request.turn_timeout_s,
             timeout_s=self.request.timeout_s,
         )
         if not _BUILD_LOCK.acquire(blocking=False):
@@ -1583,32 +1537,63 @@ class _Run:
             return
         try:
             with _observe_reports(self._on_report):
-                outcome = build_model(request, self.clock)
+                outcome = build_model(request, cancel)
         finally:
             _BUILD_LOCK.release()
         self.outcome = outcome
         self.report = outcome.report
         model_written = model_file(self.workdir, self.request.subckt).is_file()
-        stopped = (
-            _stop_reason(self.clock, cancel)
-            if outcome.iterations < self.request.max_iterations
-            else None
-        )
         self.log.emit(
             "author",
             "ok" if model_written else "failed",
-            f"{outcome.iterations} turn(s); {stopped or outcome.detail}",
+            f"{outcome.iterations} turn(s); {outcome.detail}",
             {"turns": int(outcome.iterations)},
         )
         if self.turns == 0:
             self.log.emit("judge", "skipped", f"no harness turn ran: {outcome.detail}")
 
-    def _on_report(self, report: HarnessReport) -> None:
-        """One completed harness turn: report it, with the harness's own counts.
+    def _gather_supporting_material(self) -> None:
+        """One bounded search for supporting material, recorded but never a verdict.
 
-        The whole-build deadline is re-armed here, after the harness has finished
-        and before the loop can start another agent turn — never inside the run.
+        Errata, application notes and vendor-model caveats about the part can change how a
+        reader interprets a model, so they are gathered here and listed on the card. They
+        cannot change a status: only the frozen datasheet rows judge the model. The stage
+        never fails the build — disabled, unreachable and empty results are all reported as
+        such, and the run continues.
         """
+        enabled = self.request.reinforce
+        if enabled is None:
+            try:
+                from boardmodeler.config import load_config
+
+                enabled = bool(load_config().web_reinforcement)
+            except Exception:  # pragma: no cover - a broken config must not stop a build
+                enabled = True
+        digest = self.spec.digest() if self.spec is not None else ""
+        try:
+            report = reinforce(
+                part=self.request.part,
+                spec_digest=digest,
+                out_dir=self.workdir,
+                enabled=bool(enabled),
+            )
+        except Exception as exc:  # pragma: no cover - the stage must never break a build
+            self.log.emit("reinforce", "skipped", f"reinforcement unavailable: {exc}"[:160])
+            return
+        self.reinforcement = report
+        if report.status == "ok":
+            retrieved = sum(1 for source in report.sources if source.retrieved)
+            unverified = len(report.sources) - retrieved
+            detail = (
+                f"{retrieved} source(s) retrieved, {unverified} unverified claim(s), "
+                f"{len(report.caveats)} caveat(s), {len(report.suggested_probes)} suggested probe(s)"
+            )
+        else:
+            detail = report.detail
+        self.log.emit("reinforce", "ok" if report.status == "ok" else "skipped", detail[:160])
+
+    def _on_report(self, report: HarnessReport) -> None:
+        """One completed harness turn: report it, with the harness's own counts."""
         self.report = report
         self.turns += 1
         counts = dict(report.counts())
@@ -1621,8 +1606,6 @@ class _Run:
             f"{counts['UNKNOWN']} unknown; failing: {failing}",
             counts,
         )
-        if self.clock is not None:
-            self.clock.expire_if_past()
 
     # ------------------------------------------------------------------- save
 
@@ -1671,6 +1654,7 @@ class _Run:
             document=self.spec.doc_id if self.spec is not None else None,
             backend=self.backend_name or None,
             iterations=None if self.outcome is None else int(self.outcome.iterations),
+            reinforcement=self.reinforcement,
         )
         self.card_path = next(
             (path for path in written if path.name == "MODEL_CARD.md"), self.out_dir / "MODEL_CARD.md"
@@ -1778,21 +1762,6 @@ class _Run:
     def decide(self, rows: Sequence[RowOutcome]) -> tuple[str, str]:
         """``(status, detail)`` for this run, with the next action in the detail."""
         outcome = self.outcome
-        deadline_stopped_the_loop = (
-            self.clock is not None
-            and self.clock.expired
-            and (outcome is None or outcome.iterations < self.request.max_iterations)
-        )
-        if deadline_stopped_the_loop and (
-            outcome is None or outcome.status == Status.UNKNOWN.value
-        ):
-            return (
-                Status.UNKNOWN.value,
-                f"{self.clock.reason()}; the build stopped before agent turn "
-                f"{self.turns + 1} and the rows below are what the harness measured so far "
-                f"({self.turns} judged revision(s)). Raise deadline_s, or re-run with a faster "
-                "agent or fewer max_iterations.",
-            )
         if outcome is None:
             reason = self.detail or "the build did not reach the authoring stage"
             return self.status, reason
@@ -1831,16 +1800,18 @@ class _Run:
         return Status.UNKNOWN.value, outcome.detail
 
 
-def _confirmed_wrong(outcome: BuildOutcome, max_iterations: int) -> bool:
+def _confirmed_wrong(outcome: BuildOutcome, max_iterations: int | None) -> bool:
     """The loop used its whole budget and the harness measured every bound row.
 
     "Harness-confirmed" is the point: a model that is judged wrong in every
     probed respect at the cap is FAIL, while a model the harness could not judge
     (or a run that stopped early) stays UNKNOWN — an unmeasured row is never
-    evidence of wrongness.
+    evidence of wrongness. An uncapped build has no cap to exhaust, so it can
+    never be FAIL this way; a stalled one keeps its UNKNOWN with the reason.
     """
     return (
-        outcome.status == Status.UNKNOWN.value
+        max_iterations is not None
+        and outcome.status == Status.UNKNOWN.value
         and outcome.detail.startswith(_CAP_PREFIX)
         and outcome.iterations == max_iterations
         and bool(outcome.report.failing())

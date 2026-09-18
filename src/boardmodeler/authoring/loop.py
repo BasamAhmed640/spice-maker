@@ -1,4 +1,4 @@
-"""The bounded author loop: the agent writes, the harness judges.
+"""The author loop: the agent writes, the harness judges — until it is satisfied.
 
 Honesty rule implemented here: nothing the authoring agent says is trusted. The
 loop freezes ``spec/characteristics.json`` before the first turn, re-reads and
@@ -7,8 +7,35 @@ re-hashes it after *every* turn (any change aborts immediately with
 and records ``PASS`` only when the harness — real LTspice runs, observed
 ``.raw``/``.log`` artifacts — reports passing probe outcomes for the files that
 were actually written. A backend that cannot run yields ``BLOCKED`` with its own
-reason; a missing model file, a cancelled build, or an exhausted iteration cap
-yields ``UNKNOWN`` with the observed reason. Nothing here ever invents a run.
+reason; a missing model file, a cancelled build, or an agent that stopped
+improving yields ``UNKNOWN`` with the observed reason. Nothing here ever invents
+a run.
+
+The loop ends on satisfaction or on the agent stalling — never on a clock:
+
+* ``PASS`` — the harness report passes for every covered characteristic;
+* ``UNKNOWN`` — the caller's ``max_iterations`` cap was reached. ``None`` (the
+  default) means no cap at all: the loop keeps going until one of the other
+  conditions fires;
+* ``UNKNOWN`` — ``stall_patience`` consecutive turns made no progress; the
+  detail names the turn count and the probes still failing, and the outcome still
+  carries the last report with every row measured so far;
+* ``UNKNOWN`` — the caller cancelled (``cancelled``).
+
+A turn *makes progress* when both hold: the model file's bytes changed during the
+turn, and the set of not-yet-passing bound rows differs from the previous turn's.
+A smaller failing set is progress, and so is a different one — a failure that
+changed shape is still motion. Rewriting the same bytes, writing nothing, or
+reporting the same failing set is no progress, and the history line says which it
+was::
+
+    turn 3: progress; failing vref, soft_start
+    turn 4: no progress; failing vref
+
+``turn_timeout_s`` is ``None`` by default, so an agent invocation is unbounded.
+When a caller sets it, one invocation is bounded, the timeout is reported as the
+turn's own reason (``turn_timeout: ...``), and the turn is spent exactly like any
+other: the harness still judges the bytes that were on disk.
 """
 
 from __future__ import annotations
@@ -27,6 +54,7 @@ from boardmodeler.domain.hashing import sha256_file
 
 __all__ = [
     "AUTHOR_MAX_TURNS",
+    "STALLED_PREFIX",
     "BuildOutcome",
     "BuildRequest",
     "build_model",
@@ -45,6 +73,9 @@ _PROMPT_FILENAME = "prompt.md"
 
 AUTHOR_MAX_TURNS = 12
 """Internal turn budget handed to one agent invocation (the harness loop cap is separate)."""
+
+STALLED_PREFIX = "agent_stalled:"
+"""The loop's reason when ``stall_patience`` consecutive turns made no progress."""
 
 _SPEC_README = """\
 # Frozen specification
@@ -264,7 +295,15 @@ def prepare_workdir(
 
 @dataclass(frozen=True)
 class BuildRequest:
-    """Everything one build needs; the spec and the harness stay authoritative."""
+    """Everything one build needs; the spec and the harness stay authoritative.
+
+    ``max_iterations=None`` (the default) runs until the harness is satisfied or
+    the agent stalls; a positive value caps the turns. ``stall_patience`` is how
+    many consecutive no-progress turns end the build. ``turn_timeout_s`` is
+    ``None`` by default — an agent invocation is unbounded — and bounds one
+    invocation when the caller sets it. ``timeout_s`` is the simulator's per-run
+    limit, not a limit on the build.
+    """
 
     part: str
     subckt: str
@@ -272,14 +311,20 @@ class BuildRequest:
     workdir: Path
     ltspice: Path
     backend: AuthorBackend
-    max_iterations: int = 4
+    max_iterations: int | None = None
+    stall_patience: int = 2
+    turn_timeout_s: float | None = None
     timeout_s: float = 120.0
 
     def __post_init__(self) -> None:
         if not self.part or not self.subckt:
             raise ValueError("part and subckt must both be non-empty")
-        if self.max_iterations < 1:
-            raise ValueError(f"max_iterations must be >= 1, got {self.max_iterations}")
+        if self.max_iterations is not None and self.max_iterations < 1:
+            raise ValueError(f"max_iterations must be >= 1 or None, got {self.max_iterations}")
+        if self.stall_patience < 1:
+            raise ValueError(f"stall_patience must be >= 1, got {self.stall_patience}")
+        if self.turn_timeout_s is not None and self.turn_timeout_s <= 0:
+            raise ValueError(f"turn_timeout_s must be > 0 or None, got {self.turn_timeout_s}")
         if self.timeout_s <= 0:
             raise ValueError(f"timeout_s must be > 0, got {self.timeout_s}")
 
@@ -385,13 +430,19 @@ def _spec_tamper(workdir: Path, frozen: SpecSet) -> str | None:
     return None
 
 
+def _digest(path: Path) -> str:
+    """The model file's bytes as a digest; a missing or unreadable file digests as ``""``."""
+    try:
+        return sha256_file(path)
+    except OSError:
+        return ""
+
+
 def _report_without_runs(part: str, spec_digest: str, model_path: Path) -> HarnessReport:
     """A report with no outcomes: nothing was simulated, so nothing can pass."""
-    try:
-        digest = sha256_file(model_path)
-    except OSError:
-        digest = ""
-    return HarnessReport(part=part, model_sha256=digest, spec_digest=spec_digest, outcomes=())
+    return HarnessReport(
+        part=part, model_sha256=_digest(model_path), spec_digest=spec_digest, outcomes=()
+    )
 
 
 def _failing(report: HarnessReport) -> tuple[object, ...]:
@@ -406,10 +457,53 @@ def _names(outcomes: Iterable[object]) -> str:
     return ", ".join(f"{outcome.probe_id}={outcome.status}" for outcome in outcomes) or "none"
 
 
-def _counts_text(report: HarnessReport) -> str:
-    """Non-zero status counts in the enum's stable order (a zero count is noise)."""
+def _probe_names(outcomes: Iterable[object]) -> str:
+    """The failing probes by id, in the harness's own order."""
+    return ", ".join(str(outcome.probe_id) for outcome in outcomes) or "none"
+
+
+def _signature(report: HarnessReport) -> tuple[tuple[str, str], ...]:
+    """The not-yet-passing rows of one report, as comparable ``(probe, status)`` pairs."""
+    rows = ((str(outcome.probe_id), str(outcome.status)) for outcome in _failing(report))
+    return tuple(sorted(rows))
+
+
+def _turn_line(
+    turn: int,
+    *,
+    progressed: bool,
+    report: HarnessReport,
+    timed_out: bool,
+    note: str,
+) -> str:
+    """One history line: whether the turn moved, and what the harness still objects to.
+
+    A turn is only *progress* when the model bytes changed and the failing set is
+    not the one the previous turn already reported, so a repeat of the same
+    failure reads as "no progress" even though the agent ran.
+    """
+    line = (
+        f"turn {turn}: {'progress' if progressed else 'no progress'}; "
+        f"failing {_probe_names(_failing(report))}"
+    )
+    if timed_out:
+        return f"{line}; {note}"
+    return line
+
+
+def _timeout_reason(limit: float) -> str:
+    """The loop's own reason for a turn that outlived ``turn_timeout_s``."""
+    return f"turn_timeout: the agent invocation did not finish within {limit:g} s and was stopped"
+
+
+def _stall_detail(request: BuildRequest, turn: int, report: HarnessReport) -> str:
+    """The stall's reason: the turn count first, then the probes still failing."""
     return (
-        "{" + ", ".join(f"{key}: {value}" for key, value in report.counts().items() if value) + "}"
+        f"{STALLED_PREFIX} the agent stopped making progress: {request.stall_patience} "
+        "consecutive turn(s) changed nothing the harness could see (the model bytes and the "
+        f"failing set both repeated). Stopped after {turn} turn(s); still failing: "
+        f"{_names(_failing(report))}. Re-run with an agent that changes the model, or set "
+        "max_iterations to bound the turns explicitly."
     )
 
 
@@ -451,33 +545,82 @@ def _outcome(
     )
 
 
-def _author(request: BuildRequest, prompt: str, cancel: threading.Event | None) -> AuthorResult:
-    """One backend turn; a raising backend becomes a recorded failure, not a crash."""
+class _TurnCancel(threading.Event):
+    """A per-turn cancel: the caller's event or the turn's own timeout, whichever is set.
+
+    The backends only ever ask ``is_set()``, and a turn timeout has to reach the
+    agent the same way a cancellation does (that is how a hung launcher's process
+    tree is killed) while staying distinguishable from the caller cancelling the
+    whole build.
+    """
+
+    def __init__(self, caller: threading.Event | None) -> None:
+        super().__init__()
+        self._caller = caller
+
+    def is_set(self) -> bool:
+        return super().is_set() or (self._caller is not None and self._caller.is_set())
+
+
+def _backend_error(exc: Exception) -> AuthorResult:
+    """A raising backend becomes a recorded failure, never a crash."""
+    return AuthorResult(
+        ok=False,
+        detail=f"backend_error: {type(exc).__name__}: {exc}",
+        usage={},
+        stdout_tail="",
+        session_id=None,
+    )
+
+
+def _author(
+    request: BuildRequest, prompt: str, cancel: threading.Event | None
+) -> tuple[AuthorResult, bool]:
+    """One backend turn; a raising backend becomes a recorded failure, not a crash.
+
+    Returns ``(result, timed_out)``. ``turn_timeout_s`` is ``None`` by default,
+    so nothing here reads a clock unless the caller asked for a bound; when it is
+    set, the turn's own cancel event fires after it and the backend's kill path
+    does the rest.
+    """
     author_request = AuthorRequest(
         prompt=prompt,
         workdir=Path(request.workdir),
         model_dir=Path(request.workdir) / MODEL_DIRNAME,
         max_turns=AUTHOR_MAX_TURNS,
     )
+    limit = request.turn_timeout_s
+    if limit is None:
+        try:
+            return request.backend.author(author_request, cancel), False
+        except Exception as exc:
+            return _backend_error(exc), False
+    turn_cancel = _TurnCancel(cancel)
+    timer = threading.Timer(limit, turn_cancel.set)
+    timer.daemon = True
+    timer.start()
     try:
-        return request.backend.author(author_request, cancel)
+        result = request.backend.author(author_request, turn_cancel)
     except Exception as exc:
-        return AuthorResult(
-            ok=False,
-            detail=f"backend_error: {type(exc).__name__}: {exc}",
-            usage={},
-            stdout_tail="",
-            session_id=None,
-        )
+        return _backend_error(exc), turn_cancel.is_set()
+    finally:
+        timer.cancel()
+    return result, turn_cancel.is_set()
 
 
 def build_model(request: BuildRequest, cancel: threading.Event | None = None) -> BuildOutcome:
-    """Run the bounded author loop and return the harness's verdict.
+    """Run the author loop until the harness is satisfied or the agent stalls.
 
-    Bounded by ``request.max_iterations``. The spec is re-hashed after every
-    turn, the model file must exist, and the harness is the only thing that can
-    produce PASS. Exhausting the cap is UNKNOWN with the still-failing probes,
-    never a pass by attrition.
+    ``max_iterations`` is ``None`` by default: there is no wall-clock stop and no
+    hidden cap, so the loop ends only on one of four things — the harness passing
+    every covered characteristic, the caller's cap, ``stall_patience``
+    consecutive turns that made no progress, or cancellation. Progress is what
+    keeps an uncapped build alive: each turn must change the model bytes *and*
+    report a failing set the previous turn did not, so an agent that repeats
+    itself stops the build instead of running forever. The spec is re-hashed
+    after every turn, the model file must exist, and the harness is the only
+    thing that can produce PASS. Stopping on a cap or a stall is UNKNOWN with the
+    last report and the still-failing probes, never a pass by attrition.
     """
     workdir = Path(request.workdir)
     path = model_file(workdir, request.subckt)
@@ -498,29 +641,44 @@ def build_model(request: BuildRequest, cancel: threading.Event | None = None) ->
     report = _report_without_runs(request.part, digest, path)
     prompt = build_prompt(frozen, request.subckt)
     feedback_log: list[str] = []
-    for turn in range(1, request.max_iterations + 1):
+    previous: tuple[tuple[str, str], ...] | None = None
+    stalled = 0
+    turn = 0
+    while True:
+        turn += 1
         if cancel is not None and cancel.is_set():
             history.append(f"turn {turn}: cancelled before the agent ran")
             return _outcome(
                 Status.UNKNOWN, turn - 1, report, history, "cancelled: the build was cancelled"
             )
-        authored = _author(request, prompt, cancel)
-        if authored.detail.startswith("cancelled"):
+        before = _digest(path)
+        authored, timed_out = _author(request, prompt, cancel)
+        note = (
+            _timeout_reason(request.turn_timeout_s)
+            if timed_out and request.turn_timeout_s is not None
+            else authored.detail
+        )
+        if cancel is not None and cancel.is_set():
+            history.append(f"turn {turn}: {note}")
+            return _outcome(
+                Status.UNKNOWN, turn, report, history, "cancelled: the build was cancelled"
+            )
+        if not timed_out and authored.detail.startswith("cancelled"):
             history.append(f"turn {turn}: {authored.detail}")
             return _outcome(Status.UNKNOWN, turn, report, history, authored.detail)
         tamper = _spec_tamper(workdir, frozen)
         if tamper is not None:
-            history.append(f"turn {turn}: {authored.detail}; {tamper}")
+            history.append(f"turn {turn}: {note}; {tamper}")
             return _outcome(Status.UNKNOWN, turn, report, history, tamper)
         if not path.is_file():
-            history.append(f"turn {turn}: {authored.detail}; model_file_missing ({path})")
+            history.append(f"turn {turn}: {note}; model_file_missing ({path})")
             missing = f"model_file_missing: {path} does not exist after turn {turn}"
             return _outcome(
                 Status.UNKNOWN,
                 turn,
                 report,
                 history,
-                missing if authored.ok else f"{authored.detail}; {missing}",
+                missing if authored.ok else f"{note}; {missing}",
             )
         try:
             report = run_harness(
@@ -533,9 +691,7 @@ def build_model(request: BuildRequest, cancel: threading.Event | None = None) ->
                 cancel=cancel,
             )
         except Exception as exc:
-            history.append(
-                f"turn {turn}: {authored.detail}; harness_error: {type(exc).__name__}: {exc}"
-            )
+            history.append(f"turn {turn}: {note}; harness_error: {type(exc).__name__}: {exc}")
             return _outcome(
                 Status.UNKNOWN,
                 turn,
@@ -543,9 +699,13 @@ def build_model(request: BuildRequest, cancel: threading.Event | None = None) ->
                 history,
                 f"harness_error: {type(exc).__name__}: {exc}",
             )
+        signature = _signature(report)
+        progressed = _digest(path) != before and (previous is None or signature != previous)
+        stalled = 0 if progressed else stalled + 1
         history.append(
-            f"turn {turn}: {authored.detail}; harness {_counts_text(report)} "
-            f"{_names(_failing(report))}"
+            _turn_line(
+                turn, progressed=progressed, report=report, timed_out=timed_out, note=note
+            )
         )
         if report.outcomes and report.passed():
             return _outcome(
@@ -555,8 +715,13 @@ def build_model(request: BuildRequest, cancel: threading.Event | None = None) ->
                 history,
                 f"harness PASS after {turn} turn(s): every covered characteristic passed",
             )
-        if turn == request.max_iterations:
+        if request.max_iterations is not None and turn >= request.max_iterations:
             break
+        if stalled >= request.stall_patience:
+            return _outcome(
+                Status.UNKNOWN, turn, report, history, _stall_detail(request, turn, report)
+            )
+        previous = signature
         feedback_log.append(_feedback_text(report))
         prompt = build_prompt(frozen, request.subckt, "\n\n".join(feedback_log))
 
@@ -566,4 +731,4 @@ def build_model(request: BuildRequest, cancel: threading.Event | None = None) ->
         if unresolved
         else f"max_iterations={request.max_iterations} exhausted without a passing harness report"
     )
-    return _outcome(Status.UNKNOWN, request.max_iterations, report, history, detail)
+    return _outcome(Status.UNKNOWN, turn, report, history, detail)
