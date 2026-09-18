@@ -110,7 +110,7 @@ class AppConfig(BaseModel):
     #: Output-token budget for one HTTP authoring reply; ``None`` uses
     #: ``authoring.api_backend``'s default. Reasoning-class models spend part of this
     #: budget before they write any file text, which is why it is generous and settable.
-    agent_max_tokens: int | None = None
+    agent_max_tokens: int | None = Field(default=None, ge=1)
     #: Search the web for supporting material while a model is being made (setup page).
     web_reinforcement: bool = True
     default_project_dir: str | None = None

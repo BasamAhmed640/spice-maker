@@ -74,6 +74,7 @@ WIRE_ENTRIES: tuple[AgentProvider, ...] = (
         endpoint="https://api.openai.com/v1",
         model="gpt-6-astra",
         env_aliases=("OPENAI_API_KEY",),
+        reasoning=True,
     ),
     AgentProvider(
         id="anthropic",
@@ -249,8 +250,9 @@ def test_an_openai_reply_writes_the_model_files_and_nothing_else(tmp_path: Path)
     assert sent.headers["Authorization"] == f"Bearer {SECRET}"
     body = json.loads(sent.body)
     assert body["model"] == schema_holder.model
-    assert body["stream"] is False and body["temperature"] == 0.0
-    assert body["max_tokens"] == api_backend.MAX_OUTPUT_TOKENS
+    assert body["stream"] is False
+    assert "temperature" not in body and "max_tokens" not in body
+    assert body["max_completion_tokens"] == api_backend.MAX_OUTPUT_TOKENS
     assert body["messages"][0]["role"] == "user"
     assert "files" in body["messages"][0]["content"], "the reply shape must be requested"
     assert SECRET not in sent.headers.get("Content-Type", "")
@@ -431,7 +433,7 @@ def test_the_default_output_budget_is_generous_enough_for_a_reasoning_model() ->
 
 
 def test_a_configured_output_budget_reaches_the_request_body(tmp_path: Path) -> None:
-    schema_holder = provider("openai")
+    schema_holder = provider("deepseek")
     reply = json.dumps({"files": {f"{SUBCKT}.lib": LIB_TEXT}})
     transport = Recorder(openai_reply(reply))
 
@@ -440,7 +442,21 @@ def test_a_configured_output_budget_reaches_the_request_body(tmp_path: Path) -> 
     )
 
     assert result.ok is True, result.detail
-    assert json.loads(transport.requests[0].body)["max_tokens"] == 1234
+    body = json.loads(transport.requests[0].body)
+    assert body["max_tokens"] == 1234 and body["temperature"] == 0.0
+
+
+def test_a_per_call_timeout_bounds_the_http_request(tmp_path: Path) -> None:
+    """The search budget must reach the transport even when the backend is injected."""
+    reply = json.dumps({"files": {f"{SUBCKT}.lib": LIB_TEXT}})
+    transport = Recorder(openai_reply(reply))
+
+    result = backend_for(provider("deepseek"), transport, timeout_s=600.0).author(
+        request_for(tmp_path), timeout_s=12.5
+    )
+
+    assert result.ok is True, result.detail
+    assert 0 < transport.requests[0].timeout_s <= 12.5
 
 
 def test_build_api_backend_resolves_the_budget_explicit_then_configured() -> None:
@@ -727,8 +743,10 @@ def test_a_text_turn_returns_prose_even_when_it_is_not_json(tmp_path: Path) -> N
 
 def test_build_api_backend_returns_bob_shell_for_bob() -> None:
     backend = build_api_backend("bob", config=AppConfig())
+    with_team = build_api_backend("bob", team_id="team-7", config=AppConfig())
 
     assert isinstance(backend, BobShellBackend)
+    assert isinstance(with_team, BobShellBackend) and with_team.team_id == "team-7"
 
 
 def test_build_api_backend_refuses_an_unknown_id_and_names_the_catalog() -> None:

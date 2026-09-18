@@ -708,13 +708,14 @@ def query_agent_backend(
     without any agent, network or credential.
     """
     try:
+        from boardmodeler.authoring.api_backend import DEFAULT_TIMEOUT_S
         from boardmodeler.authoring.backends import AuthorRequest
 
+        limit = DEFAULT_TIMEOUT_S if timeout_s is None else float(timeout_s)
         chosen = backend
         if chosen is None:
-            from boardmodeler.authoring.api_backend import DEFAULT_TIMEOUT_S, build_api_backend
+            from boardmodeler.authoring.api_backend import build_api_backend
 
-            limit = DEFAULT_TIMEOUT_S if timeout_s is None else float(timeout_s)
             chosen = build_api_backend(timeout_s=limit)
         usable, reason = chosen.availability()
         if not usable:
@@ -726,7 +727,7 @@ def query_agent_backend(
             max_turns=1,
             expect_text=True,
         )
-        result = chosen.author(request, cancel)
+        result = chosen.author(request, cancel, timeout_s=limit)
         if not result.ok:
             return "", f"agent_backend_failed: {result.detail}"
         if not result.stdout_tail.strip():

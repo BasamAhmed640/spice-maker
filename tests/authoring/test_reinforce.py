@@ -394,24 +394,30 @@ def test_query_agent_backend_uses_the_injected_backend_for_a_text_turn(
             return True, "ok"
 
         def author(
-            self, request: AuthorRequest, cancel: threading.Event | None = None
+            self,
+            request: AuthorRequest,
+            cancel: threading.Event | None = None,
+            *,
+            timeout_s: float | None = None,
         ) -> AuthorResult:
             seen["cancel"] = cancel
             seen["prompt"] = request.prompt
             seen["expect_text"] = request.expect_text
             seen["model_dir"] = request.model_dir
+            seen["author_timeout_s"] = timeout_s
             return AuthorResult(ok=True, detail="ok", usage={}, stdout_tail="{}", session_id=None)
 
     event = threading.Event()
 
     reply, note = reinforce_module.query_agent_backend(
-        "find sources", tmp_path, backend=_FakeBackend(), cancel=event
+        "find sources", tmp_path, backend=_FakeBackend(), cancel=event, timeout_s=12.5
     )
 
     assert note == "" and reply == "{}"
     assert seen["cancel"] is event, "the build's cancel event must reach the backend"
     assert seen["expect_text"] is True, "a candidate turn must not write files"
     assert seen["model_dir"] == tmp_path
+    assert seen["author_timeout_s"] == 12.5, "an injected backend still gets the budget"
 
 
 def test_query_agent_backend_defaults_to_the_configured_provider(
@@ -430,8 +436,13 @@ def test_query_agent_backend_defaults_to_the_configured_provider(
             return True, "ok"
 
         def author(
-            self, request: AuthorRequest, cancel: threading.Event | None = None
+            self,
+            request: AuthorRequest,
+            cancel: threading.Event | None = None,
+            *,
+            timeout_s: float | None = None,
         ) -> AuthorResult:
+            seen["author_timeout_s"] = timeout_s
             seen["expect_text"] = request.expect_text
             return AuthorResult(ok=True, detail="ok", usage={}, stdout_tail="{}", session_id=None)
 

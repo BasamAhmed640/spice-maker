@@ -125,8 +125,18 @@ class AuthorBackend(Protocol):
         """``(usable, reason)``; ``reason`` is specific when ``usable`` is False."""
         ...
 
-    def author(self, request: AuthorRequest, cancel: threading.Event | None = None) -> AuthorResult:
-        """Run one authoring turn. Implementations never raise for a failed turn."""
+    def author(
+        self,
+        request: AuthorRequest,
+        cancel: threading.Event | None = None,
+        *,
+        timeout_s: float | None = None,
+    ) -> AuthorResult:
+        """Run one authoring turn. Implementations never raise for a failed turn.
+
+        ``timeout_s`` bounds this one invocation when the caller has a budget;
+        ``None`` leaves the backend's own configured limit in place.
+        """
         ...
 
 
@@ -327,7 +337,13 @@ class BobShellBackend:
         argv.append(prompt)
         return argv
 
-    def author(self, request: AuthorRequest, cancel: threading.Event | None = None) -> AuthorResult:
+    def author(
+        self,
+        request: AuthorRequest,
+        cancel: threading.Event | None = None,
+        *,
+        timeout_s: float | None = None,
+    ) -> AuthorResult:
         """One Bob Shell run. Failures are returned, never raised with a secret."""
         if cancel is not None and cancel.is_set():
             return self._failed("cancelled: bob run was not started, the build was cancelled")
@@ -340,14 +356,17 @@ class BobShellBackend:
         argv = self.argv(request)
         child_env = dict(self.env if self.env is not None else os.environ)
         child_env[BOB_API_KEY_ENV] = key
+        limit = self.timeout_s if timeout_s is None else float(timeout_s)
+        if limit is not None and limit <= 0:
+            return self._failed(f"bob_shell_timeout: timeout_s must be > 0, got {limit}")
         # The runner takes a number, and an infinite deadline is one that never
         # arrives — that is what ``timeout_s=None`` (no limit) means here.
-        timeout_s = float("inf") if self.timeout_s is None else self.timeout_s
+        runner_timeout = float("inf") if limit is None else limit
         try:
             process = self.runner(
                 argv,
                 cwd=Path(request.workdir),
-                timeout_s=timeout_s,
+                timeout_s=runner_timeout,
                 env=child_env,
                 cancel=cancel,
             )
@@ -359,8 +378,8 @@ class BobShellBackend:
             detail = (
                 "bob_shell_timeout: bob run was stopped by its runner, but no turn timeout "
                 "is configured"
-                if self.timeout_s is None
-                else f"bob_shell_timeout: bob run did not finish within {self.timeout_s:g} s"
+                if limit is None
+                else f"bob_shell_timeout: bob run did not finish within {limit:g} s"
             )
             return AuthorResult(
                 ok=False, detail=detail, usage={}, stdout_tail=tail, session_id=None
@@ -456,7 +475,14 @@ class ScriptedBackend:
     def availability(self) -> tuple[bool, str]:
         return True, "scripted backend"
 
-    def author(self, request: AuthorRequest, cancel: threading.Event | None = None) -> AuthorResult:
+    def author(
+        self,
+        request: AuthorRequest,
+        cancel: threading.Event | None = None,
+        *,
+        timeout_s: float | None = None,
+    ) -> AuthorResult:
+        del timeout_s
         if cancel is not None and cancel.is_set():
             return AuthorResult(
                 ok=False,
@@ -501,5 +527,12 @@ class UnavailableBackend:
     def availability(self) -> tuple[bool, str]:
         return False, self.reason
 
-    def author(self, request: AuthorRequest, cancel: threading.Event | None = None) -> AuthorResult:
+    def author(
+        self,
+        request: AuthorRequest,
+        cancel: threading.Event | None = None,
+        *,
+        timeout_s: float | None = None,
+    ) -> AuthorResult:
+        del request, cancel, timeout_s
         return AuthorResult(ok=False, detail=self.reason, usage={}, stdout_tail="", session_id=None)

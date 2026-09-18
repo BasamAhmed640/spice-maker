@@ -94,11 +94,14 @@ def _window_title() -> str:
 
 def _configured_provider() -> object:
     """The accepted provider the persisted settings name, or ``None`` — never a substitute."""
-    from boardmodeler.config import load_config
-    from boardmodeler.ui.setup_dialog import configured_provider
+    try:
+        from boardmodeler.config import load_config
+        from boardmodeler.ui.setup_dialog import configured_provider
 
-    provider, _ = configured_provider(load_config())
-    return provider
+        provider, _ = configured_provider(load_config())
+        return provider
+    except Exception:  # an unreadable config is reported by the availability check
+        return None
 
 
 def _configured_provider_id() -> str:

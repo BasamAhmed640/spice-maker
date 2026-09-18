@@ -906,6 +906,7 @@ def build_backend(request: MakeModelRequest) -> AuthorBackend:
             provider_id=request.provider,
             model=request.agent_model,
             max_tokens=request.agent_max_tokens,
+            team_id=request.team_id,
             timeout_s=limit,
         )
     if name == "bob":
@@ -1035,6 +1036,8 @@ def _checked(request: MakeModelRequest) -> MakeModelRequest:
         raise ValueError(f"timeout_s must be > 0, got {request.timeout_s}")
     if request.turn_timeout_s is not None and request.turn_timeout_s <= 0:
         raise ValueError(f"turn_timeout_s must be > 0 or None, got {request.turn_timeout_s}")
+    if request.agent_max_tokens is not None and request.agent_max_tokens < 1:
+        raise ValueError(f"agent_max_tokens must be >= 1 or None, got {request.agent_max_tokens}")
     return request
 
 

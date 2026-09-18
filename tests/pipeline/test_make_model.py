@@ -781,6 +781,24 @@ def test_the_bob_backend_receives_the_turn_timeout(tmp_path: Path) -> None:
     assert unlimited.timeout_s is None
 
 
+def test_the_default_api_backend_still_honours_a_bob_team_id(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """``--backend api`` (the default) must not silently drop ``--team-id`` for Bob."""
+    from boardmodeler.authoring import api_backend as api_module
+    from boardmodeler.authoring.backends import BobShellBackend
+    from boardmodeler.config import AppConfig
+
+    monkeypatch.setattr(api_module, "load_config", lambda path=None: AppConfig())
+
+    backend = engine.build_backend(
+        make_request(tmp_path, backend_name="api", provider="bob", team_id="team-api")
+    )
+
+    assert isinstance(backend, BobShellBackend)
+    assert backend.team_id == "team-api"
+
+
 def test_the_api_backend_is_built_from_the_catalog_entry_and_the_config(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -943,3 +961,14 @@ def test_an_unsanitized_subcircuit_name_is_a_programming_error(tmp_path: Path) -
         make_model(make_request(tmp_path, timeout_s=0.0))
     with pytest.raises(ValueError, match="turn_timeout_s"):
         make_model(make_request(tmp_path, turn_timeout_s=0.0))
+
+
+def test_an_invalid_token_budget_is_rejected_before_any_stage(tmp_path: Path) -> None:
+    from pydantic import ValidationError
+
+    from boardmodeler.config import AppConfig
+
+    with pytest.raises(ValidationError):
+        AppConfig(agent_max_tokens=0)
+    with pytest.raises(ValueError, match="agent_max_tokens"):
+        make_model(make_request(tmp_path, agent_max_tokens=0))

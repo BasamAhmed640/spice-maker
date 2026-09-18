@@ -402,10 +402,18 @@ class ApiKeyBackend:
             + (f" ({credential.detail})" if credential.detail else "")
         )
 
-    def author(self, request: AuthorRequest, cancel: threading.Event | None = None) -> AuthorResult:
+    def author(
+        self,
+        request: AuthorRequest,
+        cancel: threading.Event | None = None,
+        *,
+        timeout_s: float | None = None,
+    ) -> AuthorResult:
         """One HTTP authoring turn. A failed or cancelled turn is returned, never raised."""
         if cancel is not None and cancel.is_set():
             return self._failed("cancelled: the API turn was not started, the build was cancelled")
+        if timeout_s is not None and float(timeout_s) <= 0:
+            return self._failed(f"api_request_failed: timeout_s must be > 0, got {timeout_s!r}")
         usable, reason = self.availability()
         if not usable:
             return self._failed(reason)
@@ -414,9 +422,10 @@ class ApiKeyBackend:
         if not request.expect_text:
             prompt = f"{prompt.rstrip()}\n\n{REPLY_FORMAT_INSTRUCTION}"
         url, headers, body = self._shape(prompt, key=key)
+        limit = self.timeout_s if timeout_s is None else float(timeout_s)
         try:
             text, usage, stop = self._exchange(
-                url=url, headers=headers, body=body, key=key, cancel=cancel
+                url=url, headers=headers, body=body, key=key, cancel=cancel, timeout_s=limit
             )
         except ProviderError as exc:
             if exc.code == "cancelled":
@@ -511,16 +520,20 @@ class ApiKeyBackend:
         budget = self._max_tokens()
         wire = self.provider.wire
         if wire == "openai":
+            body: dict[str, Any] = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": False,
+            }
+            if self.provider.reasoning:
+                body["max_completion_tokens"] = budget
+            else:
+                body["temperature"] = TEMPERATURE
+                body["max_tokens"] = budget
             return (
                 f"{endpoint}/chat/completions",
                 {"Authorization": f"Bearer {key}"},
-                {
-                    "model": model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": TEMPERATURE,
-                    "max_tokens": budget,
-                    "stream": False,
-                },
+                body,
             )
         if wire == "anthropic":
             return (
@@ -552,6 +565,7 @@ class ApiKeyBackend:
         body: dict[str, Any],
         key: str,
         cancel: threading.Event | None,
+        timeout_s: float,
     ) -> tuple[str, dict[str, float], str | None]:
         """One turn as ``(assistant text, usage, stop reason)``.
 
@@ -560,7 +574,9 @@ class ApiKeyBackend:
         because a truncated reply is only distinguishable from a malformed one by
         the provider's own stop reason.
         """
-        payload = self._post_json(url=url, headers=headers, body=body, key=key, cancel=cancel)
+        payload = self._post_json(
+            url=url, headers=headers, body=body, key=key, cancel=cancel, timeout_s=timeout_s
+        )
         usage = (
             payload.get("usageMetadata") if self.provider.wire == "google" else payload.get("usage")
         )
@@ -575,19 +591,15 @@ class ApiKeyBackend:
         body: dict[str, Any],
         key: str,
         cancel: threading.Event | None,
+        timeout_s: float,
     ) -> dict[str, Any]:
-        """POST one JSON body with the same retry policy as the shared path."""
-        request = HttpRequest(
-            method="POST",
-            url=url,
-            headers={
-                **headers,
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            body=json.dumps(body, ensure_ascii=False).encode("utf-8"),
-            timeout_s=self.timeout_s,
-        )
+        """POST one JSON body with the same retry policy as the shared path.
+
+        ``timeout_s`` bounds the whole turn, retries included: each attempt gets
+        what is left of it, and an attempt is refused once the budget is gone.
+        """
+        deadline = time.monotonic() + timeout_s
+        encoded = json.dumps(body, ensure_ascii=False).encode("utf-8")
         total_attempts = self.retries + 1
         attempts = 0
         last_detail = "no attempt was made"
@@ -596,6 +608,24 @@ class ApiKeyBackend:
             attempts += 1
             if cancel is not None and cancel.is_set():
                 raise ProviderError("cancelled", f"cancelled before attempt {attempts}")
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ProviderError(
+                    "timeout",
+                    f"the {timeout_s:g} s budget for this turn was exhausted before attempt "
+                    f"{attempts} of {total_attempts}",
+                )
+            request = HttpRequest(
+                method="POST",
+                url=url,
+                headers={
+                    **headers,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                body=encoded,
+                timeout_s=min(timeout_s, remaining),
+            )
             response: HttpResponse | None = None
             try:
                 response = self.transport(request)
@@ -708,6 +738,7 @@ def build_api_backend(
     *,
     model: str | None = None,
     max_tokens: int | None = None,
+    team_id: str | None = None,
     timeout_s: float = DEFAULT_TIMEOUT_S,
     config: AppConfig | None = None,
 ) -> AuthorBackend:
@@ -719,7 +750,8 @@ def build_api_backend(
     the ids it does — never another provider. ``bob`` is the Bob CLI, whose key is
     read by the child process, so it yields a
     :class:`~boardmodeler.authoring.backends.BobShellBackend` of its own (``model``
-    and ``max_tokens`` do not apply to it). ``model`` follows the same order:
+    and ``max_tokens`` do not apply to it; ``team_id`` is passed to it). ``model``
+    follows the same order:
     explicit, ``config.agent_model``, the provider's documented default; so does
     ``max_tokens`` (explicit, ``config.agent_max_tokens``, and
     :data:`MAX_OUTPUT_TOKENS` inside the backend when neither is set).
@@ -744,7 +776,7 @@ def build_api_backend(
             f"use one of {accepted}",
         )
     if provider.wire not in HTTP_WIRES:
-        return BobShellBackend(timeout_s=timeout_s)
+        return BobShellBackend(team_id=team_id, timeout_s=timeout_s)
     resolved_model = model or str(config.agent_model or "").strip() or None
     resolved_tokens = max_tokens if max_tokens is not None else config.agent_max_tokens
     return ApiKeyBackend(

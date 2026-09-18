@@ -263,3 +263,40 @@ def test_no_agent_available_stops_before_any_work(qtbot, tmp_path, monkeypatch) 
     assert window._result is None
     assert shown and shown[0][0] == "No agent available"
     assert "bob_credentials_unavailable" in shown[0][1]
+
+
+def test_a_malformed_config_shows_the_blocked_dialog_instead_of_raising(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    """A broken config file must degrade to the dialog, never escape the GO slot."""
+    calls: list[_Request] = []
+    monkeypatch.setitem(
+        sys.modules,
+        "boardmodeler.pipeline.make_model",
+        _engine_module(_Result("PASS", "", "X", tmp_path, None, None, None, ()), calls),
+    )
+    import boardmodeler.config as config_module
+
+    def broken_load(*args: object, **kwargs: object) -> object:
+        raise ValueError("config.json is not valid JSON")
+
+    monkeypatch.setattr(config_module, "load_config", broken_load)
+    shown: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        "PySide6.QtWidgets.QMessageBox.warning",
+        lambda parent, title, text, *a, **k: shown.append((title, text)),
+    )
+    from boardmodeler.ui.model_maker import ModelMakerWindow
+
+    window = ModelMakerWindow()
+    qtbot.addWidget(window)
+    datasheet = tmp_path / "ds.pdf"
+    datasheet.write_bytes(b"%PDF-1.4")
+    window.part_edit.setText("TPS54320")
+    window.datasheet_edit.setText(str(datasheet))
+    window.out_edit.setText(str(tmp_path))
+
+    window.go_button.click()
+
+    assert calls == [], "no build may start from an unreadable config"
+    assert shown and shown[0][0] == "No agent available"

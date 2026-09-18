@@ -71,6 +71,12 @@ class AgentProvider:
     endpoint: str | None = None
     model: str | None = None
     env_aliases: tuple[str, ...] = ()
+    #: On the ``openai`` wire, whether the entry's model is a reasoning model: it
+    #: rejects ``temperature`` and takes its output budget as
+    #: ``max_completion_tokens`` rather than ``max_tokens``. OpenAI's own reasoning
+    #: models do; most OpenAI-compatible vendors still take the classic parameters,
+    #: so this is per entry rather than per wire.
+    reasoning: bool = False
 
     @property
     def uses_cli(self) -> bool:
@@ -119,6 +125,7 @@ CATALOG: tuple[AgentProvider, ...] = (
         endpoint="https://api.openai.com/v1",
         model="gpt-6-astra",
         env_aliases=("OPENAI_API_KEY",),
+        reasoning=True,
     ),
     AgentProvider(
         id="anthropic",
