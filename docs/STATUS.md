@@ -193,8 +193,9 @@ test for this defect).
 ## Commands run (with observed results)
 
 ```powershell
+uv run pytest -q                               # 785 passed, 1 skipped (includes the LTspice-marked tests)
 uv run boardmodeler doctor --json              # smoke_test "pass", measured 0.632 V, reader_backend native
-uv run boardmodeler demo build --out build/demo # 28 requirements, 10 test cases, SC001-SC009 PASS
+uv run boardmodeler demo build --out build/demo # 30 requirements, 10 test cases, SC001-SC009 PASS
 uv run boardmodeler circuit check --project build/demo --json
 uv run boardmodeler run mutations --project build/demo --report build/mutation-report.json
 uv run boardmodeler export --project build/demo --out build/demo-export
@@ -202,6 +203,5 @@ uv run boardmodeler export --project build/demo --out build/demo-export
 
 ## Next actions
 
-1. Finish the Phase 6 regression baselines and re-run the full suite.
-2. Keep `docs/DECISIONS.md` current; every decision that constrains later work is
+1. Keep `docs/DECISIONS.md` current; every decision that constrains later work is
    recorded there with its rationale and rejected alternatives.

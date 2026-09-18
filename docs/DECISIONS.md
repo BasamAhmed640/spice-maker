@@ -261,9 +261,6 @@ avoid, and one that is invisible in the report because the scenario id looks rig
   the exact injected card(s) or to `applied: false` with a note;
 * `tests/pipeline/test_demo_decks.py` asserts each scenario's deck differs from the
   nominal deck (or is recorded as not applied) without needing a simulator;
-* `tests/test_demo_scenarios.py` asserts the injection is *observable* — a measured
-  quantity moves by more than 1 % against nominal — because an injection that changes
-  no output is decoration, not a scenario;
 * the reference clock is a stand-in whose rate is not asserted by any requirement
   (`REQ_DEMO_CLK_009` is an ASSUMPTION), and each deck says so, because driving a
   100 MHz clock with 1 ns edges across a 10 ms window forced about 1e6 timesteps and
@@ -329,5 +326,5 @@ must not do.
 
 **Evidence:** `uv run boardmodeler demo build --out build/demo` → 30 requirements,
 10 test cases, 23/23 stimuli applied; `uv run boardmodeler run mutations` → 7/7
-detected with the original project byte-identical; `uv run pytest -q
-tests/test_demo_end_to_end.py` → 8 passed.
+detected with the original project byte-identical. The full-suite and
+scenario-check results are recorded under "Commands run" in `docs/STATUS.md`.
