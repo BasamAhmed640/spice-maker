@@ -18,6 +18,7 @@ Three entry points back the CLI:
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import threading
 from collections.abc import Iterable, Mapping, Sequence
@@ -165,6 +166,16 @@ DEMO_SCENARIOS: dict[str, str] = {
 # switches, so the solver takes small internal steps; a 10 ms window with a 20 us
 # cap keeps a full scenario under a minute of wall time while still covering
 # start-up, sequencing, the reset release and the strap sampling window.
+#: Which capability behaviour each board requirement's verdict actually depends on.
+#: ``REQ_DEMO_SEQ_001`` is a *steady-state* window claim, so it depends on
+#: ``dc_regulation`` (probed as supported for both generated regulators); a scenario
+#: whose stimulus moves a rail inside that window additionally depends on
+#: ``load_transients``, which neither template establishes — see
+#: :func:`_transient_sensitive_requirements`.
+BEHAVIOUR_MAP: dict[str, str] = {
+    "REQ_DEMO_SEQ_001": "dc_regulation",
+}
+
 SIM_STOP = 10e-3
 SIM_TMAX = 20e-6
 #: Truncation-error tolerance. The board models contain discontinuous behavioural
@@ -1749,6 +1760,13 @@ def check_circuit(
     if install is not None:
         ctx = project.run_context(ltspice=install, timeout_s=180)
         for case in tests:
+            case_gate = dict(capability_gate or {})
+            case_gate.update(
+                gate_from_capability(
+                    list(capabilities.values()),
+                    _transient_sensitive_requirements(neutral, case),
+                )
+            )
             if cancel is not None and cancel.is_set():
                 break
             # The deck is rebuilt from the circuit that is on disk *now*, not
@@ -1777,7 +1795,7 @@ def check_circuit(
                     requirement_map,
                     connectivity=netmap,
                     supply_domains=neutral.supply_domains,
-                    capability_gate=capability_gate,
+                    capability_gate=case_gate or None,
                 )
             )
 
@@ -1900,6 +1918,70 @@ def _load_capabilities(root: Path) -> dict[str, ModelCapability]:
         path.stem: ModelCapability.model_validate_json(path.read_text(encoding="utf-8"))
         for path in sorted(folder.glob("*.json"))
     }
+
+
+#: The requirement whose window the scenarios measure rails over, and the time that
+#: window opens: a load step at or after it is part of the measured interval.
+RAIL_WINDOW_REQUIREMENT = "REQ_DEMO_SEQ_001"
+RAIL_WINDOW_START_S = 4e-3
+#: The strap must not move after its sampling window closes; its stability rides on
+#: the rail that pulls it up, so the same transient gate applies to it.
+STRAP_STABILITY_REQUIREMENT = "REQ_DEMO_CONFIG_008"
+
+
+def _perturbs_a_rail_inside_the_window(deck_text: str) -> bool:
+    """Does this deck move a rail after the measured window opens?
+
+    Two shapes count: a load step at or after the window start, and an input source
+    whose own PWL turns back down inside the window (a drawn dip or brownout). Both
+    make the case a large-signal transient question rather than a steady-state one.
+    """
+    for token in re.findall(r"T_STEP=([0-9.eE+-]+)", deck_text):
+        try:
+            if float(token) >= RAIL_WINDOW_START_S:
+                return True
+        except ValueError:  # pragma: no cover - generated card
+            continue
+    for card in re.findall(r"^V\w+\s+\S+\s+\S+\s+PWL\(([^)]*)\)", deck_text, re.MULTILINE):
+        numbers = [float(value) for value in card.split()]
+        points = list(zip(numbers[0::2], numbers[1::2], strict=False))
+        highest = float("-inf")
+        for time_s, value in points:
+            if time_s >= RAIL_WINDOW_START_S and value < highest:
+                return True
+            highest = max(highest, value)
+    return False
+
+
+def _transient_sensitive_requirements(
+    neutral: NeutralProject, case: TestCase
+) -> dict[str, str]:
+    """Requirements whose verdict that *case* cannot support on this model.
+
+    A scenario that moves a rail inside the requirement's window asks for the model's
+    large-signal response, not its steady-state regulation: the probe records
+    ``load_transients`` as ``unknown`` for both generated regulators (D-013). Judging
+    such a case would report a model limitation as a circuit failure, so it is gated
+    to UNKNOWN with ``model_capability_unsupported`` instead.
+
+    The gate is per case: the *nominal* deck perturbs nothing inside the window, and
+    its steady-state claim stands on the probed ``dc_regulation`` support. The
+    requirements gated are the rail window itself and the strap-stability claim,
+    because a strap held up by a rail follows that rail when it moves.
+    """
+    bound = set(case.requirement_ids)
+    sensitive = [rid for rid in (RAIL_WINDOW_REQUIREMENT, STRAP_STABILITY_REQUIREMENT) if rid in bound]
+    if not sensitive:
+        return {}
+    try:
+        deck_text = deck_for_scenario(neutral, case.scenario_id, out=neutral.root).render(
+            neutral.root
+        )
+    except (KeyError, ValueError):
+        return {}
+    if not _perturbs_a_rail_inside_the_window(deck_text):
+        return {}
+    return {rid: "load_transients" for rid in sensitive}
 
 
 def _load_behaviour_map(root: Path) -> dict[str, str]:

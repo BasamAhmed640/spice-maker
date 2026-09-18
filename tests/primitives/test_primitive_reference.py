@@ -558,7 +558,7 @@ def test_port_and_param_tables_match_the_specification() -> None:
         "BM_PUSHPULL": ("VOH", "VOL", "ROUT"),
         "BM_SUPPLY_IO": ("VIL_MAX", "VIH_MIN", "ICLAMP"),
         "BM_CONDUCTION": ("RC_ON", "RC_OFF"),
-        "BM_LOAD": ("I_STATIC", "I_STEP", "T_STEP"),
+        "BM_LOAD": ("I_STATIC", "I_STEP", "T_STEP", "VMIN"),
         "BM_PG": ("VTH", "VHYS", "TD", "PULLUP_MAX"),
         "BM_RESET_SUP": ("VTH", "VHYS", "TD"),
     }
