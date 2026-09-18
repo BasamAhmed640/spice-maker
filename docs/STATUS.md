@@ -115,7 +115,14 @@ Those FAILs are **findings, not test bugs**: the fixture declares a ±5 % window
 the reduced behavioural models exceed it on a load step. They are reported as they
 are; nothing was widened to turn them green.
 
-Fault matrix (`boardmodeler run mutations`): **7 of 7 injected faults detected**
+Fault matrix (`boardmodeler run mutations`): **every fault in the plan's required
+set is detected** — `swap_straps`, `en_invert`, `missing_pullup`,
+`pullup_wrong_domain`, `early_reset_release`, `missing_pg`, `slow_rail_u2` (7 of 7).
+Sweeping all twelve mutators shows **9 of 12 detected**: `invalid_strap`,
+`break_sideband` and `remove_rail` change the verdict to FAIL but not through the
+check each declares (`strap_word_invalid`, `open_drain_level`,
+`SC009_supply_domain_assignment` respectively), so those three are listed here as
+open rather than counted as detections
 (`swap_straps`, `en_invert`, `missing_pullup`, `pullup_wrong_domain`,
 `early_reset_release`, `missing_pg`, `slow_rail_u2`) with the **original project
 byte-identical afterwards** (hashes compared before and after). Getting there
