@@ -39,10 +39,15 @@ object, discarding the response envelope whose ``finish_reason``/``stop_reason``
 is what separates truncation from a malformed reply. One local request path keeps
 both observable.
 
-Every write is validated to stay inside ``AuthorRequest.model_dir`` (absolute
-paths, ``..``, drive letters and NTFS ``:`` streams are refused) and is then
-written atomically through a temporary file plus ``os.replace``. Secrets only ever
-sit in the auth header: every detail and ``stdout_tail`` passes through
+Every write is validated to stay inside ``AuthorRequest.model_dir`` *as the OS
+resolves it*: absolute paths, drive letters, NTFS ``:`` streams, control
+characters and any component Windows rewrites — a trailing dot or space, such as
+``'.. '``, which ``Path.resolve()`` keeps literal while Win32 canonicalizes it to
+the parent — are refused before the containment check, so a path that reaches the
+write is one the OS cannot redirect. A write that still cannot be performed is
+returned as ``api_write_failed: ...``, never raised. Files are written atomically
+through a temporary file plus ``os.replace``. Secrets only ever sit in the auth
+header: every detail and ``stdout_tail`` passes through
 :func:`boardmodeler.security.credentials.redact`, so a server that echoes the key
 back cannot put it into a log, a manifest or a card.
 """
@@ -450,12 +455,13 @@ class ApiKeyBackend:
         try:
             for target, content in targets:
                 _write_atomically(target, content)
-        except OSError as exc:
+        except (OSError, ValueError) as exc:
             return AuthorResult(
                 ok=False,
                 detail=redact(
                     f"api_write_failed: {type(exc).__name__}: {exc}; the model files may be "
-                    "incomplete — the harness judges whatever is on disk",
+                    "incomplete — an earlier file of this reply may already be on disk, and "
+                    "the harness judges whatever is there",
                     [key],
                 ),
                 usage=usage,
@@ -651,7 +657,10 @@ def _relative_target(model_dir: Path, name: str) -> tuple[Path | None, str]:
     The prompt names the deliverables as ``model/<SUBCKT>.lib`` relative to the
     workspace, so a leading segment equal to the model directory's own name is
     the same file and is accepted; everything else must be a plain relative path
-    that stays inside the directory.
+    that stays inside the directory. Every component is refused before the
+    containment check when the OS would resolve it differently from
+    ``Path.resolve()``: a trailing dot or space (Win32 strips it, so ``'.. '`` is
+    ``..``) and control characters (an embedded NUL cannot be written at all).
     """
     raw = name.replace("\\", "/").strip()
     if not raw:
@@ -661,6 +670,10 @@ def _relative_target(model_dir: Path, name: str) -> tuple[Path | None, str]:
     parts = [part for part in raw.split("/") if part not in ("", ".")]
     if any(part == ".." for part in parts):
         return None, f"{name!r} escapes the model directory with '..'"
+    if any(any(char < " " for char in part) for part in parts):
+        return None, f"{name!r} contains a control character"
+    if any(part[-1:] in (".", " ") for part in parts):
+        return None, f"{name!r} has a component Windows rewrites (trailing dot or space)"
     if any(":" in part for part in parts):
         return None, f"{name!r} contains ':'"
     if len(parts) > 1 and parts[0] == model_dir.name:

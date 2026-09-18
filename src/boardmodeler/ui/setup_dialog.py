@@ -7,7 +7,9 @@ for supporting material. The main window carries none of it.
 
 The agent rows are built from :mod:`boardmodeler.agent_providers`: a build whose catalog
 holds one provider shows no provider row at all and keeps that provider's own key label,
-so a Bob-only build is this page exactly as it was.
+so a Bob-only build is this page exactly as it was. A configured provider this build does
+not accept is shown as such, in its own line, and is never swapped for the default: SAVE
+leaves the configured id alone until the user picks a provider here.
 
 The page is sized to its content — no fixed-height frame with dead space under it.
 """
@@ -41,7 +43,7 @@ from boardmodeler.agent_providers import AgentProvider
 from boardmodeler.config import AppConfig, config_path, load_config, save_config
 from boardmodeler.ui.theme import CGA, RETRO_STYLESHEET
 
-__all__ = ["SetupDialog", "describe_settings", "ltspice_user_lib", "main"]
+__all__ = ["SetupDialog", "configured_provider", "describe_settings", "ltspice_user_lib", "main"]
 
 _HINT = f"color: {CGA['bright_cyan']}; font-family: Consolas; font-size: 9pt;"
 _STATUS = f"color: {CGA['grey']}; font-family: Consolas; font-size: 9pt;"
@@ -53,25 +55,47 @@ def ltspice_user_lib(home: Path | None = None) -> Path:
     return base / "AppData" / "Local" / "LTspice" / "lib"
 
 
-def selected_provider(config: AppConfig) -> AgentProvider:
-    """The provider ``config`` asks for, falling back to this build's default."""
-    return agent_providers.by_id(config.agent_provider) or agent_providers.default_provider()
+def configured_provider(config: AppConfig) -> tuple[AgentProvider | None, str]:
+    """``(provider, reason)`` for ``config.agent_provider``; never another provider.
+
+    An id this build does not accept comes back as ``None`` plus the same
+    ``api_provider_unavailable`` text
+    :func:`boardmodeler.authoring.api_backend.build_api_backend` refuses with, so
+    the page, the window and the engine cannot disagree about the refusal. An
+    empty setting means this build's default provider.
+    """
+    wanted = str(config.agent_provider or "").strip()
+    if not wanted:
+        return agent_providers.default_provider(), ""
+    provider = agent_providers.by_id(wanted)
+    if provider is not None:
+        return provider, ""
+    accepted = ", ".join(repr(name) for name in agent_providers.ids()) or "none"
+    return None, (
+        f"api_provider_unavailable: {wanted!r} is not a provider this build accepts; "
+        f"use one of {accepted}"
+    )
 
 
 def describe_settings(config: AppConfig) -> dict[str, object]:
     """The persisted settings as data, for ``boardmodeler setup --json`` and tests."""
     from boardmodeler.security.credentials import describe_credential
 
-    provider = selected_provider(config)
+    provider, reason = configured_provider(config)
+    shown = provider or agent_providers.default_provider()
     return {
         "config_path": str(config_path()),
         "ltspice_path": config.ltspice.path,
         "model_dir": config.default_model_dir,
         "web_reinforcement": config.web_reinforcement,
         "ltspice_user_lib": str(ltspice_user_lib()),
-        "agent_provider": provider.id,
-        "agent_model": config.agent_model or provider.model,
-        "agent_api_key": describe_credential(provider.credential),
+        # The id the config names, never a substitute; the flag says whether this
+        # build accepts it, so a caller sees the refusal instead of another provider.
+        "agent_provider": str(config.agent_provider or "").strip() or shown.id,
+        "agent_provider_accepted": provider is not None,
+        "agent_provider_problem": reason,
+        "agent_model": config.agent_model or shown.model,
+        "agent_api_key": describe_credential(shown.credential),
         "accepted_providers": list(agent_providers.ids()),
     }
 
@@ -84,7 +108,13 @@ class SetupDialog(QDialog):
         self.setWindowTitle("Spice Maker setup")
         self.setStyleSheet(RETRO_STYLESHEET)
         self._config = load_config()
-        self._provider = selected_provider(self._config)
+        self._provider, self._provider_problem = configured_provider(self._config)
+        #: The id SAVE must write, or ``None`` while the configured id is left alone.
+        self._provider_choice: str | None = None if self._provider is None else self._provider.id
+        if self._provider is None:
+            # Something on this page must own the key row; the line below says whose
+            # key it is *not*, and SAVE keeps the configured id until the user picks.
+            self._provider = agent_providers.default_provider()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 10, 12, 10)
@@ -129,6 +159,21 @@ class SetupDialog(QDialog):
             self.provider_combo = combo
             grid.addWidget(QLabel("AGENT"), row, 0)
             grid.addWidget(combo, row, 1, 1, 3)
+            row += 1
+
+        self.provider_status: QLabel | None = None
+        if self._provider_problem:
+            guidance = (
+                f"this build accepts the {only.label} API only"
+                if only is not None
+                else "pick a provider here and SAVE to replace it"
+            )
+            self.provider_status = QLabel(
+                f"config names {str(self._config.agent_provider).strip()!r}, which this build "
+                f"does not accept —\n{guidance}"
+            )
+            self.provider_status.setStyleSheet(_HINT)
+            grid.addWidget(self.provider_status, row, 1, 1, 3)
             row += 1
 
         self.key_label = QLabel(self._provider.key_label)
@@ -232,6 +277,7 @@ class SetupDialog(QDialog):
         if provider is None:  # pragma: no cover - the combo only holds catalog ids
             return
         self._show_provider(provider)
+        self._provider_choice = provider.id
         self._refresh_status()
         self.adjustSize()
 
@@ -306,9 +352,10 @@ class SetupDialog(QDialog):
         self._config.ltspice.path = self.ltspice_edit.text().strip() or None
         self._config.default_model_dir = self.model_dir_edit.text().strip() or None
         self._config.web_reinforcement = self.reinforce_check.isChecked()
-        self._config.agent_provider = self._provider.id
-        if self._provider.model_editable:
-            self._config.agent_model = self.model_edit.text().strip() or None
+        if self._provider_choice is not None:
+            self._config.agent_provider = self._provider_choice
+            if self._provider.model_editable:
+                self._config.agent_model = self.model_edit.text().strip() or None
         try:
             path = save_config(self._config)
         except Exception as exc:

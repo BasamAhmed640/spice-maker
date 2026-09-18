@@ -22,6 +22,7 @@ from typing import Any
 
 from boardmodeler import __version__
 from boardmodeler.agent_providers import CATALOG
+from boardmodeler.authoring.part_class import classify
 from boardmodeler.config import config_path, load_config
 from boardmodeler.simulation.backend import probe_backend
 from boardmodeler.simulation.ltspice import (
@@ -192,7 +193,12 @@ def build_parser() -> argparse.ArgumentParser:
         "build",
         help="let an agent author the model, then judge it against the datasheet rows",
     )
-    model_build.add_argument("--part", required=True, help="part number, e.g. TPS54320")
+    model_build.add_argument(
+        "--part",
+        required=True,
+        help="part number, e.g. TPS54320; microcontrollers and programmable-logic parts are "
+        "refused with BLOCKED and the reason (no probe can judge them)",
+    )
     model_build.add_argument(
         "--subckt",
         default=None,
@@ -875,6 +881,26 @@ def _cmd_model_build(args: argparse.Namespace) -> int:
         return code
 
     subckt = args.subckt or _sanitize_subckt(args.part)
+    part_class = classify(args.part)
+    if not part_class.supported:
+        # The same refusal the pipeline raises, reported before it reads anything:
+        # the probes judge analogue rows, and a part this classifier names is one
+        # whose datasheet rows no probe can bind. No new flag -- it is a BLOCKED
+        # result like any other, and --strict turns that into exit 1.
+        return emit(
+            {
+                "tool": "boardmodeler",
+                "command": "model build",
+                "part": args.part,
+                "subckt": subckt,
+                "status": "BLOCKED",
+                "detail": part_class.detail,
+                "history": [],
+                "probes": [],
+                "files": [],
+            },
+            1 if args.strict else 0,
+        )
     if args.datasheet is not None:
         return _cmd_model_build_from_datasheet(args, subckt=subckt, emit=emit)
     if args.requirements is None or args.bindings is None:

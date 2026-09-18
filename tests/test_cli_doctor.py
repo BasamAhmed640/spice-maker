@@ -122,7 +122,7 @@ def test_doctor_credentials_report_the_source_the_backend_reads(
 ) -> None:
     """A vendor variable the reason advertises must show up as a source, not 'missing'."""
     from boardmodeler import cli
-    from boardmodeler.agent_providers import CATALOG
+    from boardmodeler.agent_providers import CATALOG, ids
     from boardmodeler.authoring import api_backend
     from boardmodeler.security import credentials
 
@@ -134,11 +134,18 @@ def test_doctor_credentials_report_the_source_the_backend_reads(
     for provider in CATALOG:
         for variable in api_backend.env_sources(provider):
             monkeypatch.delenv(variable, raising=False)
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-doctor-secret")
+
+    # The section lists this build's providers and the source each key resolves from:
+    # one advertised variable is exported, so its provider must read 'env' and every
+    # other provider this build accepts must read 'missing'.
+    exported = next((p for p in CATALOG if p.env_aliases), None)
+    if exported is not None:
+        monkeypatch.setenv(api_backend.env_sources(exported)[1], "sk-doctor-secret")
 
     section = cli._credentials_section()
 
-    assert "deepseek" in section
-    assert "source=env" in section["deepseek"]
-    assert "source=missing" in section["openai"]
+    assert set(section) == set(ids())
+    for provider in CATALOG:
+        source = "env" if provider.id == getattr(exported, "id", None) else "missing"
+        assert f"source={source}" in section[provider.id], section[provider.id]
     assert "sk-doctor-secret" not in json.dumps(section)

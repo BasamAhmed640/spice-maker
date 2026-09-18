@@ -5,6 +5,12 @@ injected, and no test reaches a network endpoint or the OS keyring. What the
 tests pin is the contract the pipeline and the GUI rely on — which files land on
 disk after a reply, which replies are refused, what ``availability`` says when a
 key is missing, and that a server echoing the key back cannot leak it.
+
+The subject is the *backend*, not the catalog: every wire, path-safety, redaction
+and budget test speaks through the entry this build ships for that wire, or — in a
+build that ships none — through the documented shape :data:`WIRE_ENTRIES` declares.
+The catalog checks the backend performs are covered by the factory tests below,
+which read whatever this build accepts.
 """
 
 from __future__ import annotations
@@ -16,6 +22,7 @@ from typing import Any
 
 import pytest
 
+from boardmodeler import agent_providers
 from boardmodeler.agent_providers import CATALOG, AgentProvider, by_id, ids
 from boardmodeler.authoring import api_backend
 from boardmodeler.authoring.api_backend import ApiKeyBackend, build_api_backend
@@ -39,25 +46,101 @@ SUBCKT = "BM_REG_BUCK"
 LIB_TEXT = f".subckt {SUBCKT} VIN SW FB GND\nR1 VIN FB 1k\n.ends {SUBCKT}\n"
 ASY_TEXT = "Version 4\nSymbolType CELL\n"
 
-OPENAI = by_id("openai")
-DEEPSEEK = by_id("deepseek")
-ANTHROPIC = by_id("anthropic")
-GOOGLE = by_id("google")
+#: The wire shapes this module exercises, declared here so the backend tests run in a
+#: build that ships none of them. Each is a copy of the entry the general build ships
+#: (``test_the_declared_wire_shapes_match_the_entries_this_build_ships`` holds them
+#: together); :func:`provider` prefers the build's own entry whenever it has one.
+WIRE_ENTRIES: tuple[AgentProvider, ...] = (
+    AgentProvider(
+        id="deepseek",
+        label="DeepSeek",
+        wire="openai",
+        credential="deepseek",
+        key_label="DEEPSEEK API KEY",
+        key_hint="platform.deepseek.com → API keys  ·  stored in the Windows credential store",
+        docs="https://api-docs.deepseek.com/",
+        endpoint="https://api.deepseek.com",
+        model="deepseek-flash",
+        env_aliases=("DEEPSEEK_API_KEY",),
+    ),
+    AgentProvider(
+        id="openai",
+        label="OpenAI",
+        wire="openai",
+        credential="openai",
+        key_label="OPENAI API KEY",
+        key_hint="platform.openai.com → API keys  ·  stored in the Windows credential store",
+        docs="https://developers.openai.com/api/docs/guides/text",
+        endpoint="https://api.openai.com/v1",
+        model="gpt-6-astra",
+        env_aliases=("OPENAI_API_KEY",),
+    ),
+    AgentProvider(
+        id="anthropic",
+        label="Anthropic",
+        wire="anthropic",
+        credential="anthropic",
+        key_label="ANTHROPIC API KEY",
+        key_hint="console.anthropic.com → API keys  ·  stored in the Windows credential store",
+        docs="https://platform.claude.com/docs/en/get-started",
+        endpoint="https://api.anthropic.com/v1",
+        model="claude-opus-5",
+        env_aliases=("ANTHROPIC_API_KEY",),
+    ),
+    AgentProvider(
+        id="google",
+        label="Google Gemini",
+        wire="google",
+        credential="google",
+        key_label="GEMINI API KEY",
+        key_hint="aistudio.google.com → API keys  ·  stored in the Windows credential store",
+        docs="https://ai.google.dev/gemini-api/docs/text-generation",
+        endpoint="https://generativelanguage.googleapis.com/v1beta",
+        model="gemini-3.8-flash",
+        env_aliases=("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+    ),
+)
+
+OPENAI = by_id("openai") or WIRE_ENTRIES[1]
+DEEPSEEK = by_id("deepseek") or WIRE_ENTRIES[0]
+ANTHROPIC = by_id("anthropic") or WIRE_ENTRIES[2]
+GOOGLE = by_id("google") or WIRE_ENTRIES[3]
+
+
+def provider(wire_id: str) -> AgentProvider:
+    """The entry this build ships for ``wire_id``, or the declared shape for that wire."""
+    return by_id(wire_id) or next(entry for entry in WIRE_ENTRIES if entry.id == wire_id)
+
+
+@pytest.fixture(autouse=True)
+def accepts_wire_entries(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Let this build accept the wire entries the tests speak through.
+
+    ``ApiKeyBackend`` refuses an id its build does not accept, so without this a
+    restricted build would answer every wire test with that refusal. Only entries the
+    build lacks are added, and ``monkeypatch`` removes them again afterwards: the
+    catalog the build ships is never swapped, so the tests that read it still see it.
+    """
+    declared = tuple(entry for entry in WIRE_ENTRIES if by_id(entry.id) is None)
+    if declared:
+        monkeypatch.setattr(agent_providers, "CATALOG", (*agent_providers.CATALOG, *declared))
 
 
 @pytest.fixture(autouse=True)
 def no_ambient_keys(monkeypatch: pytest.MonkeyPatch) -> None:
     """No test may read a developer's own exported key, whatever it is called."""
-    for entry in CATALOG:
+    for entry in (*CATALOG, *WIRE_ENTRIES):
         monkeypatch.delenv(env_var_name(entry.credential), raising=False)
         for alias in entry.env_aliases:
             monkeypatch.delenv(alias, raising=False)
 
 
-def provider(wire_id: str) -> AgentProvider:
-    entry = by_id(wire_id)
-    assert entry is not None, f"{wire_id} must be in this build's catalog"
-    return entry
+def test_the_declared_wire_shapes_match_the_entries_this_build_ships() -> None:
+    """Where this build ships a declared id, it must ship the shape these tests speak."""
+    for declared in WIRE_ENTRIES:
+        shipped = by_id(declared.id)
+        if shipped is not None:
+            assert shipped == declared, f"{declared.id} differs from the shape used here"
 
 
 class Recorder:

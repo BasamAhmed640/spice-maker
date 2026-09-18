@@ -8,7 +8,10 @@ stages and never invents a result:
     ``<out_dir>/build`` (classification defaults to ``unknown``; the caller decides
     egress with ``allow_remote``) and the requirement rows come either from
     ``requirements_json`` (validated, never re-interpreted) or from the configured
-    extraction provider.
+    extraction provider. A part no probe can judge — a microcontroller or a
+    programmable-logic device, see :mod:`boardmodeler.authoring.part_class` —
+    stops here with ``BLOCKED(unsupported_part_class: ...)``, before any agent
+    turn or simulation is spent on it.
 
 ``extract``
     Provider-driven extraction to the D4 records, then the deterministic
@@ -40,8 +43,9 @@ stages and never invents a result:
     ``harness-report.json``, ``spec/`` and ``results.json`` land in ``out_dir``.
 
 Status ladder: ``PASS`` only when every bound row passed a real simulator run;
-``BLOCKED`` when the backend, the provider or LTspice was unavailable; ``FAIL``
-only when the harness measured a fully judged model wrong at the iteration cap;
+``BLOCKED`` when the backend, the provider or LTspice was unavailable, or when the
+part is one no probe can judge; ``FAIL`` only when the harness measured a fully
+judged model wrong at the iteration cap;
 ``UNKNOWN`` for everything else (a cancelled run, an abandoned model file, a
 tampered spec, an agent that stopped making progress, rows the harness could not
 judge). ``detail`` always names the concrete next action for a human.
@@ -91,6 +95,7 @@ from boardmodeler.authoring.loop import (
     model_file,
     prepare_workdir,
 )
+from boardmodeler.authoring.part_class import classify
 from boardmodeler.authoring.probes import PROBES
 from boardmodeler.authoring.reinforce import ReinforcementReport, reinforce
 from boardmodeler.authoring.spec import SpecSet, load_tps54320_spec, normalize_unit
@@ -1208,6 +1213,15 @@ class _Run:
                 f"datasheet_unreadable: {datasheet} could not be registered as a document "
                 f"({type(exc).__name__}: {exc})",
             ) from exc
+        # The refusal sits here because this is the first point where both the part
+        # number and the document's own text are in hand, and it is long before the
+        # extraction, the agent and the simulator: a part the probes cannot judge is
+        # stopped without a turn being spent. The stage's own writes (the registered
+        # document) have already happened; the refusal adds none, and save() publishes
+        # nothing for a run that never reached the authoring stage.
+        refusal = classify(request.part, text=self.record.title)
+        if not refusal.supported:
+            raise _Stop("read", Status.BLOCKED.value, refusal.detail)
         self.store = store
         self.supplied = supplied
         self.declared = declared

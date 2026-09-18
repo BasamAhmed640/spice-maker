@@ -327,8 +327,19 @@ def test_half_a_supplied_extraction_is_refused_before_any_engine_call(
 def test_the_agent_provider_model_and_budget_reach_the_request(
     tmp_path: Path, datasheet: Path, monkeypatch, capsys
 ) -> None:
+    from boardmodeler import agent_providers
+    from boardmodeler.authoring import api_backend
+
     calls: list[_Request] = []
     _install_fake_engine(monkeypatch, _Result("PASS", "", "TPS54320", tmp_path, (), {}), calls)
+
+    # A provider this build accepts (it can reach a backend instead of refusing the id)
+    # and a model id of the caller's own: both are forwarded, not validated or replaced.
+    entry = next(
+        (p for p in agent_providers.CATALOG if p.wire in api_backend.HTTP_WIRES),
+        agent_providers.default_provider(),
+    )
+    override = "cli-model-override"
 
     code = cli.main(
         [
@@ -343,9 +354,9 @@ def test_the_agent_provider_model_and_budget_reach_the_request(
             "--backend",
             "api",
             "--provider",
-            "deepseek",
+            entry.id,
             "--model",
-            "deepseek-flash",
+            override,
             "--max-tokens",
             "4096",
             "--json",
@@ -355,6 +366,6 @@ def test_the_agent_provider_model_and_budget_reach_the_request(
 
     assert code == 0
     assert calls[-1].backend_name == "api"
-    assert calls[-1].provider == "deepseek"
-    assert calls[-1].agent_model == "deepseek-flash"
+    assert calls[-1].provider == entry.id
+    assert calls[-1].agent_model == override
     assert calls[-1].agent_max_tokens == 4096

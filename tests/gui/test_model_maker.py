@@ -148,7 +148,8 @@ def test_a_successful_run_fills_the_stage_and_row_tables(qtbot, tmp_path, monkey
 
     assert calls and calls[0].part == "TPS54320" and calls[0].subckt == "TPS54320"
     assert calls[0].backend_name == "api"
-    assert calls[0].provider == "bob"
+    # The window runs the build's own default provider, whatever this catalog holds.
+    assert calls[0].provider == agent_providers.default_provider().id
 
     stages = {
         window.stages.item(r, 0).text(): window.stages.item(r, 1).text()

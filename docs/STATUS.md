@@ -70,6 +70,25 @@ model package: the product is still the IC model, and the harness still owns eve
 |Model package, judged frozen|`build/frozen-check` — built from the committed fixtures with the bundled author in **11.4 s** of real LTspice work (lib + symbol + card + example + report) — re-judged by the *installed* app: `model test` → **PASS, 8 PASS / 0 FAIL**|
 |Suites|`uv run pytest -q` → **1052 passed, 1 skipped, 0 failed** (5 m 44 s, LTspice-marked tests included; the skip is the network opt-in in `tests/providers`); `tests/gui tests/ui` → 53 passed; `uv run ruff check .` and `uv run ruff format --check .` → clean|
 
+### Model-accuracy evidence, part-class refusals, hardening (2026-09-18, third pass)
+
+The owner asked for strong tests on the actual models with reported timing and accuracy, and
+for parts the harness cannot judge to be refused rather than modelled. Both are now measured
+rather than asserted (`tools/measure_models.py` writes `build/model-measurements.{json,md}`).
+
+|What|Observed|
+|---|---|
+|Model build, real LTspice|TPS54320/BM_REG_BUCK from the committed fixtures, bundled author: **15.2 s** wall (11.2 / 11.7 / 15.2 over three runs), **PASS**, 8 probes, one author turn. Stages: read 4.7 s, bind 0.009 s, author+judge 6.4 s, save 0.16 s|
+|Re-judge (`model test`)|**10.2 s** (6.7 / 7.6 / 10.2 over three runs), PASS, 8 LTspice invocations, model sha256 unchanged by the re-judge|
+|Accuracy|9 judged rows PASS / 0 FAIL of 38 rows (29 `NOT_APPLICABLE` with written reasons). Measured vs the datasheet's own limits: `i_heavy` 2 A vs max 3 A (33 % margin), `vin_at_start` 4.30223 V vs 4–4.5 V (4.4 %), `en_at_start` 1.25106 V vs 1.21–1.26 V (0.71 %), `en_at_stop` 1.14863 V vs 1.1–1.17 V (1.8 %), `v_fb` 0.799993 V vs 0.792–0.808 V, `i_vin` 75.7 µA vs max 800 µA (90.5 %)|
+|Determinism|two independent builds produce **byte-identical** `.lib` and `.asy` (sha256 `28f5af84…`, `e25fd7ba…`) and identical row tables|
+|Discrimination (the strong test)|8 perturbations on copies of the built model, each with a written prediction: the three *inside-tolerance* changes (UVLO +40 mV, VREF +6 mV, EN +5 mV) flip nothing (8 PASS, 0 FAIL); the three *outside* changes flip exactly the predicted rows to FAIL with the measured value; dropping the `PG` port turns that row into `UNKNOWN` (never PASS); replacing the model body with a comment turns all 9 judged rows `UNKNOWN` with **0 PASS**. **8 of 8 predictions held**|
+|Part-class refusal|`unsupported_part_class: <kind>: <reason>` — MCUs (STM32/ATmega/MSP430/ESP32/RP2040/nRF52/PIC) and programmable logic (Xilinx 7-series/UltraScale/Zynq, Cyclone/MAX 10/Arria/Stratix, ECP5/iCE40/MachXO) are refused before any agent turn or simulation, with the reason naming what the probes measure. Observed: `model build --part STM32F407 …` → `BLOCKED — unsupported_part_class: microcontroller: the part number matches the STMicroelectronics STM32 family; the probes measure analogue thresholds and regulation; a firmware-defined part has no datasheet row this harness can bind` (exit 1 under `--strict`, nothing written); `--part XC7A35T` → the same shape for `fpga`. Lookalikes (MAX232, XC6206, LTC3891) stay supported|
+|Security hardening|a read-only audit of the API-key path found no key-leak path (not falsified) and three defects, now fixed: a Windows path component with a trailing dot/space is refused before the containment check; control characters (NUL) in a reply name are refused instead of raising out of `author()` (and an unwritable path reports `api_write_failed … may be incomplete` rather than escaping as `backend_error`); the GUI no longer substitutes the default provider for a configured-but-unaccepted id — the raw id reaches `build_api_backend` and SETUP/`setup --json` report it with an `agent_provider_accepted` flag. Note recorded honestly: the trailing-space escape was **not reproducible** on this platform/Python (the audit's reading was static), and the refusal is kept as defence in depth|
+|Bob-only build|the same test suite passes with a one-entry catalog: 99 passed in the general build and 99 passed in the trimmed build for the six catalog-touching files, so the restricted repository ships green tests rather than 35 failures|
+|Suites|`uv run pytest -q` → **1112 passed, 1 skipped, 0 failed** (6 m 27 s, LTspice included); `uv run ruff check .` and `uv run ruff format --check .` → clean|
+|Environment note|two full-suite runs died with a Windows fatal access violation inside `pypdf` while several agents and LTspice runs shared the machine; the same call reproduced `NameError: name '_LENGTH_LIMIT' is not defined` in a tight loop. The pypdf files match their RECORD and the symbol is defined, and clearing the `__pycache__` directories made 36 subsequent reads clean and the suite green — recorded here so a future crash is not mistaken for a code regression|
+
 ## Completed phases
 
 ### Phase 0 — environment, contracts, simulator smoke test

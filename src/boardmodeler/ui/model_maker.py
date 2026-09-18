@@ -93,12 +93,25 @@ def _window_title() -> str:
 
 
 def _configured_provider() -> object:
-    """The agent provider the persisted settings ask for (this build's default otherwise)."""
-    from boardmodeler import agent_providers
+    """The accepted provider the persisted settings name, or ``None`` — never a substitute."""
+    from boardmodeler.config import load_config
+    from boardmodeler.ui.setup_dialog import configured_provider
+
+    provider, _ = configured_provider(load_config())
+    return provider
+
+
+def _configured_provider_id() -> str:
+    """The provider id exactly as the config names it: the request carries it unsubstituted.
+
+    ``build_api_backend`` refuses an id this build does not accept with
+    ``api_provider_unavailable: ...``, so passing the raw value is what makes the
+    engine's own refusal reachable instead of another provider running with the
+    wrong key.
+    """
     from boardmodeler.config import load_config
 
-    config = load_config()
-    return agent_providers.by_id(config.agent_provider) or agent_providers.default_provider()
+    return str(load_config().agent_provider or "").strip()
 
 
 def _agent_availability() -> tuple[bool, str]:
@@ -106,8 +119,7 @@ def _agent_availability() -> tuple[bool, str]:
     try:
         from boardmodeler.authoring.api_backend import build_api_backend
 
-        backend = build_api_backend(_configured_provider().id)
-        return backend.availability()
+        return build_api_backend(_configured_provider_id() or None).availability()
     except Exception as exc:  # pragma: no cover - import/config problems are reported
         return False, f"the agent backend could not be loaded: {exc}"
 
@@ -322,12 +334,21 @@ class ModelMakerWindow(QMainWindow):
         usable, reason = _agent_availability()
         if not usable:
             self.setup_hint.setText("no agent key — press SETUP")
+            if provider is None:
+                advice = (
+                    "Press SETUP and choose one of the providers this build accepts, or fix "
+                    "the provider name in the config file."
+                )
+            else:
+                advice = (
+                    f"Press SETUP and store your {provider.label} API key "
+                    f"({provider.key_hint}), or pick another provider there."
+                )
             QMessageBox.warning(
                 self,
                 "No agent available",
                 "Nothing was started, because the agent that writes the model is not usable "
-                f"yet:\n\n{reason}\n\nPress SETUP and store your {provider.label} API key "
-                f"({provider.key_hint}), or pick another provider there.",
+                f"yet:\n\n{reason}\n\n{advice}",
             )
             return
         self.setup_hint.setText("")
@@ -340,7 +361,9 @@ class ModelMakerWindow(QMainWindow):
             datasheet=datasheet,
             out_dir=out_dir,
             backend_name="api",
-            provider=provider.id,
+            # The configured id as written, so ``build_api_backend`` refuses a provider
+            # this build lacks instead of another provider answering with the wrong key.
+            provider=provider.id if provider is not None else _configured_provider_id(),
         )
         self._out_dir = out_dir
         self._start(request)
