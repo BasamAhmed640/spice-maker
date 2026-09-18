@@ -1,0 +1,81 @@
+{
+  "abstractions": [
+    {
+      "omitted_pins": [
+        "LANE0_TX_P",
+        "LANE0_TX_N",
+        "LANE0_RX_P",
+        "LANE0_RX_N"
+      ],
+      "preserved_connectivity": true,
+      "reason": "the switch has no simulation model; its supplies, reset, straps and sideband pins are present in the netlist and checked statically, while its lanes and protocol are outside dynamic coverage",
+      "refdes": "U5"
+    },
+    {
+      "omitted_pins": [],
+      "preserved_connectivity": true,
+      "reason": "REFCLK_100M is driven by a stand-in source; clock availability is an assumption recorded in the fixture contract, so no clock-dependent conclusion may be reported as a pass",
+      "refdes": "V2"
+    },
+    {
+      "omitted_pins": [
+        "SW"
+      ],
+      "preserved_connectivity": false,
+      "reason": "the generated buck drives VOUT directly and has no switching node in its reduced behavioural form; the SW pin is left open and this boundary reduces coverage",
+      "refdes": "U1"
+    }
+  ],
+  "configuration": {
+    "clock": "assumed_present",
+    "config_strap": "101",
+    "ilim_mode": "0",
+    "note": "ILIM_MODE=0 selects hiccup/retry; the clock is an assumption, not a verified path",
+    "notes": "Board-level bring-up demonstration: a 12 V input, a generated buck to 3.3 V, a generated LDO to 1.8 V, an open-drain reset supervisor pair driving PERST#, and the synthetic PCIe-switch interface fixture. | The device contract for U5 lives in fixtures/switch_fixture (SYNTHETIC_SWITCH_CONTRACT.md, pins.csv, requirements.json) and every one of those requirements carries origin=TEST_FIXTURE. U5 has no simulation model: it appears in the netlist, in the static checks and in the abstraction list, and it is explicitly outside dynamic coverage. | Nothing here is device data for a real part number.",
+    "package": "SYNTH-BGA-64",
+    "part_ambiguity": "the fixture has no real part number; it must never be presented as device data",
+    "reference_part": "SYNTH-PCIE-SW-0",
+    "unmodelled": "U5",
+    "use_profile": "Power and I/O sequencing"
+  },
+  "loads": {
+    "I1": 0.25,
+    "I2": 0.4
+  },
+  "model_assignments": {
+    "I1": "bm_load_3v3",
+    "I2": "bm_load_1v8",
+    "U1": "bm_reg_buck",
+    "U2": "bm_reg_ldo",
+    "U3": "bm_pg_3v3",
+    "U4": "bm_pg_1v8"
+  },
+  "schema_version": 1,
+  "supply_domains": {
+    "12V": "12V",
+    "1V8": "1V8",
+    "3V3": "3V3",
+    "CLK_REQ_N": "3V3",
+    "CONFIG0": "1V8",
+    "CONFIG2": "1V8",
+    "PERST_N": "3V3",
+    "PG_1V8": "3V3",
+    "PG_3V3": "3V3",
+    "SMB_CLK": "3V3",
+    "SMB_DAT": "3V3",
+    "VIN_12V_SRC": "12V"
+  },
+  "timing": {
+    "load_step_1v8_a": 0.2,
+    "load_step_1v8_s": 0.002,
+    "load_step_3v3_a": 0.15,
+    "load_step_3v3_s": 0.002,
+    "pg_delay_s": 0.002,
+    "reset_release_max_s": 0.1,
+    "reset_release_min_s": 0.001,
+    "sim_stop_s": 0.02,
+    "strap_sample_end_s": 0.005,
+    "strap_sample_start_s": 0.001,
+    "vin_ramp_s": 0.002
+  }
+}

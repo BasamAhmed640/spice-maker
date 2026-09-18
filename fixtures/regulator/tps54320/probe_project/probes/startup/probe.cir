@@ -1,0 +1,22 @@
+* tps54320_vendor_ltspice startup probe
+.include C:\Users\basam\AppData\Local\Temp\scholar-packaged-tests-bcQABY\fixtures\regulator\tps54320\adapted\TPS54320_TRANS_ltspice.lib
+.options method=gear
+.options trtol=10
+V1 n_vin 0 PWL(0 0 0.0002 12 0.0023 12)
+Ven n_en 0 PULSE(0 3.3 0.0002 1e-06 1e-06 0.0021 0.0042)
+XU1 n_boot n_comp n_en 0 0 0 n_sw n_sw n_vin n_vin n_pg n_rt n_ss n_vin n_fb TPS54320_TRANS
+L1 n_sw n_vout 4.7u
+Cout n_vout 0 47u
+Rload n_vout 0 3.3
+Rfbt n_vout n_fb 10000
+Rfbb n_fb 0 3240
+Css n_ss 0 1n
+Rrt n_rt 0 150k
+Cboot n_boot n_sw 100n
+Rc n_comp 0 10k
+Cc n_comp 0 1n
+Rpg n_pg n_vin 20k
+.tran 1.05e-07 0.0021 0 2e-06
+.save V(n_vout) V(n_en)
+.backanno
+.end

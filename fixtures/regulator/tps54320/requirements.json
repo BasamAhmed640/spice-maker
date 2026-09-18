@@ -1,0 +1,1834 @@
+{
+  "document": {
+    "doc_id": "doc_tps54320",
+    "title_contains": "TPS54320",
+    "file_hash_note": "see provenance.json for the datasheet sha256",
+    "page_count": 43,
+    "text_extraction": "embedded"
+  },
+  "extraction": {
+    "method": "fixture-assisted (public datasheet read directly; excerpts sliced from the extracted page text by anchor, never remembered)",
+    "tool": "tools/extract_tps54320_fixture.py",
+    "citation_coverage": 1.0,
+    "unverified": []
+  },
+  "absolute_maximum_control": {
+    "note": "Negative control for tests/regulator: a requirement taken from the absolute-maximum ratings table. validate_requirements must reject it as an operating limit.",
+    "requirement": {
+      "req_id": "REQ_TPS54320_ABSMAX_001",
+      "applies_to": "TPS54320",
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "VIN must stay within -0.3 V to 20 V.",
+      "limits": {
+        "min": -0.3,
+        "max": 20.0,
+        "unit": "V"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(VIN)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 3,
+            "printed_label": null
+          },
+          "section": "Absolute Maximum Ratings",
+          "table": "Absolute Maximum Ratings",
+          "figure": null,
+          "excerpt": "Stresses beyond those listed under absolute maximum ratings may cause permanent damage to the device.",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    }
+  },
+  "requirements": [
+    {
+      "req_id": "REQ_TPS54320_ELEC_001",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The power-stage input (PVIN) operates from 1.6 V to 17 V.",
+      "limits": {
+        "min": 1.6,
+        "max": 17.0,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "between",
+        "signal": "V(VIN)",
+        "low": 1.6,
+        "high": 17.0,
+        "unit": "V"
+      },
+      "conditions": [
+        {
+          "text": "over operating free-air temperature range",
+          "parameter_overrides": {}
+        }
+      ],
+      "signal_refs": [
+        "V(VIN)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 3,
+            "printed_label": null
+          },
+          "section": "Recommended Operating Conditions",
+          "table": "Recommended Operating Conditions",
+          "figure": null,
+          "excerpt": "Power stage input voltage range PVIN 1.6 17 V Output current 0 3 A Operating junction temperature, TJ –40 150 °C",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_002",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The control input (VIN) operates from 4.5 V to 17 V.",
+      "limits": {
+        "min": 4.5,
+        "max": 17.0,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "between",
+        "signal": "V(VIN)",
+        "low": 4.5,
+        "high": 17.0,
+        "unit": "V"
+      },
+      "conditions": [
+        {
+          "text": "over operating free-air temperature range",
+          "parameter_overrides": {}
+        }
+      ],
+      "signal_refs": [
+        "V(VIN)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 3,
+            "printed_label": null
+          },
+          "section": "Recommended Operating Conditions",
+          "table": "Recommended Operating Conditions",
+          "figure": null,
+          "excerpt": "Input voltage range VIN 4.5 17 V Power stage input voltage range PVIN 1.6 17 V Output current 0 3 A Operating junction temperature, TJ –40 150 °C",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_003",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The output current is 0 A to 3 A.",
+      "limits": {
+        "min": 0.0,
+        "max": 3.0,
+        "unit": "A"
+      },
+      "expression": null,
+      "conditions": [
+        {
+          "text": "over operating free-air temperature range",
+          "parameter_overrides": {}
+        }
+      ],
+      "signal_refs": [
+        "I(VOUT)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 3,
+            "printed_label": null
+          },
+          "section": "Recommended Operating Conditions",
+          "table": "Recommended Operating Conditions",
+          "figure": null,
+          "excerpt": "Output current 0 3 A Operating junction temperature, TJ –40 150 °C",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_004",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The internal VIN UVLO threshold with VIN rising is between 4.0 V and 4.5 V.",
+      "limits": {
+        "min": 4.0,
+        "max": 4.5,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "between",
+        "signal": "V(VIN_START)",
+        "low": 4.0,
+        "high": 4.5,
+        "unit": "V"
+      },
+      "conditions": [
+        {
+          "text": "VIN rising, TJ = -40 C to 150 C",
+          "parameter_overrides": {}
+        }
+      ],
+      "signal_refs": [
+        "V(VIN_START)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 4,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "VIN internal UVLO threshold VIN rising 4.0 4.5 V VIN internal UVLO hysteresis 150 mV VIN shutdown supply Current EN = 0 V 2 5 μA VIN operating – non switching supply current VSENSE = 810 mV 600 800 μA ENABLE AND UVLO (EN PIN) Enable threshold Risin",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_005",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "TYPICAL_VALUE",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "The VIN internal UVLO hysteresis is 150 mV (a typical value in the electrical table).",
+      "limits": {
+        "typ": 0.15,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "between",
+        "signal": "V(UVLO_HYST)",
+        "low": 0.1,
+        "high": 0.2,
+        "unit": "V"
+      },
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "V(UVLO_HYST)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 4,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "VIN internal UVLO hysteresis 150 mV VIN shutdown supply Current EN = 0 V 2 5 μA VIN operating – non switching supply current VSENSE = 810 mV 600 800 μA ENABLE AND UVLO (EN PIN) Enable threshold Rising 1.21 1.26 V Enable threshold Falli",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_006",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "The VIN shutdown supply current with EN = 0 V is at most 5 uA.",
+      "limits": {
+        "typ": 2e-06,
+        "max": 5e-06,
+        "unit": "A"
+      },
+      "expression": {
+        "op": "lt",
+        "signal": "I(VIN_SHUTDOWN)",
+        "value": 5e-06,
+        "unit": "A"
+      },
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "I(VIN_SHUTDOWN)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 4,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "VIN shutdown supply Current EN = 0 V 2 5 μA VIN operating – non switching supply current VSENSE = 810 mV 600 800 μA ENABLE AND UVLO (EN PIN) Enable threshold Rising 1.21 1.26 V Enable threshold Falling 1.10 1.17 V EN pin sourcing current EN lo",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_007",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "The VIN operating non-switching supply current is at most 800 uA.",
+      "limits": {
+        "typ": 0.0006,
+        "max": 0.0008,
+        "unit": "A"
+      },
+      "expression": {
+        "op": "lt",
+        "signal": "I(VIN_NONSW)",
+        "value": 0.0008,
+        "unit": "A"
+      },
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "I(VIN_NONSW)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 4,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "VIN operating – non switching supply current VSENSE = 810 mV 600 800 μA ENABLE AND UVLO (EN PIN) Enable threshold Rising 1.21 1.26 V Enable threshold Falling 1.10 1.17 V EN pin sourcing current EN low EN = 1.1 V 1.15 μA EN pin sourcing current EN high EN = 1.3 V 3.4 μA V",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_010",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The EN rising threshold is between 1.21 V and 1.26 V.",
+      "limits": {
+        "min": 1.21,
+        "max": 1.26,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "rise_above",
+        "signal": "V(EN)",
+        "value": 1.21,
+        "unit": "V"
+      },
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "V(EN)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 4,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "Enable threshold Rising 1.21 1.26 V Enable threshold Falling 1.10 1.17 V EN pin sourcing current EN low EN = 1.1 V 1.15 μA EN pin sourcing current EN high EN = 1.3 V 3.4 μA VOLTAGE REFERENCE Voltage reference 0 A ≤ IOUT ≤ 3 A 0.792 0.8",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_011",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The EN falling threshold is between 1.10 V and 1.17 V.",
+      "limits": {
+        "min": 1.1,
+        "max": 1.17,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "fall_below",
+        "signal": "V(EN)",
+        "value": 1.17,
+        "unit": "V"
+      },
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "V(EN)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 4,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "Enable threshold Falling 1.10 1.17 V EN pin sourcing current EN low EN = 1.1 V 1.15 μA EN pin sourcing current EN high EN = 1.3 V 3.4 μA VOLTAGE REFERENCE Voltage reference 0 A ≤ IOUT ≤ 3 A 0.792 0.800 0.808 V MOSFET High-side switch re",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_012",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "The EN pin sources 1.15 uA at EN = 1.1 V and 3.4 uA at EN = 1.3 V.",
+      "limits": {
+        "min": 1.15e-06,
+        "unit": "A"
+      },
+      "expression": {
+        "op": "between",
+        "signal": "I(EN)",
+        "low": 1e-06,
+        "high": 5e-06,
+        "unit": "A"
+      },
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "I(EN)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 4,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "EN pin sourcing current EN low EN = 1.1 V 1.15 μA EN pin sourcing current EN high EN = 1.3 V 3.4 μA VOLTAGE REFERENCE Voltage reference 0 A ≤ IOUT ≤ 3 A 0.792 0.800 0.808 V MOSFET High-side switch resistance (1) BOOT-PH = 3 V 77 116 mΩ High-side swi",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_020",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The voltage reference is 0.792 V to 0.808 V (0.800 V typical) over 0 A <= IOUT <= 3 A.",
+      "limits": {
+        "min": 0.792,
+        "typ": 0.8,
+        "max": 0.808,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "between",
+        "signal": "V(VSENSE)",
+        "low": 0.792,
+        "high": 0.808,
+        "unit": "V"
+      },
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "V(VSENSE)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 4,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "Voltage reference 0 A ≤ IOUT ≤ 3 A 0.792 0.800 0.808 V MOSFET High-side switch resistance (1) BOOT-PH = 3 V 77 116 mΩ High-side switch resistance (1) BOOT-PH = 6 V 57 103 mΩ Low-side Switch Resistance (1) VIN = 12 V 50 87 mΩ ERROR AMPLIFIER Error amplifi",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_021",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "FUNCTIONAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "Regulation is through the external divider on VSENSE: the error amplifier's inverting input is VSENSE, so the output follows the external resistor ratio rather than a fixed internal value.",
+      "limits": null,
+      "expression": {
+        "op": "state_dependent",
+        "when": {
+          "signal": "V(EN)",
+          "kind": "rise_above",
+          "value": 1.21,
+          "unit": "V"
+        },
+        "then": {
+          "op": "between",
+          "signal": "V(VSENSE)",
+          "low": 0.792,
+          "high": 0.808,
+          "unit": "V"
+        }
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(VSENSE)",
+        "V(VOUT)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "VSENSE 7 Inverting input of the gm error amplifier. COMP 8 Error amplifier output, and input to the output switch current comparator. Connect frequency compensation to this pin. SS/TR 9 Slow-start and tracking. An external capacitor connected to this",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_022",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "TYPICAL_VALUE",
+      "criticality": "INFORMATIONAL",
+      "origin": "DOCUMENT",
+      "statement": "The error amplifier transconductance is 1300 uMhos.",
+      "limits": {
+        "typ": 0.0013,
+        "unit": "S"
+      },
+      "expression": null,
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 4,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "Error amplifier Transconductance (gm) –2 μA < I(COMP) < 2 μA, V(COMP) = 1 V 1300 μMhos Error amplifier dc gain VSENSE = 0.8 V 1000 3100 V/V Error amplifier source/sink V(COMP) = 1 V, 100-mV input overdrive ±110 μA Start switching threshold 0.25 V COMP to Iswitch gm 12 A/V",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_023",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "The error amplifier dc gain is 1000 to 3100 V/V.",
+      "limits": {
+        "min": 1000.0,
+        "max": 3100.0,
+        "unit": "V/V"
+      },
+      "expression": null,
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 4,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "Error amplifier dc gain VSENSE = 0.8 V 1000 3100 V/V Error amplifier source/sink V(COMP) = 1 V, 100-mV input overdrive ±110 μA Start switching threshold 0.25 V COMP to Iswitch gm 12 A/V",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_024",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "TEMPORAL",
+      "class": "TYPICAL_VALUE",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "Switching starts once COMP reaches the 0.25 V start-switching threshold (a typical value in the electrical table, not a min/max limit).",
+      "limits": {
+        "typ": 0.25,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "rise_above",
+        "signal": "V(COMP)",
+        "value": 0.25,
+        "unit": "V"
+      },
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "V(COMP)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 4,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "Start switching threshold 0.25 V COMP to Iswitch gm 12 A/V",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_030",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The high-side switch current limit threshold is 4.2 A to 6.2 A.",
+      "limits": {
+        "min": 4.2,
+        "max": 6.2,
+        "unit": "A"
+      },
+      "expression": {
+        "op": "between",
+        "signal": "I(PH)",
+        "low": 4.2,
+        "high": 6.2,
+        "unit": "A"
+      },
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "I(PH)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 5,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "High-side switch current limit threshold 4.2 6.2 A Low-side switch sourcing current limit 3.8 5.8 A Low-side switch sinking current limit 1 2.6 A Hiccup wait time before triggering hiccup 512 cycles Hiccup time before restart 16384 cycles THERMAL SHU",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_031",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "FUNCTIONAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "The low-side switch sources 3.8 A to 5.8 A of current limit.",
+      "limits": {
+        "min": 3.8,
+        "max": 5.8,
+        "unit": "A"
+      },
+      "expression": null,
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 5,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "Low-side switch sourcing current limit 3.8 5.8 A Low-side switch sinking current limit 1 2.6 A Hiccup wait time before triggering hiccup 512 cycles Hiccup time before restart 16384 cycles THERMAL SHUTDOWN Thermal shutdown 160 175 °C Thermal shutdow",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_032",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "FUNCTIONAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "The low-side switch sinks 1 A to 2.6 A of current limit.",
+      "limits": {
+        "min": 1.0,
+        "max": 2.6,
+        "unit": "A"
+      },
+      "expression": null,
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 5,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "Low-side switch sinking current limit 1 2.6 A Hiccup wait time before triggering hiccup 512 cycles Hiccup time before restart 16384 cycles THERMAL SHUTDOWN Thermal shutdown 160 175 °C Thermal shutdown hysteresis 10 °C TIMING RESISTOR AND EXTERNA",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_TEMPORAL_033",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "TEMPORAL",
+      "class": "TYPICAL_VALUE",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "Hiccup is triggered after 512 cycles in current limit, and the restart follows 16384 cycles later (a bounded retry interval, not an indefinite off state).",
+      "limits": {
+        "typ": 512.0,
+        "unit": "cycles"
+      },
+      "expression": null,
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "I(PH)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 5,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "Hiccup wait time before triggering hiccup 512 cycles Hiccup time before restart 16384 cycles THERMAL SHUTDOWN Thermal shutdown 160 175 °C Thermal shutdown hysteresis 10 °C TIMING RESISTOR AND EXTERNAL CLOCK (RT/CLK PIN) Minimum switching frequency Rrt ",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_THERM_034",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "Thermal shutdown occurs between 160 C and 175 C with 10 C hysteresis.",
+      "limits": {
+        "min": 160.0,
+        "max": 175.0,
+        "unit": "C"
+      },
+      "expression": null,
+      "conditions": [
+        {
+          "text": "TJ measured at the die",
+          "parameter_overrides": {}
+        }
+      ],
+      "signal_refs": [
+        "TJ"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 5,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "Thermal shutdown 160 175 °C Thermal shutdown hysteresis 10 °C TIMING RESISTOR AND EXTERNAL CLOCK (RT/CLK PIN) Minimum switching frequency Rrt = 240 kΩ (1%) 160 200 240 kHz Switching frequency Rrt = 100 kΩ (1%) 400 480 560 kHz M",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_TEMPORAL_040",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "TEMPORAL",
+      "class": "TYPICAL_VALUE",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The SS/TR pin is charged by a 2.3 uA current source, so the soft-start time is tSS = Css * Vref / Iss (Vref = 0.8 V).",
+      "limits": {
+        "typ": 2.3e-06,
+        "unit": "A"
+      },
+      "expression": {
+        "op": "rise_above",
+        "signal": "V(SS/TR)",
+        "value": 0.8,
+        "unit": "V"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(SS/TR)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 13,
+            "printed_label": null
+          },
+          "section": "Feature Description",
+          "table": "Slow Start (SS/TR)",
+          "figure": null,
+          "excerpt": "The device has an internal pullup current source of 2.3 μA that charges the external slow-start capacitor. Equation 4 shows the calculations for the slow-start time (tSS, 10% to 90%) and slow-start capacitor (Css). The voltage reference (Vref) is 0.8 V and the slow-start charge current (Iss) is 2.3 μA. (",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_FUNC_041",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "FUNCTIONAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The lower of the internal reference and the SS/TR pin voltage is used as the regulation reference, so the output rises with the soft-start ramp instead of stepping to its target.",
+      "limits": null,
+      "expression": {
+        "op": "ordering",
+        "first": {
+          "signal": "V(SS/TR)",
+          "kind": "rise_above",
+          "value": 0.78,
+          "unit": "V"
+        },
+        "then": {
+          "signal": "V(VOUT)",
+          "kind": "rise_above",
+          "value": 3.2,
+          "unit": "V"
+        }
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(SS/TR)",
+        "V(VOUT)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 13,
+            "printed_label": null
+          },
+          "section": "Feature Description",
+          "table": "Slow Start (SS/TR)",
+          "figure": null,
+          "excerpt": "The device uses the lower voltage of the internal voltage reference or the SS/TR pin voltage as the reference voltage and regulates the output accordingly. A capacitor on the SS/TR pin to ground implements a slow-start time. The device has an internal pullup current source of 2.3 μA that charges the external slow-st",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_TEMPORAL_042",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "TEMPORAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "After a shutdown condition is removed the device does not start switching until the SS/TR pin has discharged to ground.",
+      "limits": null,
+      "expression": {
+        "op": "ordering",
+        "first": {
+          "signal": "V(SS/TR)",
+          "kind": "fall_below",
+          "value": 0.05,
+          "unit": "V"
+        },
+        "then": {
+          "signal": "V(PH)",
+          "kind": "rise_above",
+          "value": 0.5,
+          "unit": "V"
+        }
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(SS/TR)",
+        "V(PH)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 13,
+            "printed_label": null
+          },
+          "section": "Feature Description",
+          "table": "Slow Start (SS/TR)",
+          "figure": null,
+          "excerpt": "the device does not start switching until it has discharged its SS/TR pin to ground ensuring proper soft-start behavior. 7.3.11 Power Good (PWRGD) The PWRGD pin is an open-drain output. When the VSENSE pin is between 94% and 106% of the internal voltage reference, the PWRGD pin pull",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_043",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "The SS/TR to VSENSE matching error is 29 mV to 60 mV at V(SS/TR) = 0.4 V.",
+      "limits": {
+        "min": 0.029,
+        "max": 0.06,
+        "unit": "V"
+      },
+      "expression": null,
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 5,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "SS/TR to VSENSE matching V(SS/TR) = 0.4 V 29 60 mV POWER GOOD (PWRGD PIN) VSENSE threshold VSENSE falling (Fault) 91 % Vref VSENSE rising (Good) 94 % Vref VSENSE rising (Fault) 109 % Vref VSENSE falling (Good) 106 % Vref Output high leakage VSENSE = ",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_PG_050",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "FUNCTIONAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "PWRGD is an open-drain output: its pull-down is deasserted and the pin floats when VSENSE is between 94% and 106% of the internal reference.",
+      "limits": null,
+      "expression": {
+        "op": "pin_connected",
+        "refdes": "U1",
+        "pin": "PWRGD"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(PWRGD)",
+        "V(VSENSE)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 13,
+            "printed_label": null
+          },
+          "section": "Feature Description",
+          "table": "Power Good (PWRGD)",
+          "figure": null,
+          "excerpt": "The PWRGD pin is an open-drain output. When the VSENSE pin is between 94% and 106% of the internal voltage reference, the PWRGD pin pull-down is deasserted and the pin floats. TI recommends to use a pullup resistor between the values of 1",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_PG_051",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The PWRGD threshold is 91% of Vref (VSENSE falling) and 94% of Vref (VSENSE rising).",
+      "limits": {
+        "min": 0.91,
+        "max": 0.94,
+        "unit": "ratio"
+      },
+      "expression": {
+        "op": "between",
+        "signal": "V(PWRGD)/V(VSENSE) ratio",
+        "low": 0.9,
+        "high": 1.1,
+        "unit": "ratio"
+      },
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "V(PWRGD)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 5,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "VSENSE falling (Fault) 91 % Vref VSENSE rising (Good) 94 % Vref VSENSE rising (Fault) 109 % Vref VSENSE falling (Good) 106 % Vref Output high leakage VSENSE = Vref, V(PWRGD) = 5.5 V 30 100 nA Output low I(PWRGD) = 2 mA 0.3 V Minimum",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_PG_052",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "The PWRGD high-state leakage is at most 100 nA and the low-state output is at most 0.3 V at 2 mA.",
+      "limits": {
+        "typ": 3e-08,
+        "max": 1e-07,
+        "unit": "A"
+      },
+      "expression": {
+        "op": "lt",
+        "signal": "I(PWRGD_LEAK)",
+        "value": 1e-07,
+        "unit": "A"
+      },
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "I(PWRGD_LEAK)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 5,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "Output high leakage VSENSE = Vref, V(PWRGD) = 5.5 V 30 100 nA Output low I(PWRGD) = 2 mA 0.3 V Minimum VIN for valid output V(PWRGD) < 0.5V at 100 μA 0.6 1 V Minimum SS/TR voltage for PWRGD valid 1.2 1.4 V",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_PG_053",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "CONNECTIVITY",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "A PWRGD pull-up between 10 kohm and 100 kohm to a source of 5.5 V or less is required.",
+      "limits": {
+        "min": 10000.0,
+        "max": 100000.0,
+        "unit": "ohm"
+      },
+      "expression": {
+        "op": "pin_connected",
+        "refdes": "U1",
+        "pin": "PWRGD"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(PWRGD)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 13,
+            "printed_label": null
+          },
+          "section": "Feature Description",
+          "table": "Power Good (PWRGD)",
+          "figure": null,
+          "excerpt": "TI recommends to use a pullup resistor between the values of 10 and 100 kΩ to a voltage source that is 5.5 V or less. The PWRGD is in a defined state when the VIN input voltage is >1 V, but with reduced current sinking capability. The PWRGD achieves full current sinking cap",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_PG_054",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "PWRGD is in a defined state above VIN = 1 V but only reaches full current sinking capability above VIN = 4.5 V.",
+      "limits": {
+        "min": 1.0,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "gt",
+        "signal": "V(VIN)",
+        "value": 1.0,
+        "unit": "V"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(PWRGD)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 13,
+            "printed_label": null
+          },
+          "section": "Feature Description",
+          "table": "Power Good (PWRGD)",
+          "figure": null,
+          "excerpt": "The PWRGD is in a defined state when the VIN input voltage is >1 V, but with reduced current sinking capability. The PWRGD achieves full current sinking capability when the VIN input voltage is above 4.5 V. The PWRGD pin is pulled low when VSENSE is lower than 91% o",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_PG_055",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "CONNECTIVITY",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "PWRGD is pulled low by thermal shutdown, input UVLO, overvoltage, EN shutdown or while SS/TR is below its 1.2 V threshold, so an unpowered or disabled device cannot present a valid power-good.",
+      "limits": {
+        "typ": 1.2,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "state_dependent",
+        "when": {
+          "signal": "V(EN)",
+          "kind": "fall_below",
+          "value": 1.17,
+          "unit": "V"
+        },
+        "then": {
+          "op": "fall_below",
+          "signal": "V(PWRGD)",
+          "value": 0.4,
+          "unit": "V"
+        }
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(PWRGD)",
+        "V(SS/TR)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 13,
+            "printed_label": null
+          },
+          "section": "Feature Description",
+          "table": "Power Good (PWRGD)",
+          "figure": null,
+          "excerpt": "the PWRGD is pulled low, if the input UVLO or thermal shutdown are asserted, the EN pin is pulled low, or the SS/TR pin is below 1.2 V typically. 7.3.12 Bootstrap Voltage (BOOT) and Low Dropout Operation The device has an integrated boot regulator, and requires a small ceram",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_FUNC_060",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "FUNCTIONAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "The EN pin has an internal pull-up current source, so the pin may be left floating to start automatically or driven by an external divider to set the input UVLO; tying it to ground permanently disables the device.",
+      "limits": null,
+      "expression": {
+        "op": "net_not_equals",
+        "refdes": "U1",
+        "pin": "EN",
+        "net": "GND"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(EN)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 9,
+            "printed_label": null
+          },
+          "section": "Detailed Description",
+          "table": "Overview",
+          "figure": null,
+          "excerpt": "The EN pin has an internal pullup current source that can be used to adjust the input voltage UVLO with two external resistors. In addition, the EN pin can be left floating for the device to automatically start with the internal pullup current. The total operating current for the device is approximately 600 μA when not switc",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_FUNC_061",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "FUNCTIONAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The device is designed for safe monotonic start-up into pre-biased loads.",
+      "limits": null,
+      "expression": {
+        "op": "state_dependent",
+        "when": {
+          "signal": "V(EN)",
+          "kind": "rise_above",
+          "value": 1.21,
+          "unit": "V"
+        },
+        "then": {
+          "op": "not",
+          "item": {
+            "op": "fall_below",
+            "signal": "V(VOUT)",
+            "value": 0.05,
+            "unit": "V"
+          }
+        }
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(VOUT)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 9,
+            "printed_label": null
+          },
+          "section": "Detailed Description",
+          "table": "Overview",
+          "figure": null,
+          "excerpt": "The device has been designed for safe monotonic start-up into prebiased loads. The default start up is when VIN is typically 4.0 V. The EN pin has an internal pullup current source that can be used to adjust the input voltage UVLO with two external resistors. In addition, the ",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_TEMPORAL_062",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "TEMPORAL",
+      "class": "TYPICAL_VALUE",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "The default start-up threshold on VIN is typically 4.0 V.",
+      "limits": {
+        "typ": 4.0,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "between",
+        "signal": "V(VIN_START)",
+        "low": 4.0,
+        "high": 4.5,
+        "unit": "V"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(VIN_START)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 9,
+            "printed_label": null
+          },
+          "section": "Detailed Description",
+          "table": "Overview",
+          "figure": null,
+          "excerpt": "The default start up is when VIN is typically 4.0 V. The EN pin has an internal pullup current source that can be used to adjust the input voltage UVLO with two external resistors. In addition, the EN pin can be left floating for the device to automat",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_063",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "DOCUMENT",
+      "statement": "The BOOT-PH UVLO threshold is 2.1 V to 3 V, which limits the maximum duty cycle with a bootstrap capacitor.",
+      "limits": {
+        "min": 2.1,
+        "max": 3.0,
+        "unit": "V"
+      },
+      "expression": null,
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "V(BOOT)-V(PH)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 5,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "BOOT-PH UVLO 2.1 3 V SLOW START AND TRACKING (SS/TR PIN) SS charge current 2.3 μA SS/TR to VSENSE matching V(SS/TR) = 0.4 V 29 60 mV POWER GOOD (PWRGD PIN) VSENSE threshold VSENSE falling (Fault) 91 % Vref VSENSE rising ",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_064",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "INFORMATIONAL",
+      "origin": "DOCUMENT",
+      "statement": "The switching frequency range is 200 kHz to 1200 kHz, set by the RT/CLK resistor.",
+      "limits": {
+        "min": 200000.0,
+        "max": 1200000.0,
+        "unit": "Hz"
+      },
+      "expression": null,
+      "conditions": [
+        {
+          "text": "TJ = -40 C to 150 C, VIN = 4.5 V to 17 V, PVIN = 1.6 V to 17 V (unless otherwise noted)",
+          "parameter_overrides": {
+            "TJ_min": -40.0,
+            "TJ_max": 150.0,
+            "VIN_min": 4.5,
+            "VIN_max": 17.0
+          }
+        }
+      ],
+      "signal_refs": [
+        "F(SW)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 5,
+            "printed_label": null
+          },
+          "section": "Electrical Characteristics",
+          "table": "Electrical Characteristics",
+          "figure": null,
+          "excerpt": "Switching frequency range (RT mode set point and PLL mode) 200 1200 kHz PH (PH PIN) Minimum on time Measured at 90% to 90% of PH, TA = 25°C, IPH = 2 A 97 135 ns Minimum off time BOOT-PH ≥ 3 V 0 ns BOOT (BOOT PIN) BOOT-PH UVLO 2.1 3 V SLOW START AND TRACKING (SS/TR PIN) S",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_CONN_065",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "CONNECTIVITY",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "A 0.1 uF capacitor is required between BOOT and PH, and the exposed thermal pad must be soldered down to ground for proper operation.",
+      "limits": {
+        "typ": 1e-07,
+        "unit": "F"
+      },
+      "expression": {
+        "op": "pin_connected",
+        "refdes": "C1",
+        "pin": "1"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(BOOT)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 13,
+            "printed_label": null
+          },
+          "section": "Feature Description",
+          "table": "Bootstrap Voltage (BOOT) and Low Dropout Operation",
+          "figure": null,
+          "excerpt": "The value of this ceramic capacitor should be 0.1 μF. TI recommends a ceramic capacitor with an X7R or X5R grade dielectric with a voltage rating of 10 V or higher because of the stable characteristics over temperature and voltage. To improve dropout, ",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_CONN_066",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "CONNECTIVITY",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "DOCUMENT",
+      "statement": "The exposed thermal pad is the package thermal path and signal ground and must be connected.",
+      "limits": null,
+      "expression": {
+        "op": "pin_connected",
+        "refdes": "U1",
+        "pin": "PAD"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "PAD"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "Thermal pad of the package and signal ground. It must be soldered down for proper operation.",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_TPS54320_SYSTEM_070",
+      "applies_to": "TPS54320",
+      "configuration": null,
+      "kind": "SYSTEM",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "INFORMATIONAL",
+      "origin": "DOCUMENT",
+      "statement": "The device requires a control supply on VIN and a separate power-stage supply on PVIN; the two pins may be tied together or run from different rails.",
+      "limits": null,
+      "expression": {
+        "op": "all_of",
+        "items": [
+          {
+            "op": "pin_connected",
+            "refdes": "U1",
+            "pin": "VIN"
+          },
+          {
+            "op": "pin_connected",
+            "refdes": "U1",
+            "pin": "PVIN"
+          }
+        ]
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(VIN)",
+        "V(PVIN)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 10,
+            "printed_label": null
+          },
+          "section": "Detailed Description",
+          "table": "VIN and Power VIN Pins (VIN and PVIN)",
+          "figure": null,
+          "excerpt": "The VIN pin voltage supplies the internal control circuits of the device. The PVIN pin voltage provides the input voltage to the power converter system.",
+          "extraction": "embedded_text"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    }
+  ]
+}

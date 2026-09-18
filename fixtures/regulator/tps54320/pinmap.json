@@ -1,0 +1,431 @@
+{
+  "document": {
+    "doc_id": "doc_tps54320",
+    "title_contains": "TPS54320",
+    "file_hash_note": "see provenance.json for the datasheet sha256",
+    "page_count": 43,
+    "text_extraction": "embedded"
+  },
+  "pins": [
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "1",
+      "name": "RT/CLK",
+      "function": "Switching-frequency programming resistor or external clock input.",
+      "polarity": "not_applicable",
+      "direction": "input",
+      "supply_domain": null,
+      "output_topology": "input_only",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "RT/CLK"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "2",
+      "name": "GND",
+      "function": "Return for the control circuitry and the low-side power MOSFET.",
+      "polarity": "not_applicable",
+      "direction": "ground",
+      "supply_domain": null,
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "GND"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "3",
+      "name": "GND",
+      "function": "Return for the control circuitry and the low-side power MOSFET.",
+      "polarity": "not_applicable",
+      "direction": "ground",
+      "supply_domain": null,
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "GND"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "4",
+      "name": "PVIN",
+      "function": "Power input supplying the internal power switches.",
+      "polarity": "not_applicable",
+      "direction": "power",
+      "supply_domain": null,
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "PVIN"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "5",
+      "name": "PVIN",
+      "function": "Power input supplying the internal power switches.",
+      "polarity": "not_applicable",
+      "direction": "power",
+      "supply_domain": null,
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "PVIN"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "6",
+      "name": "VIN",
+      "function": "Supplies the internal control circuitry of the converter.",
+      "polarity": "not_applicable",
+      "direction": "power",
+      "supply_domain": null,
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "VIN"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "7",
+      "name": "VSENSE",
+      "function": "Inverting input of the gm error amplifier (external feedback divider).",
+      "polarity": "not_applicable",
+      "direction": "input",
+      "supply_domain": null,
+      "output_topology": "input_only",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "VSENSE"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "8",
+      "name": "COMP",
+      "function": "Error-amplifier output and input to the switch-current comparator; frequency compensation connects here.",
+      "polarity": "not_applicable",
+      "direction": "output",
+      "supply_domain": null,
+      "output_topology": "push_pull",
+      "connection_requirement": "conditional",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "COMP"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "9",
+      "name": "SS/TR",
+      "function": "Slow-start and tracking; an external capacitor sets the internal reference rise time, and the pin voltage overrides the internal reference.",
+      "polarity": "not_applicable",
+      "direction": "bidir",
+      "supply_domain": null,
+      "output_topology": "input_only",
+      "connection_requirement": "optional",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "SS/TR"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "10",
+      "name": "EN",
+      "function": "Enable pin: float to enable, or adjust the input UVLO with two resistors.",
+      "polarity": "active_high",
+      "direction": "input",
+      "supply_domain": null,
+      "output_topology": "input_only",
+      "connection_requirement": "optional",
+      "unused_pin_treatment": "leave floating to enable the device",
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "EN"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "11",
+      "name": "PH",
+      "function": "Switch node.",
+      "polarity": "not_applicable",
+      "direction": "output",
+      "supply_domain": null,
+      "output_topology": "push_pull",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "PH"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "12",
+      "name": "PH",
+      "function": "Switch node.",
+      "polarity": "not_applicable",
+      "direction": "output",
+      "supply_domain": null,
+      "output_topology": "push_pull",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "PH"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "13",
+      "name": "BOOT",
+      "function": "Bootstrap capacitor connection for the high-side gate drive.",
+      "polarity": "not_applicable",
+      "direction": "power",
+      "supply_domain": null,
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "BOOT"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "14",
+      "name": "PWRGD",
+      "function": "Open-drain power-good output; asserts low on thermal shutdown, undervoltage, overvoltage, EN shutdown, or during slow start.",
+      "polarity": "active_low",
+      "direction": "output",
+      "supply_domain": null,
+      "output_topology": "open_drain",
+      "connection_requirement": "optional",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "PWRGD"
+    },
+    {
+      "part_id": "TPS54320",
+      "physical_pin": "15",
+      "name": "PAD",
+      "function": "Exposed thermal pad and signal ground; must be soldered down.",
+      "polarity": "not_applicable",
+      "direction": "ground",
+      "supply_domain": null,
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_tps54320",
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null
+          },
+          "section": "Pin Configuration and Functions",
+          "table": "Pin Functions",
+          "figure": null,
+          "excerpt": "13 BOOT 12 PH 11 PH 10 EN 9 SS/TR GND 2 GND 3 PVIN 4 PVIN 5 VIN 6 7 8 1 14 RT/CLK PWRGD VSENSE COMP (15) Exposed Thermal Pad 3 TPS54320 www.ti.com SLVS982C – AUGUST 2010 – REVISED APRIL 2018 Product Folder Links: TPS54320 Submit Documentation FeedbackCopyright © 2010–2018, Texas Instruments Incorporated 5 Pin Configuration and Functions RHL Package 14-Pin VQFN Top View Pin Functions PIN DESCRIPTIO",
+          "extraction": "embedded_text"
+        }
+      ],
+      "mapped_symbol_pin": "PAD"
+    }
+  ]
+}

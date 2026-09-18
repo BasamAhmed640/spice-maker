@@ -1,0 +1,71 @@
+{
+  "model": {
+    "schema_version": 1,
+    "model_id": "tps54320_vendor_ltspice",
+    "kind": "VENDOR_PIN_COMPATIBLE",
+    "behaviors": {
+      "startup": "unknown",
+      "shutdown": "not_tested",
+      "dc_regulation": "not_tested",
+      "load_transients": "not_tested",
+      "input_current": "not_tested",
+      "current_limit_recovery": "not_tested",
+      "switching_waveforms": "unknown",
+      "compensation_loop": "not_tested",
+      "thermal_dependence": "not_tested",
+      "reverse_current_prebias": "not_tested"
+    },
+    "valid_domain": {
+      "vin": "<= 12 V (probe condition)",
+      "vout_nominal": "3.3 V",
+      "temperature": "not modelled"
+    },
+    "exclusions": [
+      "switch-node ripple and gate-drive detail are not claimed beyond the probe evidence",
+      "thermal dependence is not modelled"
+    ],
+    "evidence_level": "VENDOR_MODEL_COMPARED",
+    "probe_results": [
+      "T_capability_startup",
+      "T_capability_switching_waveforms"
+    ],
+    "source_model_hash": "a4a3cc8a08fa7f290813ccef70d881dd0dbf64b1e2c16c503080341face26eb7"
+  },
+  "results": [
+    {
+      "schema_version": 1,
+      "test_id": "T_capability_startup",
+      "status": "UNKNOWN",
+      "requirement_ids": [],
+      "measured": {
+        "blocked_reason": "sim_output_unreadable: payload of 921616 bytes does not match any known layout for 57345 points x 3 variables (candidates: double+float32=917520, double+float32-align8=917520, float32=688140, float32-align8=917520, float64=1376280)"
+      },
+      "expected": "Rail start-up after enable",
+      "detail": "the startup probe could not be evaluated: exit_code=1; wall=300.71s; raw=yes; log=yes; TIMED_OUT",
+      "waveform_refs": [],
+      "log_ref": null,
+      "run_id": "probe_tps54320_vendor_ltspice_startup",
+      "duration_s": 0.0,
+      "unknown_reason": "capability_unknown",
+      "blocked_reason": null
+    },
+    {
+      "schema_version": 1,
+      "test_id": "T_capability_switching_waveforms",
+      "status": "UNKNOWN",
+      "requirement_ids": [],
+      "measured": {
+        "blocked_reason": "sim_run_incomplete: C:\\Users\\basam\\AppData\\Local\\Temp\\scholar-packaged-tests-bcQABY\\fixtures\\regulator\\tps54320\\probe_project\\probes\\switching_waveforms\\probe.cir(10): Instance with that name already defined."
+      },
+      "expected": "Switch-node behaviour",
+      "detail": "the switching probe could not be evaluated: exit_code=1; wall=0.52s; raw=no; log=yes",
+      "waveform_refs": [],
+      "log_ref": null,
+      "run_id": "probe_tps54320_vendor_ltspice_switching_waveforms",
+      "duration_s": 0.0,
+      "unknown_reason": "capability_unknown",
+      "blocked_reason": null
+    }
+  ],
+  "probe_source": "tools/probe_models.py (real LTspice runs)"
+}

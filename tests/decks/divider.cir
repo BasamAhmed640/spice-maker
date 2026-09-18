@@ -1,0 +1,10 @@
+* BoardModeler deck template: resistively divided rail used by the engine end-to-end test.
+* Values are substituted by the test at render time; nothing here is device data.
+V1 in 0 {{vin}}
+R1 in out {{r_upper}}
+R2 out 0 {{r_lower}}
+C1 out 0 {{c_out}}
+.tran 0 {{tstop}} 0 {{tmax}}
+.save V(out)
+.backanno
+.end

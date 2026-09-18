@@ -1,0 +1,46 @@
+{
+  "part": "TPS54320",
+  "manufacturer": "Texas Instruments",
+  "retrieved_utc": "2026-09-18T04:40:33Z",
+  "tool": "tools/fetch_fixtures.py",
+  "redistribution_allowed": false,
+  "notes": [
+    "Vendor documents and model packages are stored under originals/ (git-ignored) and are never redistributed by BoardModeler.",
+    "The unencrypted PSpice transient model is adapted mechanically; every change is listed in adaptation.json."
+  ],
+  "records": [
+    {
+      "name": "tps54320_datasheet.pdf",
+      "url": "https://www.ti.com/lit/ds/symlink/tps54320.pdf",
+      "kind": "datasheet",
+      "doc_id": "SLVS982C",
+      "status": 200,
+      "bytes": 1678941,
+      "sha256": "480b1cdb92b4668e3e6fe18c6c09ae5ed38a4aa028bdedf9ffcbc687e4458e4b",
+      "error": null,
+      "note": "Texas Instruments TPS54320 datasheet; downloaded for local reference only."
+    },
+    {
+      "name": "tps54320_pspice_transient.zip",
+      "url": "https://www.ti.com/lit/zip/SLVM451",
+      "kind": "vendor_model_package",
+      "doc_id": "SLVM451A",
+      "status": 200,
+      "bytes": 79758,
+      "sha256": "ae5d9bc8128ea8c42fd0348f5dbc537fa21952508224ce5e8640c8493c7714f3",
+      "error": null,
+      "note": "TPS54320 Unencrypted PSpice Transient Model Package (Rev. A). TI model terms: provided 'as is' for use with TI parts; not redistributed by BoardModeler."
+    },
+    {
+      "name": "tps54320_pspice_average.zip",
+      "url": "https://www.ti.com/lit/zip/SLVM896",
+      "kind": "vendor_model_package",
+      "doc_id": "SLVM896A",
+      "status": 200,
+      "bytes": 30158,
+      "sha256": "cd2796df78a13e100524bfcfd200a7d2666bf52bfee9e4175d44b50d7223cde7",
+      "error": null,
+      "note": "TPS54320 Unencrypted PSpice Average Model Package (Rev. A); local use only."
+    }
+  ]
+}

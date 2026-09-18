@@ -1,0 +1,14 @@
+.venv/
+build/
+dist/
+runs/
+*.raw
+*.log
+*.pyc
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+# Downloaded vendor documentation and vendor model packages are local-use only.
+fixtures/**/originals/
+projects/

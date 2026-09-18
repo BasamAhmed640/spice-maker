@@ -1,0 +1,1231 @@
+{
+  "document": {
+    "doc_id": "doc_synthetic_switch_contract",
+    "title": "SYNTHETIC_SWITCH_CONTRACT.md — a test fixture, not device data",
+    "provenance": "synthetic_fixture",
+    "classification": "public",
+    "remote_inference_allowed": false,
+    "file": "fixtures/switch_fixture/SYNTHETIC_SWITCH_CONTRACT.md"
+  },
+  "extraction": {
+    "method": "fixture-authored; excerpts sliced from the contract Markdown by anchor",
+    "tool": "tools/build_switch_fixture.py",
+    "note": "every requirement carries origin=TEST_FIXTURE so no report can present it as device data"
+  },
+  "requirements": [
+    {
+      "req_id": "REQ_SYNTHU1_ELEC_001",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "TEST_FIXTURE",
+      "statement": "The 3V3 domain stays between 3.135 V and 3.465 V.",
+      "limits": {
+        "min": 3.135,
+        "max": 3.465,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "between",
+        "signal": "V(3V3)",
+        "low": 3.135,
+        "high": 3.465,
+        "unit": "V"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(3V3)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Supply domains",
+          "table": null,
+          "figure": null,
+          "excerpt": "|Allowed range|Notes| |---|---|---|---| |`3V3`|3.3 V|3.135 V … 3.465 V|main I/O domain| |`1V8`|1.8 V|1.710 V … 1.890 V|core/auxiliary domain| Each domain's pins must sit on a net whose declared domain is that domain. Two domains s",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_ELEC_002",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "TEST_FIXTURE",
+      "statement": "The 1V8 domain stays between 1.710 V and 1.890 V.",
+      "limits": {
+        "min": 1.71,
+        "max": 1.89,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "between",
+        "signal": "V(1V8)",
+        "low": 1.71,
+        "high": 1.89,
+        "unit": "V"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "V(1V8)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Supply domains",
+          "table": null,
+          "figure": null,
+          "excerpt": ".3 V|3.135 V … 3.465 V|main I/O domain| |`1V8`|1.8 V|1.710 V … 1.890 V|core/auxiliary domain| Each domain's pins must sit on a net whose declared domain is that domain. Two domains shorted together, a domain pin left unconnected,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_ELEC_003",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "TEST_FIXTURE",
+      "statement": "The 3V3 rail current stays within its 500 mA peak while its static load is 250 mA and a +150 mA step occurs 2 ms after the rail is valid.",
+      "limits": {
+        "min": 0.0,
+        "max": 0.5,
+        "unit": "A"
+      },
+      "expression": {
+        "op": "lt",
+        "signal": "I(3V3)",
+        "value": 0.5,
+        "unit": "A"
+      },
+      "conditions": [
+        {
+          "text": "static 250 mA plus a +150 mA step at 2 ms",
+          "parameter_overrides": {}
+        }
+      ],
+      "signal_refs": [
+        "I(3V3)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Supply domains",
+          "table": null,
+          "figure": null,
+          "excerpt": "at 2 ms|Peak allowed| |---|---|---|---| |`3V3`|250 mA|+150 mA|500 mA| |`1V8`|400 mA|+200 mA|800 mA| ## 3. Reset (`PERST#`) |Property|Value| |---|---| |Polarity|Active low| |Direction|Input to `U1`| |Required|Yes;",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_ELEC_004",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "TEST_FIXTURE",
+      "statement": "The 1V8 rail current stays within its 800 mA peak while its static load is 400 mA and a +200 mA step occurs 2 ms after the rail is valid.",
+      "limits": {
+        "min": 0.0,
+        "max": 0.8,
+        "unit": "A"
+      },
+      "expression": {
+        "op": "lt",
+        "signal": "I(1V8)",
+        "value": 0.8,
+        "unit": "A"
+      },
+      "conditions": [
+        {
+          "text": "static 400 mA plus a +200 mA step at 2 ms",
+          "parameter_overrides": {}
+        }
+      ],
+      "signal_refs": [
+        "I(1V8)"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Supply domains",
+          "table": null,
+          "figure": null,
+          "excerpt": "|---|---| |`3V3`|250 mA|+150 mA|500 mA| |`1V8`|400 mA|+200 mA|800 mA| ## 3. Reset (`PERST#`) |Property|Value| |---|---| |Polarity|Active low| |Direction|Input to `U1`| |Required|Yes; must not float| |Hold|Must be",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_CONN_010",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "CONNECTIVITY",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "TEST_FIXTURE",
+      "statement": "Every domain pin sits on a net whose declared domain is that pin's own domain; two domains shorted together, a disconnected domain pin, or a pull-up on the wrong domain are connection errors.",
+      "limits": null,
+      "expression": {
+        "op": "pin_connected",
+        "refdes": "U1",
+        "pin": "3V3_IN"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "3V3",
+        "1V8"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Supply domains",
+          "table": null,
+          "figure": null,
+          "excerpt": "710 V … 1.890 V|core/auxiliary domain| Each domain's pins must sit on a net whose declared domain is that domain. Two domains shorted together, a domain pin left unconnected, or a pin pulled up to the wrong domain are all connection errors — §5 of the datasheet-equivalent",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_CONN_011",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "CONNECTIVITY",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "TEST_FIXTURE",
+      "statement": "PERST# is required and must not float; it is active low.",
+      "limits": null,
+      "expression": {
+        "op": "pin_connected",
+        "refdes": "U1",
+        "pin": "PERST_N"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "PERST_N"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Reset",
+          "table": null,
+          "figure": null,
+          "excerpt": "y|Active low| |Direction|Input to `U1`| |Required|Yes; must not float| |Hold|Must be held low while **either** domain is outside its allowed range| |Release|Only after both domains are valid **and** both power-good signals are ass",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_TEMP_012",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "TEMPORAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "TEST_FIXTURE",
+      "statement": "PERST# is held low while either domain is outside its allowed range, and is released only after both domains are valid and both power-good signals are asserted.",
+      "limits": null,
+      "expression": {
+        "op": "ordering",
+        "first": {
+          "signal": "V(3V3_PG)",
+          "kind": "rise_above",
+          "value": 1.0,
+          "unit": "V"
+        },
+        "then": {
+          "signal": "V(PERST_N)",
+          "kind": "rise_above",
+          "value": 2.0,
+          "unit": "V"
+        }
+      },
+      "conditions": [],
+      "signal_refs": [
+        "PERST_N",
+        "3V3_PG",
+        "1V8_PG"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Reset",
+          "table": null,
+          "figure": null,
+          "excerpt": "`| |Required|Yes; must not float| |Hold|Must be held low while **either** domain is outside its allowed range| |Release|Only after both domains are valid **and** both power-good signals are asserted| |Release delay|At least 1 ms and at most 100 ms after the last prereq",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_TEMP_013",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "TEMPORAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "TEST_FIXTURE",
+      "statement": "PERST# is released between 1 ms and 100 ms after the last prerequisite becomes valid.",
+      "limits": {
+        "min": 0.001,
+        "max": 0.1,
+        "unit": "s"
+      },
+      "expression": {
+        "op": "event_delay",
+        "start": {
+          "signal": "V(1V8_PG)",
+          "kind": "rise_above",
+          "value": 1.0,
+          "unit": "V"
+        },
+        "end": {
+          "signal": "V(PERST_N)",
+          "kind": "rise_above",
+          "value": 2.0,
+          "unit": "V"
+        },
+        "min_s": 0.001,
+        "max_s": 0.1
+      },
+      "conditions": [],
+      "signal_refs": [
+        "PERST_N",
+        "1V8_PG"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Reset",
+          "table": null,
+          "figure": null,
+          "excerpt": "* both power-good signals are asserted| |Release delay|At least 1 ms and at most 100 ms after the last prerequisite| |Strap sampling|`CONFIG[0..2]` are sampled between 1 ms and 5 ms after `1V8` becomes valid| ## 4. CONFIG straps |Property|Value| |---|---| |Pins|`CONFIG0`, `",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_CONN_020",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "CONNECTIVITY",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "TEST_FIXTURE",
+      "statement": "The CONFIG[0..2] straps are sampled between 1 ms and 5 ms after 1V8 becomes valid.",
+      "limits": {
+        "min": 0.001,
+        "max": 0.005,
+        "unit": "s"
+      },
+      "expression": null,
+      "conditions": [],
+      "signal_refs": [
+        "CONFIG0",
+        "CONFIG1",
+        "CONFIG2"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "CONFIG straps",
+          "table": null,
+          "figure": null,
+          "excerpt": "|Pins|`CONFIG0`, `CONFIG1`, `CONFIG2`| |Sampling window|1 ms … 5 ms after `1V8` valid| |Values|`000` … `110` are documented; `111` is **invalid** and must be reported| |Change after the window|A strap that changes after the window closes is a con",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_FUNC_021",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "FUNCTIONAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "TEST_FIXTURE",
+      "statement": "The strap combination 111 is invalid and must be reported rather than interpreted.",
+      "limits": null,
+      "expression": {
+        "op": "pin_open",
+        "refdes": "U1",
+        "pin": "CONFIG0"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "CONFIG0",
+        "CONFIG1",
+        "CONFIG2"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "CONFIG straps",
+          "table": null,
+          "figure": null,
+          "excerpt": "|1 ms … 5 ms after `1V8` valid| |Values|`000` … `110` are documented; `111` is **invalid** and must be reported| |Change after the window|A strap that changes after the window closes is a connection/timing error| ## 5. Sideband (`SMB_CLK`, `SMB_DAT`",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_TEMP_022",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "TEMPORAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "TEST_FIXTURE",
+      "statement": "A strap that changes after the sampling window closes is a connection or timing error.",
+      "limits": null,
+      "expression": {
+        "op": "hold",
+        "signal": "V(CONFIG0)",
+        "value": 1.8,
+        "unit": "V",
+        "interval": {
+          "start_s": 0.005,
+          "end_s": 0.02
+        },
+        "stable": true
+      },
+      "conditions": [],
+      "signal_refs": [
+        "CONFIG0"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "CONFIG straps",
+          "table": null,
+          "figure": null,
+          "excerpt": "t be reported| |Change after the window|A strap that changes after the window closes is a connection/timing error| ## 5. Sideband (`SMB_CLK`, `SMB_DAT`) |Property|Value| |---|---| |Topology|Open drain| |Pull-up domain|`3V3`| |Required|Yes| |Idle level|Must reach at least",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_CONN_030",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "CONNECTIVITY",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "TEST_FIXTURE",
+      "statement": "SMB_CLK and SMB_DAT are open-drain sideband signals pulled up on the 3V3 domain.",
+      "limits": null,
+      "expression": {
+        "op": "pullup_domain",
+        "refdes": "U1",
+        "pin": "SMB_DAT",
+        "net": "SMB_DAT",
+        "domain": "3V3"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "SMB_CLK",
+        "SMB_DAT"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Sideband (SMB_CLK, SMB_DAT)",
+          "table": null,
+          "figure": null,
+          "excerpt": "|Value| |---|---| |Topology|Open drain| |Pull-up domain|`3V3`| |Required|Yes| |Idle level|Must reach at least 0.9 × 3V3 within 5 µs of being released| |Wrong-domain pull-up|A pull-up to `1V8` is a connection error even tho",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_ELEC_031",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "ELECTRICAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "TEST_FIXTURE",
+      "statement": "A released sideband line reaches at least 0.9 x 3V3 within 5 us.",
+      "limits": {
+        "min": 2.97,
+        "unit": "V"
+      },
+      "expression": {
+        "op": "rise_above",
+        "signal": "V(SMB_DAT)",
+        "value": 2.97,
+        "unit": "V"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "SMB_DAT"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Sideband (SMB_CLK, SMB_DAT)",
+          "table": null,
+          "figure": null,
+          "excerpt": "| |Pull-up domain|`3V3`| |Required|Yes| |Idle level|Must reach at least 0.9 × 3V3 within 5 µs of being released| |Wrong-domain pull-up|A pull-up to `1V8` is a connection error even though the link may appear to work| ## 6. Clock request (`CLK_REQ#`) |",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_CONN_032",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "CONNECTIVITY",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "TEST_FIXTURE",
+      "statement": "Pulling a sideband line up to 1V8 instead of 3V3 is a connection error even if the link appears to work.",
+      "limits": null,
+      "expression": {
+        "op": "pullup_domain",
+        "refdes": "U1",
+        "pin": "SMB_CLK",
+        "net": "SMB_CLK",
+        "domain": "3V3"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "SMB_CLK"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Sideband (SMB_CLK, SMB_DAT)",
+          "table": null,
+          "figure": null,
+          "excerpt": ".9 × 3V3 within 5 µs of being released| |Wrong-domain pull-up|A pull-up to `1V8` is a connection error even though the link may appear to work| ## 6. Clock request (`CLK_REQ#`) |Property|Value| |---|---| |Polarity|Active low| |Topology|Open drain| |Pull-up dom",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_CONN_040",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "CONNECTIVITY",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "IMPORTANT",
+      "origin": "TEST_FIXTURE",
+      "statement": "CLK_REQ# is an active-low open-drain output pulled up on 3V3.",
+      "limits": null,
+      "expression": {
+        "op": "pullup_domain",
+        "refdes": "U1",
+        "pin": "CLK_REQ_N",
+        "net": "CLK_REQ_N",
+        "domain": "3V3"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "CLK_REQ_N"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Clock request (CLK_REQ#)",
+          "table": null,
+          "figure": null,
+          "excerpt": "|Value| |---|---| |Topology|Open drain| |Pull-up domain|`3V3`| |Required|Yes| |Idle level|Must reach at least 0.9 × 3V3 within 5 µs of being released| |Wrong-domain pull-up|A pull-up to `1V8` is a connection error even tho",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_SYSTEM_050",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "SYSTEM",
+      "class": "ASSUMPTION",
+      "criticality": "CRITICAL",
+      "origin": "TEST_FIXTURE",
+      "statement": "REFCLK_100M is assumed to be present when CLK_REQ# is asserted; the fixture does not model or verify the clock source, so any clock-dependent conclusion is UNKNOWN.",
+      "limits": null,
+      "expression": null,
+      "conditions": [],
+      "signal_refs": [
+        "REFCLK_100M"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Clock availability — an explicit assumption, not a verified path",
+          "table": null,
+          "figure": null,
+          "excerpt": "fixture **does not model**. Therefore: * any conclusion that depends on the clock being present is reported as **UNKNOWN** with the reason `clock_availability_assumed`, never as a pass; * the coverage artifact lists the clock path under \"not dynamically covered\"; * `C",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_FUNC_060",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "FUNCTIONAL",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "INFORMATIONAL",
+      "origin": "TEST_FIXTURE",
+      "statement": "PRECONDITIONS_SATISFIED is a diagnostic signal, not a device pin, and is not proof that the device booted.",
+      "limits": null,
+      "expression": null,
+      "conditions": [],
+      "signal_refs": [
+        "PRECONDITIONS_SATISFIED"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Clock availability — an explicit assumption, not a verified path",
+          "table": null,
+          "figure": null,
+          "excerpt": "it. `PRECONDITIONS_SATISFIED` (below) is published as a **diagnostic signal only**. It is not a pin of `U1`, and it is not proof that the device booted. ## 8. Unmodelled scope (recorded, not hidden) * PCIe lanes are **not** modelled; all la",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    },
+    {
+      "req_id": "REQ_SYNTHU1_CONN_070",
+      "applies_to": "SYNTH-U1",
+      "configuration": null,
+      "kind": "CONNECTIVITY",
+      "class": "DOCUMENTED_LIMIT",
+      "criticality": "CRITICAL",
+      "origin": "TEST_FIXTURE",
+      "statement": "A pin on an unpowered domain must not be driven externally (back-powering).",
+      "limits": null,
+      "expression": {
+        "op": "pin_connected",
+        "refdes": "U1",
+        "pin": "1V8_IN"
+      },
+      "conditions": [],
+      "signal_refs": [
+        "1V8"
+      ],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "Partial power",
+          "table": null,
+          "figure": null,
+          "excerpt": "a bring-up check. ## 9. Partial power Any pin on a domain that is unpowered must not be driven externally. A pin driven while its own domain is dead is the classic back-powering error and must be reported with the pin, its domain, and the observed net.",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "conflicts": [],
+      "citation_verified": true,
+      "status": "active"
+    }
+  ],
+  "pins": [
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "1",
+      "name": "3V3_IN",
+      "function": "synthetic fixture pin 3V3_IN",
+      "polarity": "not_applicable",
+      "direction": "power",
+      "supply_domain": "3V3",
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,1,3V3_IN,power,not_applicable,3V3,power,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "3V3_IN"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "2",
+      "name": "3V3_IN",
+      "function": "synthetic fixture pin 3V3_IN",
+      "polarity": "not_applicable",
+      "direction": "power",
+      "supply_domain": "3V3",
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,2,3V3_IN,power,not_applicable,3V3,power,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "3V3_IN"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "3",
+      "name": "1V8_IN",
+      "function": "synthetic fixture pin 1V8_IN",
+      "polarity": "not_applicable",
+      "direction": "power",
+      "supply_domain": "1V8",
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,3,1V8_IN,power,not_applicable,1V8,power,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "1V8_IN"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "4",
+      "name": "1V8_IN",
+      "function": "synthetic fixture pin 1V8_IN",
+      "polarity": "not_applicable",
+      "direction": "power",
+      "supply_domain": "1V8",
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,4,1V8_IN,power,not_applicable,1V8,power,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "1V8_IN"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "5",
+      "name": "GND",
+      "function": "synthetic fixture pin GND",
+      "polarity": "not_applicable",
+      "direction": "ground",
+      "supply_domain": null,
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,5,GND,ground,not_applicable,,power,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "GND"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "6",
+      "name": "GND",
+      "function": "synthetic fixture pin GND",
+      "polarity": "not_applicable",
+      "direction": "ground",
+      "supply_domain": null,
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,6,GND,ground,not_applicable,,power,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "GND"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "7",
+      "name": "GND",
+      "function": "synthetic fixture pin GND",
+      "polarity": "not_applicable",
+      "direction": "ground",
+      "supply_domain": null,
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,7,GND,ground,not_applicable,,power,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "GND"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "8",
+      "name": "GND",
+      "function": "synthetic fixture pin GND",
+      "polarity": "not_applicable",
+      "direction": "ground",
+      "supply_domain": null,
+      "output_topology": "power",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,8,GND,ground,not_applicable,,power,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "GND"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "9",
+      "name": "PERST_N",
+      "function": "synthetic fixture pin PERST_N",
+      "polarity": "active_low",
+      "direction": "input",
+      "supply_domain": "3V3",
+      "output_topology": "input_only",
+      "connection_requirement": "required",
+      "unused_pin_treatment": "never leave floating",
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,9,PERST_N,input,active_low,3V3,input_only,required,never leave floating",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "PERST_N"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "10",
+      "name": "CONFIG0",
+      "function": "synthetic fixture pin CONFIG0",
+      "polarity": "not_applicable",
+      "direction": "input",
+      "supply_domain": "1V8",
+      "output_topology": "input_only",
+      "connection_requirement": "required",
+      "unused_pin_treatment": "tie to a defined level",
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,10,CONFIG0,input,not_applicable,1V8,input_only,required,tie to a defined level",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "CONFIG0"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "11",
+      "name": "CONFIG1",
+      "function": "synthetic fixture pin CONFIG1",
+      "polarity": "not_applicable",
+      "direction": "input",
+      "supply_domain": "1V8",
+      "output_topology": "input_only",
+      "connection_requirement": "required",
+      "unused_pin_treatment": "tie to a defined level",
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,11,CONFIG1,input,not_applicable,1V8,input_only,required,tie to a defined level",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "CONFIG1"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "12",
+      "name": "CONFIG2",
+      "function": "synthetic fixture pin CONFIG2",
+      "polarity": "not_applicable",
+      "direction": "input",
+      "supply_domain": "1V8",
+      "output_topology": "input_only",
+      "connection_requirement": "required",
+      "unused_pin_treatment": "tie to a defined level",
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,12,CONFIG2,input,not_applicable,1V8,input_only,required,tie to a defined level",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "CONFIG2"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "13",
+      "name": "SMB_CLK",
+      "function": "synthetic fixture pin SMB_CLK",
+      "polarity": "not_applicable",
+      "direction": "bidir",
+      "supply_domain": "3V3",
+      "output_topology": "open_drain",
+      "connection_requirement": "required",
+      "unused_pin_treatment": "leave open",
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,13,SMB_CLK,bidir,not_applicable,3V3,open_drain,required,leave open",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "SMB_CLK"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "14",
+      "name": "SMB_DAT",
+      "function": "synthetic fixture pin SMB_DAT",
+      "polarity": "not_applicable",
+      "direction": "bidir",
+      "supply_domain": "3V3",
+      "output_topology": "open_drain",
+      "connection_requirement": "required",
+      "unused_pin_treatment": "leave open",
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,14,SMB_DAT,bidir,not_applicable,3V3,open_drain,required,leave open",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "SMB_DAT"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "15",
+      "name": "CLK_REQ_N",
+      "function": "synthetic fixture pin CLK_REQ_N",
+      "polarity": "active_low",
+      "direction": "output",
+      "supply_domain": "3V3",
+      "output_topology": "open_drain",
+      "connection_requirement": "optional",
+      "unused_pin_treatment": "leave open",
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,15,CLK_REQ_N,output,active_low,3V3,open_drain,optional,leave open",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "CLK_REQ_N"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "16",
+      "name": "REFCLK_100M",
+      "function": "synthetic fixture pin REFCLK_100M",
+      "polarity": "not_applicable",
+      "direction": "input",
+      "supply_domain": null,
+      "output_topology": "input_only",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,16,REFCLK_100M,input,not_applicable,,input_only,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "REFCLK_100M"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "17",
+      "name": "LANE0_TX_P",
+      "function": "synthetic fixture pin LANE0_TX_P",
+      "polarity": "not_applicable",
+      "direction": "output",
+      "supply_domain": null,
+      "output_topology": "unknown",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,17,LANE0_TX_P,output,not_applicable,,unknown,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "LANE0_TX_P"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "18",
+      "name": "LANE0_TX_N",
+      "function": "synthetic fixture pin LANE0_TX_N",
+      "polarity": "not_applicable",
+      "direction": "output",
+      "supply_domain": null,
+      "output_topology": "unknown",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,18,LANE0_TX_N,output,not_applicable,,unknown,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "LANE0_TX_N"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "19",
+      "name": "LANE0_RX_P",
+      "function": "synthetic fixture pin LANE0_RX_P",
+      "polarity": "not_applicable",
+      "direction": "input",
+      "supply_domain": null,
+      "output_topology": "input_only",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,19,LANE0_RX_P,input,not_applicable,,input_only,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "LANE0_RX_P"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "20",
+      "name": "LANE0_RX_N",
+      "function": "synthetic fixture pin LANE0_RX_N",
+      "polarity": "not_applicable",
+      "direction": "input",
+      "supply_domain": null,
+      "output_topology": "input_only",
+      "connection_requirement": "required",
+      "unused_pin_treatment": null,
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,20,LANE0_RX_N,input,not_applicable,,input_only,required,",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "LANE0_RX_N"
+    },
+    {
+      "part_id": "SYNTH-U1",
+      "physical_pin": "21",
+      "name": "PRECONDITIONS_SATISFIED",
+      "function": "synthetic fixture pin PRECONDITIONS_SATISFIED",
+      "polarity": "active_high",
+      "direction": "output",
+      "supply_domain": "3V3",
+      "output_topology": "push_pull",
+      "connection_requirement": "optional",
+      "unused_pin_treatment": "diagnostic only",
+      "behavior": [],
+      "evidence": [
+        {
+          "doc_id": "doc_synthetic_switch_contract",
+          "page": null,
+          "section": "pins.csv",
+          "table": "pins.csv",
+          "figure": null,
+          "excerpt": "U1,21,PRECONDITIONS_SATISFIED,output,active_high,3V3,push_pull,optional,diagnostic only",
+          "extraction": "synthetic_fixture"
+        }
+      ],
+      "mapped_symbol_pin": "PRECONDITIONS_SATISFIED"
+    }
+  ]
+}

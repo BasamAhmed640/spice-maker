@@ -1,0 +1,224 @@
+{
+  "model": {
+    "schema_version": 1,
+    "model_id": "tps54320_vendor_ltspice",
+    "kind": "VENDOR_PIN_COMPATIBLE",
+    "behaviors": {
+      "startup": "unknown",
+      "shutdown": "supported",
+      "dc_regulation": "supported",
+      "load_transients": "unknown",
+      "input_current": "supported",
+      "current_limit_recovery": "unknown",
+      "switching_waveforms": "unknown",
+      "compensation_loop": "not_tested",
+      "thermal_dependence": "unsupported",
+      "reverse_current_prebias": "supported"
+    },
+    "valid_domain": {
+      "vin": "<= 12 V (probe condition)",
+      "vout_nominal": "3.3 V",
+      "temperature": "not modelled"
+    },
+    "exclusions": [
+      "switch-node ripple and gate-drive detail are not claimed beyond the probe evidence",
+      "thermal dependence is not modelled"
+    ],
+    "evidence_level": "VENDOR_MODEL_COMPARED",
+    "probe_results": [
+      "T_capability_startup",
+      "T_capability_shutdown",
+      "T_capability_dc_regulation",
+      "T_capability_load_transients",
+      "T_capability_input_current",
+      "T_capability_current_limit_recovery",
+      "T_capability_switching_waveforms",
+      "T_capability_compensation_loop",
+      "T_capability_thermal_dependence",
+      "T_capability_reverse_current_prebias"
+    ],
+    "source_model_hash": "a4a3cc8a08fa7f290813ccef70d881dd0dbf64b1e2c16c503080341face26eb7"
+  },
+  "results": [
+    {
+      "schema_version": 1,
+      "test_id": "T_capability_startup",
+      "status": "UNKNOWN",
+      "requirement_ids": [],
+      "measured": {
+        "blocked_reason": "sim_run_incomplete: (no error text in the log)"
+      },
+      "expected": "Rail start-up after enable",
+      "detail": "the startup probe could not be evaluated: exit_code=1; wall=5.39s; raw=yes; log=yes; terminated_after_log_marker",
+      "waveform_refs": [],
+      "log_ref": null,
+      "run_id": "probe_tps54320_vendor_ltspice_startup",
+      "duration_s": 0.0,
+      "unknown_reason": "capability_unknown",
+      "blocked_reason": null
+    },
+    {
+      "schema_version": 1,
+      "test_id": "T_capability_shutdown",
+      "status": "PASS",
+      "requirement_ids": [],
+      "measured": {
+        "vout_enabled": 2.632464470036317,
+        "vout_disabled": 0.0007613038980612813
+      },
+      "expected": "Rail collapse after disable",
+      "detail": "the output fell from 2.6325 V to 0.0008 V after EN deasserted",
+      "waveform_refs": [],
+      "log_ref": null,
+      "run_id": "probe_tps54320_vendor_ltspice_shutdown",
+      "duration_s": 0.0,
+      "unknown_reason": null,
+      "blocked_reason": null
+    },
+    {
+      "schema_version": 1,
+      "test_id": "T_capability_dc_regulation",
+      "status": "PASS",
+      "requirement_ids": [],
+      "measured": {
+        "vout_mean": 3.1296874520780835,
+        "target": 3.2691358024691355,
+        "ripple_pp": 0.46576619148254395
+      },
+      "expected": "Steady-state regulation",
+      "detail": "mean output 3.1297 V against a 3.2691 V divider target (ripple 465.77 mVpp)",
+      "waveform_refs": [],
+      "log_ref": null,
+      "run_id": "probe_tps54320_vendor_ltspice_dc_regulation",
+      "duration_s": 0.0,
+      "unknown_reason": null,
+      "blocked_reason": null
+    },
+    {
+      "schema_version": 1,
+      "test_id": "T_capability_load_transients",
+      "status": "UNKNOWN",
+      "requirement_ids": [],
+      "measured": {
+        "vout_pre": 3.123130695185573,
+        "vout_min_after_step": 2.943429470062256,
+        "vout_settled": 3.1343354884929773,
+        "load_step_a": 1.0
+      },
+      "expected": "Load-step response",
+      "detail": "a 1.00 A step moved the output by 5.8 % (from 3.1231 V to 2.9434 V), which this probe cannot judge \u2014 loop dynamics are not established by the model",
+      "waveform_refs": [],
+      "log_ref": null,
+      "run_id": "probe_tps54320_vendor_ltspice_load_transients",
+      "duration_s": 0.0,
+      "unknown_reason": "capability_unknown",
+      "blocked_reason": null
+    },
+    {
+      "schema_version": 1,
+      "test_id": "T_capability_input_current",
+      "status": "PASS",
+      "requirement_ids": [],
+      "measured": {
+        "i_in_mean": 0.0710575622741982
+      },
+      "expected": "Steady-state input current",
+      "detail": "steady-state input current is 71.058 mA; the probe only establishes the magnitude, not its efficiency model",
+      "waveform_refs": [],
+      "log_ref": null,
+      "run_id": "probe_tps54320_vendor_ltspice_input_current",
+      "duration_s": 0.0,
+      "unknown_reason": null,
+      "blocked_reason": null
+    },
+    {
+      "schema_version": 1,
+      "test_id": "T_capability_current_limit_recovery",
+      "status": "UNKNOWN",
+      "requirement_ids": [],
+      "measured": {
+        "vout_normal": 3.1259661477718597,
+        "vout_overload": 2.60777598076326,
+        "vout_recovered": 3.1310586720268523
+      },
+      "expected": "Overload protection and recovery",
+      "detail": "overload left the output at 2.6078 V (normal 3.1260 V) and it settled at 3.1311 V; protection behaviour is not established",
+      "waveform_refs": [],
+      "log_ref": null,
+      "run_id": "probe_tps54320_vendor_ltspice_current_limit_recovery",
+      "duration_s": 0.0,
+      "unknown_reason": "capability_unknown",
+      "blocked_reason": null
+    },
+    {
+      "schema_version": 1,
+      "test_id": "T_capability_switching_waveforms",
+      "status": "UNKNOWN",
+      "requirement_ids": [],
+      "measured": {
+        "blocked_reason": "sim_run_incomplete: C:\\Users\\basam\\AppData\\Local\\Temp\\scholar-packaged-tests-bcQABY\\fixtures\\regulator\\tps54320\\probe_project\\probes\\switching_waveforms\\probe.cir(10): Instance with that name already defined."
+      },
+      "expected": "Switch-node behaviour",
+      "detail": "the switching probe could not be evaluated: exit_code=1; wall=0.45s; raw=no; log=yes",
+      "waveform_refs": [],
+      "log_ref": null,
+      "run_id": "probe_tps54320_vendor_ltspice_switching_waveforms",
+      "duration_s": 0.0,
+      "unknown_reason": "capability_unknown",
+      "blocked_reason": null
+    },
+    {
+      "schema_version": 1,
+      "test_id": "T_capability_compensation_loop",
+      "status": "UNKNOWN",
+      "requirement_ids": [],
+      "measured": {
+        "probe": "compensation_loop"
+      },
+      "expected": "Loop gain / phase margin",
+      "detail": "loop-gain probing needs an AC (complex) analysis, which the native .raw reader does not support, so no loop claim is made",
+      "waveform_refs": [],
+      "log_ref": null,
+      "run_id": "probe_tps54320_vendor_ltspice_compensation_loop",
+      "duration_s": 0.0,
+      "unknown_reason": "capability_not_tested",
+      "blocked_reason": null
+    },
+    {
+      "schema_version": 1,
+      "test_id": "T_capability_thermal_dependence",
+      "status": "NOT_APPLICABLE",
+      "requirement_ids": [],
+      "measured": {
+        "probe": "thermal_dependence"
+      },
+      "expected": "Temperature dependence",
+      "detail": "no temperature dependence is modelled (documented exclusion); a temperature corner would be meaningless",
+      "waveform_refs": [],
+      "log_ref": null,
+      "run_id": "probe_tps54320_vendor_ltspice_thermal_dependence",
+      "duration_s": 0.0,
+      "unknown_reason": "capability_unsupported",
+      "blocked_reason": null
+    },
+    {
+      "schema_version": 1,
+      "test_id": "T_capability_reverse_current_prebias",
+      "status": "PASS",
+      "requirement_ids": [],
+      "measured": {
+        "vout_prebias": 0.3856730745173991,
+        "min_output_current_prebias_a": 0.0
+      },
+      "expected": "Pre-bias / reverse current",
+      "detail": "starting from 0.3857 V of pre-bias the output branch carried at most 0.00 uA, so the model does not pull the output down",
+      "waveform_refs": [],
+      "log_ref": null,
+      "run_id": "probe_tps54320_vendor_ltspice_reverse_current_prebias",
+      "duration_s": 0.0,
+      "unknown_reason": null,
+      "blocked_reason": null
+    }
+  ],
+  "probe_source": "tools/probe_models.py (real LTspice runs)"
+}
