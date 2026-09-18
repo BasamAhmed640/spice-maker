@@ -445,13 +445,47 @@ class ApiKeyBackend:
             )
         files, problem = parse_files_reply(text)
         if files is None:
-            return AuthorResult(
-                ok=False,
-                detail=redact(problem + _truncation_note(self.provider.wire, stop), [key]),
-                usage=usage,
-                stdout_tail=stdout_tail(text, secrets=[key]),
-                session_id=None,
+            # One retry inside the same turn. A reply that is not the required JSON object
+            # is a transcription slip rather than a verdict, and the parse error is the
+            # most useful correction to hand back; the harness still decides everything,
+            # and a retry that also fails is reported with both attempts named.
+            retry_prompt = (
+                f"{prompt}\n\nYour previous reply was rejected: {problem}\n"
+                "Reply again with exactly one JSON object and nothing else."
             )
+            retry_url, retry_headers, retry_body = self._shape(retry_prompt, key=key)
+            try:
+                again_text, again_usage, again_stop = self._exchange(
+                    url=retry_url,
+                    headers=retry_headers,
+                    body=retry_body,
+                    key=key,
+                    cancel=cancel,
+                    timeout_s=limit,
+                )
+            except ProviderError as exc:
+                problem = f"{problem}; the retry failed: {exc.code}"
+            except Exception as exc:
+                problem = f"{problem}; the retry failed: {type(exc).__name__}"
+            else:
+                retried, retried_problem = parse_files_reply(again_text)
+                usage = {
+                    name: usage.get(name, 0.0) + again_usage.get(name, 0.0)
+                    for name in set(usage) | set(again_usage)
+                }
+                text, stop = again_text, again_stop
+                if retried is not None:
+                    files, problem = retried, ""
+                else:
+                    problem = f"{problem}; the retry was rejected too: {retried_problem}"
+            if files is None:
+                return AuthorResult(
+                    ok=False,
+                    detail=redact(problem + _truncation_note(self.provider.wire, stop), [key]),
+                    usage=usage,
+                    stdout_tail=stdout_tail(text, secrets=[key]),
+                    session_id=None,
+                )
         targets, problem = self._targets(request.model_dir, files)
         if targets is None:
             return AuthorResult(
@@ -530,6 +564,9 @@ class ApiKeyBackend:
             else:
                 body["temperature"] = TEMPERATURE
                 body["max_tokens"] = budget
+            # The entry's own documented switches last, so a vendor knob can override a
+            # default above (DeepSeek's ``thinking`` switch is the one that matters here).
+            body.update(dict(self.provider.extra_body))
             return (
                 f"{endpoint}/chat/completions",
                 {"Authorization": f"Bearer {key}"},

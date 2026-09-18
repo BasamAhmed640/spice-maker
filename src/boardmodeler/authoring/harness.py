@@ -267,6 +267,12 @@ def _run_reason(result: BatchResult, log, *, tstop_s: float, tmax_s: float) -> s
             raw_error = str(exc)
     else:
         raw_error = f"no .raw was written ({result.observed()})"
+        # The simulator's own words are what lets the author fix a model it cannot run
+        # (an LTspice syntax error inside the .subckt, for instance). Without them the
+        # feedback says only that something went wrong, and the next turn is blind.
+        said = [str(line) for line in (getattr(log, "errors", None) or [])]
+        if said:
+            raw_error = f"{raw_error}; LTspice said: {' | '.join(said[-2:])[:300]}"
     diag = diagnose(
         log=log,
         raw=raw,

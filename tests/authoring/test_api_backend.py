@@ -62,6 +62,7 @@ WIRE_ENTRIES: tuple[AgentProvider, ...] = (
         endpoint="https://api.deepseek.com",
         model="deepseek-flash",
         env_aliases=("DEEPSEEK_API_KEY",),
+        extra_body={"thinking": {"type": "enabled"}, "reasoning_effort": "low"},
     ),
     AgentProvider(
         id="openai",
@@ -256,6 +257,80 @@ def test_an_openai_reply_writes_the_model_files_and_nothing_else(tmp_path: Path)
     assert body["messages"][0]["role"] == "user"
     assert "files" in body["messages"][0]["content"], "the reply shape must be requested"
     assert SECRET not in sent.headers.get("Content-Type", "")
+
+
+def test_a_providers_own_request_switch_reaches_the_body(tmp_path: Path) -> None:
+    """A vendor knob the entry declares must be in the request it sends.
+
+    DeepSeek's ``thinking``/``reasoning_effort`` switch is the difference between its
+    model answering and it spending the whole budget on reasoning tokens with no text
+    at all, so this is not cosmetic: the shipped entry's switch must arrive. Low effort
+    is the setting that was measured to produce a model the harness can judge (0 PASS
+    with thinking off, 4 PASS / 0 FAIL with it on at low effort) — the values live in
+    ``agent_providers`` and this test only proves they are sent.
+    """
+    deepseek = provider("deepseek")
+    assert deepseek.extra_body, "the DeepSeek entry declares its documented switch"
+    reply = json.dumps({"files": {f"model/{SUBCKT}.lib": LIB_TEXT}})
+    transport = Recorder(openai_reply(reply))
+
+    result = backend_for(deepseek, transport).author(request_for(tmp_path))
+
+    assert result.ok is True, result.detail
+    body = json.loads(transport.requests[0].body)
+    assert body["thinking"] == deepseek.extra_body["thinking"]
+    assert body["reasoning_effort"] == deepseek.extra_body["reasoning_effort"] == "low"
+
+
+def test_an_entry_without_a_switch_sends_none(tmp_path: Path) -> None:
+    """The mechanism is per entry: a provider that declares nothing adds nothing."""
+    plain = provider("openai")
+    assert not plain.extra_body, "this entry declares no vendor switch"
+    reply = json.dumps({"files": {f"model/{SUBCKT}.lib": LIB_TEXT}})
+    transport = Recorder(openai_reply(reply))
+
+    result = backend_for(plain, transport).author(request_for(tmp_path))
+
+    assert result.ok is True, result.detail
+    body = json.loads(transport.requests[0].body)
+    assert "thinking" not in body
+
+
+def test_a_malformed_reply_is_retried_once_with_the_parse_error(tmp_path: Path) -> None:
+    """A slip in the reply costs one extra request, not the whole build.
+
+    The retry is told what was wrong, and the second answer is what lands on disk; the
+    harness still judges whatever is written, so nothing about the verdict changes.
+    """
+    reply = json.dumps({"files": {f"model/{SUBCKT}.lib": LIB_TEXT}})
+    transport = Sequenced(
+        (200, openai_reply("this is not JSON at all")), (200, openai_reply(reply))
+    )
+    request = request_for(tmp_path)
+
+    result = backend_for(provider("deepseek"), transport).author(request)
+
+    assert result.ok is True, result.detail
+    assert (request.model_dir / f"{SUBCKT}.lib").read_text(encoding="utf-8") == LIB_TEXT
+    assert len(transport.requests) == 2, "exactly one retry"
+    reasked = json.loads(transport.requests[1].body)["messages"][0]["content"]
+    assert "rejected" in reasked and "one JSON object" in reasked
+    assert result.usage["prompt_tokens"] == 22.0, "both requests are counted"
+
+
+def test_a_retry_that_also_fails_names_both_attempts(tmp_path: Path) -> None:
+    """Two malformed replies are one honest failure, with both reasons in the detail."""
+    transport = Sequenced(
+        (200, openai_reply("not JSON")), (200, openai_reply("{still: not, json}"))
+    )
+    request = request_for(tmp_path)
+
+    result = backend_for(provider("deepseek"), transport).author(request)
+
+    assert result.ok is False
+    assert "api_reply_unparsed" in result.detail
+    assert "the retry was rejected too" in result.detail, result.detail
+    assert written_files(tmp_path) == []
 
 
 def test_a_file_already_named_by_the_prompt_lands_under_model(tmp_path: Path) -> None:

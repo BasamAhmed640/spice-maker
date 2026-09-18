@@ -555,12 +555,28 @@ forbidden-label test in `tests/ui/test_setup_dialog.py`).
   Extraction keeps D-011's own walk over `ProviderConfig.provider_order`, and `--requirements` /
   `--bindings` now reach the datasheet path's request too, so a supplied extraction is honoured there
   instead of silently re-extracting with the fixture provider.
-* **A reasoning-first model cannot finish an authoring turn, and the tool says so.** Against the real
-  23.8 kB prompt, DeepSeek's two models spend the entire output budget on `reasoning_content` and return
-  an empty `content` (observed three times, at 12 288 and 32 768 tokens, 57–303 s). The backend reports
-  `response_empty … finish_reason='length'` with the truncation named, and the budget is settable
-  (`--max-tokens`, `agent_max_tokens`, default 32 768) — an honest stop instead of a silent retry loop.
-  Bob and the other vendors are unaffected; this is a property of those two models, not of the contract.
+* **A reasoning-first model needs its thinking switch named, and then it authors.** Against the real
+  23.8 kB prompt, DeepSeek's models spend the entire output budget on `reasoning_content` and return an
+  empty `content` when they are left at their default thinking settings (observed three times, at
+  12 288 and 32 768 tokens, 57–303 s). The backend reports `response_empty … finish_reason='length'`
+  with the truncation named, and the budget is settable (`--max-tokens`, `agent_max_tokens`, default
+  32 768). DeepSeek documents two request fields for this, so the catalog now carries them per entry —
+  a provider's own documented switch, not a guessed one, and MODEL/BUDGET stay editable per machine:
+  `{"thinking": {"type": "enabled"}, "reasoning_effort": "low"}` for the two DeepSeek models. Measured
+  on the TPS54320 fixture: thinking **disabled** answers in ~10 s with both files but reaches **0 PASS**
+  in three turns (the deck it writes references a sub-model it never defines), while thinking enabled
+  at low effort answers in ~1 min and reaches **4 PASS / 0 FAIL** after three turns, the remaining
+  UNKNOWNs naming the model's own convergence. The setting that produced the better model ships; Bob
+  and the other vendors are unaffected.
+* **The author is told what the simulator said, and one malformed reply is re-asked.** The harness
+  stops a run that cannot proceed honestly, but "no `.raw` appeared" does not tell an author whether it
+  wrote a syntax error or forgot a file. The `unknown_reason` for an unreadable run now carries the
+  offending line LTspice printed (`…BM_REG_BUCK.lib(95): Undefined model "rout_drv"`), and that reason
+  is exactly what the next turn's prompt quotes as feedback. The API backends likewise re-ask **once**
+  inside a turn when the reply is not the required JSON object, quoting the parse error back to the
+  model; the retry is a transcription repair, not a second opinion, a retry that also fails is reported
+  with both attempts named, and neither change can manufacture a PASS — the harness still judges the
+  file that is on disk.
 * **The installer is the application and nothing else.** A Velopack one-click setup with the animated
   pepper splash, Start Menu and desktop shortcuts, and `Update.exe --uninstall --silent`; it carries no
   LTspice, Bob Shell or Python payload (SHA-256 of all 16 606 files under the two raw LTspice trees is

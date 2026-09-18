@@ -31,7 +31,8 @@ be overridden per machine in SETUP or with ``--model``, because these strings do
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 
 __all__ = [
     "CATALOG",
@@ -77,6 +78,12 @@ class AgentProvider:
     #: models do; most OpenAI-compatible vendors still take the classic parameters,
     #: so this is per entry rather than per wire.
     reasoning: bool = False
+    #: Extra fields merged into the request body for this entry, in the vendor's own
+    #: documented spelling. This exists because a vendor knob can decide whether the
+    #: task is possible at all: DeepSeek's ``{"thinking": {"type": "disabled"}}`` is the
+    #: difference between V4.1 Flash answering in ~10 s and it spending the whole output
+    #: budget on ``reasoning_content`` and returning no text (measured, D-015).
+    extra_body: Mapping[str, object] = field(default_factory=dict)
 
     @property
     def uses_cli(self) -> bool:
@@ -113,6 +120,10 @@ CATALOG: tuple[AgentProvider, ...] = (
         endpoint="https://api.deepseek.com",
         model="deepseek-flash",
         env_aliases=("DEEPSEEK_API_KEY",),
+        # DeepSeek's own "Invoke The Chat API" example documents this switch; with the
+        # default the V4.1 Flash model thinks until the output budget is gone and returns
+        # no text at all, and with the switch it answers in seconds (measured, D-015).
+        extra_body={"thinking": {"type": "enabled"}, "reasoning_effort": "low"},
     ),
     AgentProvider(
         id="openai",
