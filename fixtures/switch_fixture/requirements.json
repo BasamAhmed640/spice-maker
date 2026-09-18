@@ -1201,31 +1201,6 @@
         }
       ],
       "mapped_symbol_pin": "LANE0_RX_N"
-    },
-    {
-      "part_id": "SYNTH-U1",
-      "physical_pin": "21",
-      "name": "PRECONDITIONS_SATISFIED",
-      "function": "synthetic fixture pin PRECONDITIONS_SATISFIED",
-      "polarity": "active_high",
-      "direction": "output",
-      "supply_domain": "3V3",
-      "output_topology": "push_pull",
-      "connection_requirement": "optional",
-      "unused_pin_treatment": "diagnostic only",
-      "behavior": [],
-      "evidence": [
-        {
-          "doc_id": "doc_synthetic_switch_contract",
-          "page": null,
-          "section": "pins.csv",
-          "table": "pins.csv",
-          "figure": null,
-          "excerpt": "U1,21,PRECONDITIONS_SATISFIED,output,active_high,3V3,push_pull,optional,diagnostic only",
-          "extraction": "synthetic_fixture"
-        }
-      ],
-      "mapped_symbol_pin": "PRECONDITIONS_SATISFIED"
     }
   ]
 }

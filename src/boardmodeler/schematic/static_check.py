@@ -3,14 +3,21 @@
 Every check returns :class:`~boardmodeler.domain.records.Finding` rows: one per
 violation, plus a single ``PASS`` row when the check ran over real subjects and
 found nothing.  A check whose inputs are absent reports ``NOT_APPLICABLE`` with
-the reason — never a silent pass.
+the reason - never a silent pass.
 
 The supply-domain rule (§9) is the one worth spelling out: **every power-capable
 pin is evaluated individually**.  Grouping pins into a simulated domain must not
 hide a disconnected pin, a pin on the wrong rail, or two domains shorted onto
 one net, so ``SC009`` emits one finding per offending pin (naming the pin, the
 net it is actually on and the expected domain) and one finding per net that
-carries more than one declared domain.
+carries more than one declared domain.  A pin whose net carries *no* declared
+domain is ``UNKNOWN`` (the assignment cannot be confirmed from the netlist) -
+never a silent PASS and never an accusation.
+
+Refdes handling: neutral data names a component ``U5`` while SPICE names its
+subcircuit instance ``XU5``; every lookup here accepts both forms (an exact
+match wins), and findings name the component while keeping the netlist token in
+their detail.
 """
 
 from __future__ import annotations
@@ -148,7 +155,7 @@ def _root_for(
 
 
 # --------------------------------------------------------------------------- #
-# SC001 — syntax
+# SC001 - syntax
 
 
 def _sc001_syntax(circuit: Circuit) -> list[Finding]:
@@ -236,7 +243,7 @@ def _sc001_syntax(circuit: Circuit) -> list[Finding]:
 
 
 # --------------------------------------------------------------------------- #
-# SC002 — units and names
+# SC002 - units and names
 
 
 def _sc002_units_names(circuit: Circuit) -> list[Finding]:
@@ -342,7 +349,7 @@ def _check_value(code: str, refdes: str, value: str) -> list[Finding]:
 
 
 # --------------------------------------------------------------------------- #
-# SC003 — missing dependency
+# SC003 - missing dependency
 
 
 def _sc003_missing_dependency(
@@ -501,7 +508,7 @@ def _inside_lib(path: Path) -> bool:
 
 
 # --------------------------------------------------------------------------- #
-# SC004 — part identity
+# SC004 - part identity
 
 
 def _sc004_part_identity(project: NeutralProject | None) -> list[Finding]:
@@ -555,7 +562,7 @@ def _sc004_part_identity(project: NeutralProject | None) -> list[Finding]:
 
 
 # --------------------------------------------------------------------------- #
-# SC005 — physical pin -> symbol pin -> subcircuit port
+# SC005 - physical pin -> symbol pin -> subcircuit port
 
 
 def _sc005_pinmap(
@@ -740,7 +747,7 @@ def _subckt_ports_for(
 
 
 # --------------------------------------------------------------------------- #
-# SC006 — symbol prefix and model file
+# SC006 - symbol prefix and model file
 
 
 def _sc006_symbol_prefix_model(
@@ -816,7 +823,7 @@ def _sc006_symbol_prefix_model(
 
 
 # --------------------------------------------------------------------------- #
-# SC007 — duplicate / dropped connections
+# SC007 - duplicate / dropped connections
 
 
 def _sc007_duplicate_connections(project: NeutralProject | None) -> list[Finding]:
@@ -857,7 +864,7 @@ def _sc007_duplicate_connections(project: NeutralProject | None) -> list[Finding
 
 
 # --------------------------------------------------------------------------- #
-# SC008 — export portability
+# SC008 - export portability
 
 
 def _sc008_export_portability(
@@ -960,7 +967,7 @@ def _within(path: Path, root: Path) -> bool:
 
 
 # --------------------------------------------------------------------------- #
-# SC009 — supply domain assignment
+# SC009 - supply domain assignment
 
 
 def _sc009_supply_domains(
@@ -1108,7 +1115,7 @@ def _sc009_supply_domains(
 
 
 # --------------------------------------------------------------------------- #
-# SC010 — abstraction boundary
+# SC010 - abstraction boundary
 
 
 def _sc010_abstraction_boundary(

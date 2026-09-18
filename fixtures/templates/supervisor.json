@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "family": "supervisor",
+  "part": "supervisor_3v3",
+  "subckt": "BM_SUPERVISOR",
+  "ports": ["VIN", "PG", "GND"],
+  "parameters": [
+    {"name": "VTH_RISE", "type": "float", "unit": "V", "default": 2.9},
+    {"name": "VTH_FALL", "type": "float", "unit": "V", "default": 2.8},
+    {"name": "PG_SINK", "type": "float", "unit": "ohm", "default": 50},
+    {"name": "PG_DELAY", "type": "float", "unit": "s", "default": 0.001},
+    {"name": "IQ", "type": "float", "unit": "A", "default": 1e-05}
+  ],
+  "behaviors": [
+    {
+      "behavior": "rail_release",
+      "capability": "startup",
+      "status": "supported",
+      "detail": "PG is released only after VIN crosses VTH_RISE and PG_DELAY elapses"
+    },
+    {
+      "behavior": "rail_fault_assert",
+      "capability": "shutdown",
+      "status": "supported",
+      "detail": "PG is pulled low through PG_SINK after VIN falls below VTH_FALL plus PG_DELAY"
+    },
+    {
+      "behavior": "quiescent_input_current",
+      "capability": "input_current",
+      "status": "supported",
+      "detail": "IQ is drawn from VIN while the monitored rail is present"
+    },
+    {
+      "behavior": "load_step_response",
+      "capability": "load_transients",
+      "status": "unsupported",
+      "detail": "a supervisor does not regulate a load, so no load-transient behaviour exists"
+    },
+    {
+      "behavior": "current_limit",
+      "capability": "current_limit_recovery",
+      "status": "unsupported",
+      "detail": "no current limit is modelled"
+    },
+    {
+      "behavior": "thermal_behaviour",
+      "capability": "thermal_dependence",
+      "status": "unsupported",
+      "detail": "no temperature dependence is modelled"
+    }
+  ],
+  "valid_domain": {
+    "VIN": "monitor input only; the model places no supply limit of its own"
+  },
+  "exclusions": [
+    "PG is sink-only through PG_SINK and needs an external pull-up; no internal pull-up is modelled",
+    "the comparator and delay are behavioural primitives, not silicon-correlated",
+    "no upper VIN limit, breakdown or thermal behaviour is modelled"
+  ],
+  "notes": "3.3 V-class supervisor: PG released above 2.9 V and asserted below 2.8 V, both after a 1 ms delay.",
+  "deck": {
+    "title": "BM_SUPERVISOR application: 3.5 V rise and fall on VIN, PG pull-up 10k to 3.3 V",
+    "tstep": 5e-06,
+    "tstop": 0.01,
+    "tstart": 0.0,
+    "tmax": 1e-06,
+    "uic": true,
+    "instance": {
+      "refdes": "X1",
+      "nodes": {"VIN": "vin", "PG": "pg", "GND": "0"},
+      "params": {}
+    },
+    "elements": ["Rpu pg vddpu 10k"],
+    "sources": [
+      {
+        "name": "V1",
+        "plus": "vin",
+        "minus": "0",
+        "kind": "pwl",
+        "points": [
+          [0.0, 0.0],
+          [0.001, 0.0],
+          [0.002, 3.5],
+          [0.006, 3.5],
+          [0.0061, 0.0],
+          [0.01, 0.0]
+        ]
+      },
+      {
+        "name": "Vpu",
+        "plus": "vddpu",
+        "minus": "0",
+        "kind": "dc",
+        "params": {"v": 3.3}
+      }
+    ],
+    "save": ["V(vin)", "V(pg)", "I(V1)"],
+    "measures": [
+      {"name": "pg_low_before_threshold_v", "signal": "V(pg)", "kind": "max", "from_s": 0.0002, "to_s": 0.0008, "abs": 0.05},
+      {"name": "vin_steady_v", "signal": "V(vin)", "kind": "avg", "from_s": 0.0045, "to_s": 0.0059},
+      {"name": "pg_released_v", "signal": "V(pg)", "kind": "avg", "from_s": 0.0045, "to_s": 0.0059},
+      {"name": "pg_fault_v", "signal": "V(pg)", "kind": "avg", "from_s": 0.0085, "to_s": 0.0099, "abs": 0.05},
+      {"name": "v1_current_a", "signal": "I(V1)", "kind": "avg", "from_s": 0.0045, "to_s": 0.0059, "abs": 1e-06}
+    ]
+  }
+}

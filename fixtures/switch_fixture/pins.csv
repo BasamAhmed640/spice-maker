@@ -19,4 +19,3 @@ U1,17,LANE0_TX_P,output,not_applicable,,unknown,required,
 U1,18,LANE0_TX_N,output,not_applicable,,unknown,required,
 U1,19,LANE0_RX_P,input,not_applicable,,input_only,required,
 U1,20,LANE0_RX_N,input,not_applicable,,input_only,required,
-U1,21,PRECONDITIONS_SATISFIED,output,active_high,3V3,push_pull,optional,diagnostic only

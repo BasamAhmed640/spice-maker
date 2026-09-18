@@ -38,7 +38,9 @@ Soft start
     fixed internal current ``ISS = 1.7 uA`` while the converter runs, so the
     reference ramps at ``dV/dt = ISS/CSS`` (170 V/s at the default ``CSS=10n``)
     and is clamped by ``min(V(ss), VREF)``: monotonic, and it can never exceed
-    ``VREF``.  The charge stops 50 mV above ``VREF`` and the node is reset
+    ``VREF`` (measured ramp slope 170.11 V/s for ``CSS=10n`` and 42.50 V/s for
+    ``CSS=40n`` against the 170.00/42.50 V/s law; settled V(FB) 0.799998 V, peak
+    0.8071 V).  The charge stops 50 mV above ``VREF`` and the node is reset
     through 100 ohm while the converter is off (EN or UVLO inactive), so a
     re-enable always ramps from zero.  A current-limit retry does **not** reset
     the ramp: it resumes at the reference level the converter already reached
@@ -52,21 +54,28 @@ Regulation
     ``[0, 1] V``) into a lag/zero compensation network (``1 MOhm`` parallel,
     ``22 ohm + 100 nF`` series), i.e. a finite-gain, compensation-limited
     amplifier: the output ramps are bounded by ``I/C = 2000 V/s`` after the
-    4.4 mV feed-forward step.  It drives a power stage that is a *voltage
-    controlled current source* into ``VOUT`` with transconductance ``GM``
-    (A/V) - never an ideal voltage source.  Steady state is therefore defined by
-    ``V(FB) = VREF`` whatever divider the application uses; the load regulation
-    error is ``I_OUT / (GM * A0)`` referred to ``FB``.
+    4.4 mV feed-forward step.  While the converter is off the amplifier output is
+    reset through 100 ohm, so a re-enable starts from zero error (a restart after
+    a latch reset is again a soft ramp, measured at 3.6 ms for 0.5 V -> 3.0 V).
+    It drives a power stage that is a *voltage controlled current source* into
+    ``VOUT`` with transconductance ``GM`` (A/V) - never an ideal voltage source.
+    Steady state is therefore defined by ``V(FB) = VREF`` whatever divider the
+    application uses; the load regulation error is ``I_OUT / (GM * A0)`` referred
+    to ``FB`` (measured: 3.26913 V against the 3.2716 V target of a 10k/3.24k
+    divider and 8.20735 V against the 8.210 V target of 30k/3.24k, i.e. below
+    0.1 % error in both cases).
 
 Current limit and recovery
     The output current is ``limit(GM*V(comp), 0, ILIM)`` while enabled, so the
-    limit is exact.  The detector is "the demand exceeds ``ILIM``"; a fault
-    memory (``C = 10 nF`` charged with ``I = 100 uA``) integrates it, trips at
-    2.718 V and releases at 1.0 V.  ``ILIM_MODE=0`` (or a high ``ILIM_MODE``
-    pin) makes the memory discharge through ``C/RETRY_MS``, so the retry
-    interval is ``RETRY_MS * ln(2.718/1.0) = RETRY_MS``; ``ILIM_MODE=1`` keeps
-    the memory charged (discharge time constant ~500 s, longer than any run)
-    until ``EN`` or ``VIN`` goes inactive, which is the latch reset.
+    limit is exact.  The detector is "the drive is enabled and the demand exceeds
+    ``ILIM``"; a fault memory (``C = 10 nF`` charged with ``I = 100 uA``)
+    integrates it, trips at 2.718 V and releases at 1.0 V.  ``ILIM_MODE=0`` (or a
+    high ``ILIM_MODE`` pin) makes the memory discharge through ``C/RETRY_MS``, so
+    the retry interval is ``RETRY_MS * ln(2.718/1.0) = RETRY_MS`` (measured
+    8.210 ms median for the default ``RETRY_MS=8m``, the extra 0.21 ms being the
+    memory's charging ramp); ``ILIM_MODE=1`` keeps the memory charged (discharge
+    time constant ~500 s, longer than any run) until ``EN`` or ``VIN`` goes
+    inactive, which is the latch reset.
 
 Power good
     ``PG`` is open drain and *sink only*: the pin is pulled down through 50 ohm
@@ -74,33 +83,46 @@ Power good
     once the deviation is inside 8.5 %, i.e. a real window with hysteresis) or
     while the converter is not running, and is high impedance otherwise.  The
     pull-down is immediate (a fault is never delayed); ``PG_DELAY`` is the
-    assertion delay of the release.  The pull-down current is
+    assertion delay of the release (measured 207.4 us for ``PG_DELAY=200u``, and
+    50.00 ohm from V(PG)/I(pull-up) in the low state, with the pull-up current
+    never negative - the pin only ever sinks).  The pull-down current is
     ``limit(V(PG)/50, 0, 1)``, so no pin voltage can make the model source
     current.
 
 Disable and pre-bias
     While ``UVLO`` or ``EN`` is inactive a switched resistor of
     ``max(RDISCHARGE, 10) ohm`` pulls ``VOUT`` to ``GND`` (the 10 ohm floor is
-    the documented minimum allowed value).  While enabled the model never sinks
-    output current, and the drive is additionally gated off while the soft-start
-    target (``V(ref)*VOUT_NOM/VREF``) is below ``V(VOUT) - VPREBIAS_MAX``, so a
-    pre-biased output is held off until the ramp catches up.  ``VPREBIAS_MAX``
-    bounds that hold-off; because the power stage is source-only the no-sinking
-    guarantee itself is structural.
+    the documented minimum allowed value; measured 288 mA at 10 ohm, 79 mA at
+    40 ohm and 288 mA when a request below the floor is clamped to it - the
+    sample is taken 20 us after the disable, by which time the 22 uF output has
+    already drooped).  While enabled, and with the
+    default ``REVERSE_BLOCK=1``, the model cannot sink output current at all -
+    the power stage is source-only and the discharge path is open.  The drive is
+    additionally held off while the soft-start target (``V(ref)*VOUT_NOM/VREF``)
+    is below ``V(VOUT) - VPREBIAS_MAX`` and the limit detector is disabled with
+    it, so a pre-biased output is neither driven nor "limited" until the ramp
+    catches up (measured: the drive starts at 2.161 ms against the 2.158 ms the
+    ISS/CSS law predicts for a 1.5 V pre-bias, and the pin current stays at 0
+    until then).  ``VPREBIAS_MAX`` bounds that hold-off; the no-sinking guarantee
+    itself is structural, not a comparison.
 
 Reverse current and input current
     ``REVERSE_BLOCK=1`` makes the output path source-only *and* clamps the input
-    current law at 0, so nothing can flow from ``VOUT`` back into ``VIN``.
-    ``REVERSE_BLOCK=0`` allows the loop to sink (the sink side of the limit is
-    enabled) and the sign of ``POUT`` then drives the input current negative,
-    i.e. the model back-feeds ``VIN`` - which is what the parameter switches.
+    current law at 0, so nothing can flow from ``VOUT`` back into ``VIN``
+    (measured: 0.0 A out of the input pin with VOUT driven to 6 V while VIN sits
+    at 4.5 V).  ``REVERSE_BLOCK=0`` allows the loop to sink (the sink side of the
+    limit is enabled) and the sign of ``POUT`` then drives the input current
+    negative, i.e. the model back-feeds ``VIN`` (measured -0.4859 A in the same
+    deck) - which is what the parameter switches.
 
     ``IIN = clamp(POUT / (ETA * max(VIN, VMIN_FLOOR)), 0, IIN_MAX)`` with
     ``POUT = V(VOUT) * IOUT`` computed from the *delivered* current.  The
     ``max(VIN, VMIN_FLOOR)`` denominator removes the singular constant-power
-    term; the output drive is zero below ``VMIN_FLOOR`` (UVLO is already off
-    there), so ``POUT <= ETA * VIN * IIN`` holds whenever current flows - the
-    model cannot create energy.
+    term, and it never flatters the model: the converter cannot run below
+    ``UVLO_FALL``, which is at least 2 V, so the denominator is the actual ``VIN``
+    whenever any current flows and ``POUT <= ETA * VIN * IIN`` holds - the model
+    cannot create energy (measured: E_out = 1.0012 x ETA * E_in over a 14 ms
+    window, the 0.12 % being the float32 shunt noise floor).
 
 ``SW`` is provided for pin compatibility only: this reduced model does not drive
 it (switching-waveform behaviour is outside its scope).  All internal references
@@ -247,6 +269,9 @@ R_dc comp GND 1e6
 R_z comp cz 22
 C_z cz GND 100n
 B_cclmp comp GND I = limit((V(comp)-1)*1, 0, 1)*1e-2-limit(-V(comp)*1, 0, 1)*1e-2
+* the amplifier output is reset while the converter is off, so every re-enable
+* starts from zero error instead of the previous integrator state
+B_comprst comp GND I = (1-V(run))*V(comp)/100
 * --- power stage: VCCS into VOUT, source-only unless REVERSE_BLOCK=0 ----------
 * the source side is held off while the output is above the soft-start target
 * (pre-bias); the sink side exists only when REVERSE_BLOCK=0
@@ -260,7 +285,7 @@ B_pwr 0 VOUT I = V(iout)
 B_iin VIN GND I = limit(V(VOUT)*V(iout)/max(ETA,1m)/max(V(VIN),VMIN_FLOOR), -IIN_MAX*(1-REVERSE_BLOCK), IIN_MAX)
 * --- current limit detector, hiccup/latch memory ----------------------------
 B_mode mode GND V = $MODE
-B_ilim ilim GND V = limit((GM*V(comp)-ILIM)*1e3, 0, 1)*V(gate)
+B_ilim ilim GND V = limit((GM*V(comp)-ILIM)*1e3, 0, 1)*V(gate)*V(pbok)
 C_flt flt GND 10n
 B_fltchg 0 flt I = 100u*V(ilim)
 B_fltdis flt GND I = V(flt)*((1-V(mode))*{10n/RETRY_MS}+V(mode)*1e-11+(1-V(run))*1e-2)

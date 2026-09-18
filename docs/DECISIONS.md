@@ -208,8 +208,68 @@ stepped payloads raising, and a synthetic file whose stride is derived from size
 
 ## D-005 — HTTP inference endpoint (DeepSeek) and Bob
 
-**Date:** 2026-09-18 (filled in during Phase 4)
-**Decision:** pending — Phase 4 verifies endpoint/model/request-shape strings
-against `https://api-docs.deepseek.com/` before writing them into configuration.
-Bob direct is implemented but expected to report
-`BLOCKED("bob_credentials_unavailable")` on this machine (no `BOB_*` variables).
+**Date:** 2026-09-18 (verified against the vendor documentation during Phase 4)
+**Decision:** `providers/http_inference.py` is an OpenAI-compatible chat-completions
+adapter that ships **no default endpoint and no default model**: both must come from
+configuration, so nothing can be invented or silently inherited. The adapter's shape
+is modelled on the strings published at `https://api-docs.deepseek.com/`, verified by
+fetching that page during this session:
+
+|Parameter|Documented value (observed 2026-09-18)|
+|---|---|
+|base_url (OpenAI-compatible)|`https://api.deepseek.com`|
+|chat path|`/chat/completions` (the published `curl` example posts to `https://api.deepseek.com/chat/completions`)|
+|model names|`deepseek-flash`, `deepseek-v4-pro`; the legacy names `deepseek-v4-flash` and `deepseek-v4-flash-vision-exp` are still accepted for retired models|
+|auth|`Authorization: Bearer <key>`|
+
+`tests/providers/test_http_inference.py::test_deepseek_documentation_still_names_the_configured_strings`
+re-checks that the documentation still publishes `api.deepseek.com` and
+`chat/completions`; it is marked `network` **and** requires
+`BOARDMODELER_NETWORK_TESTS=1`, so the default suite makes no outbound call.
+
+Note for anyone reading an older draft of this file: the model names
+`deepseek-chat` / `deepseek-reasoner` are no longer the documented names, which is
+exactly why no default is compiled in.
+
+**Bob.** `providers/bob.py` implements `BobDirectProvider` and `BobShellProvider` but
+this machine has no `BOB_*` credentials and no verified approved endpoint, so the
+direct path reports `BLOCKED("bob_credentials_unavailable")` and is **never**
+substituted by another provider. Bob Shell additionally requires both
+`policy.allow_bob_shell` and `--allow-bob-shell`, refuses documents classified
+internal/confidential/unknown, and runs through `security.subprocess_guard`. It is
+recorded as unexercised rather than as "supported".
+
+---
+
+## D-011 — A scenario must apply the stimulus it declares
+
+**Date:** 2026-09-18
+**Decision:** every `ScenarioSpec` in `verification/scenarios.py` that the demo board
+runs must have its declared stimulus injected into the deck it is checked with; a
+scenario whose stimulus cannot be injected is reported as not applied, with the
+reason, instead of being checked under a deck that does not contain it.
+
+**Rationale:** `deck_for_scenario` originally varied the deck only for `fast_rail`
+and `slow_rail`, so 21 of the 23 scenarios were checked against the *nominal* deck
+under a different name. Every one of those results would have been a claim about a
+stimulus that was never applied — the precise failure mode this project exists to
+avoid, and one that is invisible in the report because the scenario id looks right.
+
+**Consequences:**
+
+* the built project carries `tests/scenario_stimulus.json` mapping each scenario to
+  the exact injected card(s) or to `applied: false` with a note;
+* `tests/pipeline/test_demo_decks.py` asserts each scenario's deck differs from the
+  nominal deck (or is recorded as not applied) without needing a simulator;
+* `tests/test_demo_scenarios.py` asserts the injection is *observable* — a measured
+  quantity moves by more than 1 % against nominal — because an injection that changes
+  no output is decoration, not a scenario;
+* the reference clock is a stand-in whose rate is not asserted by any requirement
+  (`REQ_DEMO_CLK_009` is an ASSUMPTION), and each deck says so, because driving a
+  100 MHz clock with 1 ns edges across a 10 ms window forced about 1e6 timesteps and
+  a 120 MB `.raw` for a property nothing checks.
+
+**Rejected:** keeping the shared deck and documenting the shortcut (it would make the
+report's per-scenario statuses unverifiable); shrinking the scenario list to the two
+injected ones (the plan fixes the scenario ids, and the ones that matter — clock,
+straps, reset, power-good — are exactly the ones that were missing).

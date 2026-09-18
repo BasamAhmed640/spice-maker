@@ -63,7 +63,9 @@
     "PG_3V3": "3V3",
     "SMB_CLK": "3V3",
     "SMB_DAT": "3V3",
-    "VIN_12V_SRC": "12V"
+    "VIN_12V_SRC": "12V",
+    "EN_U1": "12V",
+    "CONFIG1": "1V8"
   },
   "timing": {
     "load_step_1v8_a": 0.2,

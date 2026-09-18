@@ -708,6 +708,10 @@ class MainWindow(QMainWindow):
         """The waveform view (custom QPainter widget)."""
         return self.waveforms
 
+    def worker_client(self) -> WorkerClient | None:
+        """The client running the current job, or None before the first run."""
+        return self._client
+
     def stage_rows(self) -> list[dict[str, Any]]:
         return [dict(row) for row in self._stage_rows]
 

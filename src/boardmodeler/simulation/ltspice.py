@@ -80,42 +80,96 @@ def _lock_path() -> Path:
     return Path(tempfile.gettempdir()) / _LOCK_FILENAME
 
 
-def _acquire_lock(timeout_s: float) -> Path | None:
+class LtspiceLockTimeout(RuntimeError):
+    """Another live process held the simulator lock for the whole timeout.
+
+    Raised instead of running anyway: LTspice hands a second invocation to the
+    already-running instance, so two unlocked batch runs silently steal each
+    other's deck. Waiting and failing loudly is the only honest option.
+    """
+
+
+def _acquire_lock(timeout_s: float) -> Path:
     """Serialise simulator invocations across processes.
 
     LTspice behaves as a single-instance application: a second invocation started
     while one is running is handed off to the running instance (observed), so two
-    concurrent batch runs can silently steal each other's deck. The lock is a
-    create-exclusive file in the temp directory, released in a ``finally``.
+    concurrent batch runs can silently steal each other's deck.
+
+    The lock is an **OS-held** exclusive lock on a persistent file in the temp
+    directory. That matters: a lock released by a ``finally`` is not released at
+    all when the process is killed, and a leftover file then blocks every later
+    run while nothing holds it (observed: a dead run's lock stalled three
+    unrelated jobs for their full timeout, which then ran unlocked and could
+    steal a deck). The operating system drops an OS-held lock when its owner
+    exits, so there is no stale state to detect and no mtime heuristic to get
+    wrong. The file itself is never deleted, so the lock cannot be lost to a
+    delete/acquire race either.
+
+    Raises ``LtspiceLockTimeout`` when a *live* holder keeps the lock for longer
+    than ``timeout_s``.
     """
     path = _lock_path()
     deadline = time.monotonic() + timeout_s
     while True:
         try:
-            handle = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            os.write(handle, f"{os.getpid()}\n".encode())
+            handle = os.open(path, os.O_CREAT | os.O_RDWR)
+        except OSError as exc:  # pragma: no cover - no temp dir write access
+            raise LtspiceLockTimeout(
+                f"cannot open the simulator lock file {path}: {exc}"
+            ) from exc
+        try:
+            _lock_file_exclusive(handle)
+        except OSError:
             os.close(handle)
-            return path
-        except FileExistsError:
             if time.monotonic() >= deadline:
-                return None
-            try:
-                # A crashed run can leave a stale lock behind.
-                if time.monotonic() - path.stat().st_mtime > 3600:
-                    path.unlink(missing_ok=True)
-                    continue
-            except OSError:  # pragma: no cover - the file vanished underneath us
-                continue
+                raise LtspiceLockTimeout(
+                    f"another BoardModeler process held the simulator lock {path} for "
+                    f"{timeout_s:g}s; re-run once it finishes"
+                ) from None
             time.sleep(0.05)
-        except OSError:  # pragma: no cover - no temp dir write access
-            return None
+            continue
+        try:
+            os.truncate(handle, 0)
+            os.write(handle, f"{os.getpid()}\n".encode())
+        except OSError:  # pragma: no cover - the pid note is informational only
+            pass
+        _OPEN_LOCKS[path] = handle
+        return path
+
+
+#: The lock is held open for the lifetime of the owning run, so the OS keeps it
+#: until the process exits (including on a kill) and drops it on any crash.
+_OPEN_LOCKS: dict[Path, int] = {}
+
+
+def _lock_file_exclusive(handle: int) -> None:
+    """Take a non-blocking exclusive lock on an open file descriptor."""
+    if os.name == "nt":
+        import msvcrt
+
+        os.lseek(handle, 0, os.SEEK_SET)
+        msvcrt.locking(handle, msvcrt.LK_NBLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
 
 def _release_lock(path: Path | None) -> None:
     if path is None:
         return
+    handle = _OPEN_LOCKS.pop(path, None)
+    if handle is None:
+        return
     with contextlib.suppress(OSError):  # pragma: no cover - best-effort release
-        path.unlink(missing_ok=True)
+        if os.name == "nt":
+            import msvcrt
+
+            os.lseek(handle, 0, os.SEEK_SET)
+            msvcrt.locking(handle, msvcrt.LK_UNLCK, 1)
+    with contextlib.suppress(OSError):  # pragma: no cover - closing releases it anyway
+        os.close(handle)
 
 BATCH_RESOLUTION_NOTES = (
     "argv = [LTspice.exe, -b, (extra switches...), <absolute deck path>] with cwd=deck dir; "
@@ -444,7 +498,7 @@ def run_batch(
             marker_grace_s=marker_grace_s,
             poll_s=poll_s,
             cancel=cancel,
-            lock_acquired=lock is not None,
+            lock_acquired=True,
         )
     finally:
         _release_lock(lock)

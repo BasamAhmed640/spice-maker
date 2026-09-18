@@ -1,0 +1,26 @@
+{
+  "family": "supervisor",
+  "values": {
+    "pg_low_before_threshold_v": 0.016417911276221275,
+    "vin_steady_v": 3.5,
+    "pg_released_v": 3.299999952316284,
+    "pg_fault_v": 0.016417911276221275,
+    "v1_current_a": -9.999999747378752e-6
+  },
+  "tolerances": {
+    "pg_low_before_threshold_v": {
+      "rel": 0.01,
+      "abs": 0.05
+    },
+    "pg_fault_v": {
+      "rel": 0.01,
+      "abs": 0.05
+    },
+    "v1_current_a": {
+      "rel": 0.01,
+      "abs": 1e-6
+    }
+  },
+  "produced_by": "boardmodeler.models.regression.run_family_deck with LTspice 26.0.0, invoked from tests/regression/test_templates.py --generate",
+  "note": "supervisor_3v3 (BM_SUPERVISOR) template instantiation, deck 'BM_SUPERVISOR application: 3.5 V rise and fall on VIN, PG pull-up 10k to 3.3 V' (supervisor.cir); conditions: V1 vin 0 PWL(0 0 0.001 0 0.002 3.5 0.006 3.5 0.0061 0 0.01 0); Vpu vddpu 0 DC 3.3; Rpu pg vddpu 10k; X1 vin pg 0 BM_SUPERVISOR; .tran 5e-06 0.01 0 1e-06 uic; .save V(vin) V(pg) I(V1); .meas TRAN pg_low_before_threshold_v MAX V(pg) FROM=0.0002 TO=0.0008; .meas TRAN vin_steady_v AVG V(vin) FROM=0.0045 TO=0.0059; .meas TRAN pg_released_v AVG V(pg) FROM=0.0045 TO=0.0059; .meas TRAN pg_fault_v AVG V(pg) FROM=0.0085 TO=0.0099; .meas TRAN v1_current_a AVG I(V1) FROM=0.0045 TO=0.0059; values measured from supervisor.raw by boardmodeler.models.regression.measure_raw; simulator LTspice 26.0.0"
+}

@@ -414,3 +414,24 @@ def test_settings_dialog_reports_a_failed_smoke_test(qapp, tmp_path: Path, monke
     assert observed["status"] == "fail"
     assert "C:/one" in observed["detail"]
     assert dialog.smoke_label.text().startswith("FAIL")
+
+
+def test_real_worker_run_renders_offscreen(qapp, tmp_path: Path) -> None:
+    """The window drives the real worker module and renders its real events."""
+    project = _make_project(tmp_path, circuit=False)
+    window = MainWindow(config_file=tmp_path / "config.json")
+    assert window.load_project(project.root) is True
+    assert window.start_run() is True
+
+    client = window.worker_client()
+    assert client is not None
+    outcome = client.wait(300)
+    qapp.processEvents()
+
+    assert outcome.exit_code == 0, outcome.stderr
+    assert outcome.result is not None
+    assert window.last_result_event is not None
+    assert window.stage_list().count() >= 1
+    assert next(row["stage"] for row in window.stage_rows()) == "IDENTIFY"
+    assert window.results_table().rowCount() == len(outcome.results)
+    assert window.statusBar().currentMessage()

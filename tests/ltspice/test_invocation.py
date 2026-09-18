@@ -8,6 +8,7 @@ argv order, the output discovery, or the ``-b``/``-netlist`` semantics change.
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -262,3 +263,74 @@ def test_missing_install_diagnostics_shape(ltspice_exe: Path, tmp_path: Path) ->
     data = json.loads(payload)
     for key in ("smoke_test", "smoke_detail", "measured_v", "expected_v", "exit_code"):
         assert key in data
+
+
+# --- simulator lock: an OS-held lock, not a file whose existence means "busy" ---
+#
+# A lock released only by a `finally` is not released when the process is killed,
+# and the leftover file then blocks every later run while nothing holds it. These
+# tests exercise both halves of the real contract: a live holder excludes another
+# process, and a *killed* holder does not.
+
+_HOLD_LOCK = """
+import sys, time
+from boardmodeler.simulation.ltspice import _acquire_lock
+
+path = _acquire_lock(10.0)
+print("locked", flush=True)
+time.sleep(120)
+"""
+
+
+def _spawn_lock_holder() -> subprocess.Popen[str]:
+    """A child process that takes the lock and reports when it holds it."""
+    import os
+    import sys
+
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2] / "src")
+    child = subprocess.Popen(
+        [sys.executable, "-c", _HOLD_LOCK],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env=env,
+    )
+    assert child.stdout is not None
+    line = child.stdout.readline().strip()
+    assert line == "locked", f"child failed to take the lock: {line!r} {child.stderr}"
+    return child
+
+
+def test_a_live_holder_excludes_another_process() -> None:
+    from boardmodeler.simulation.ltspice import LtspiceLockTimeout, _acquire_lock
+
+    child = _spawn_lock_holder()
+    try:
+        with pytest.raises(LtspiceLockTimeout):
+            _acquire_lock(0.5)
+    finally:
+        child.kill()
+        child.wait(timeout=30)
+
+
+def test_a_killed_holder_does_not_block_the_next_run() -> None:
+    """Regression: a dead holder's lock must not stall the next invocation."""
+    import time
+
+    from boardmodeler.simulation.ltspice import _acquire_lock, _release_lock
+
+    child = _spawn_lock_holder()
+    child.kill()
+    child.wait(timeout=30)
+
+    started = time.monotonic()
+    lock = _acquire_lock(20.0)
+    waited = time.monotonic() - started
+    try:
+        assert waited < 5.0, (
+            f"took {waited:.1f}s to acquire the lock after its holder was killed; "
+            "the lock outlived the process that held it"
+        )
+    finally:
+        _release_lock(lock)

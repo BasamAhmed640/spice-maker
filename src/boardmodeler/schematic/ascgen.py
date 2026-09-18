@@ -12,9 +12,9 @@ Two invariants drive this module:
   only ``R0``/``R90``/``R180``/``R270`` were verified against the simulator.
 
 Symbols the schematic needs are copied **beside** the ``.asc`` (LTspice resolves
-a symbol from the schematic's own directory — verified), but only when they come
-from outside the LTspice installation: vendor symbols and models are never
-copied out of the installation.
+a symbol from the schematic's own directory - verified), together with the model
+file their ``SYMATTR SpiceModel`` names, but only when they come from outside the
+LTspice installation: vendor symbols and models are never copied out of it.
 """
 
 from __future__ import annotations
@@ -193,7 +193,7 @@ def _validate_component(component: PlacedComponent, symbol_dir: Path) -> Path:
     rotation = component.rotation.upper()
     if rotation in _MIRRORS:
         raise ValueError(
-            f"{component.refdes}: mirrored rotation {component.rotation!r} is refused — only "
+            f"{component.refdes}: mirrored rotation {component.rotation!r} is refused - only "
             f"{', '.join(ROTATIONS)} were verified against LTspice (use a rotated symbol instead)"
         )
     if not is_rotation(rotation) or rotation not in ROTATIONS:
@@ -436,7 +436,7 @@ class SchematicBuilder:
         """Connect ``pins`` to ``net`` with orthogonal wires and a flag.
 
         A route may not cross a pin of another part or a wire already belonging
-        to another net — in LTspice a coincident point *is* a junction, so a
+        to another net - in LTspice a coincident point *is* a junction, so a
         crossing would silently short two nets.  When no candidate route is
         clear the call raises rather than emitting a short; pass ``via``
         waypoints or move the parts.

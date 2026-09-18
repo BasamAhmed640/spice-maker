@@ -1,0 +1,17 @@
+{
+  "family": "load_switch",
+  "values": {
+    "vout_before_enable_v": 6.04500090915717e-38,
+    "vout_after_enable_v": 4.950494766235352,
+    "en_high_v": 3.299999952316284,
+    "v1_current_a": -0.4950594902038574
+  },
+  "tolerances": {
+    "vout_before_enable_v": {
+      "rel": 0.01,
+      "abs": 0.05
+    }
+  },
+  "produced_by": "boardmodeler.models.regression.run_family_deck with LTspice 26.0.0, invoked from tests/regression/test_templates.py --generate",
+  "note": "load_switch_5v_3a (BM_LOAD_SWITCH) template instantiation, deck 'BM_LOAD_SWITCH application: 5 V rail, EN at 2 ms, 10 ohm load, 10 uF output cap' (load_switch.cir); conditions: V1 vin 0 PWL(0 0 0.0005 0 0.001 5 0.008 5); Ven en 0 PWL(0 0 0.002 0 0.0021 3.3 0.008 3.3); Cout vout 0 10u; Rload vout 0 10; Ren en 0 1k; X1 vin en vout 0 BM_LOAD_SWITCH; .tran 2.5e-06 0.005 0 5e-07 uic; .save V(vin) V(en) V(vout) I(V1); .meas TRAN vout_before_enable_v MAX V(vout) FROM=0.0015 TO=0.0019; .meas TRAN vout_after_enable_v AVG V(vout) FROM=0.0035 TO=0.0049; .meas TRAN en_high_v AVG V(en) FROM=0.0035 TO=0.0049; .meas TRAN v1_current_a AVG I(V1) FROM=0.0035 TO=0.0049; values measured from load_switch.raw by boardmodeler.models.regression.measure_raw; simulator LTspice 26.0.0"
+}

@@ -73,17 +73,25 @@ def _attempt(
 
 
 def _silent_abort(result: BatchResult, summary: LogSummary | None) -> bool:
-    """True when LTspice died without completing *and* without reporting a reason.
+    """True when LTspice died without reporting a *circuit* problem.
 
-    An infrastructure abort (measured once in the primitive reference suite)
-    reports nothing at all; a real failure always leaves an error or a
-    convergence line, is never retried, and is never relaxed.
+    Two observed infrastructure aborts are retried once (never relaxed): a run
+    that exits non-zero while reporting nothing at all (seen in the primitive
+    reference suite), and a run that exits non-zero even though its log completed
+    and a ``.raw`` was written (seen once with a light load while another
+    simulation was running; re-running the identical deck exits 0).  A reported
+    error, a convergence problem or a timeout is a real failure and is never
+    retried.
     """
     if result.timed_out or result.cancelled or result.exit_code == 0:
         return False
     if summary is None:
         return True
-    return not summary.completed and not summary.errors and not summary.convergence_issues
+    if summary.errors or summary.convergence_issues:
+        return False
+    if summary.completed and result.raw_path is not None and result.raw_path.is_file():
+        return result.exit_code != 0
+    return not summary.completed
 
 
 def _simulate(tmp_path: Path, exe: Path, lib: Path, name: str, spec: DeckSpec) -> RawFile:
@@ -271,24 +279,24 @@ def test_vin_uvlo_start_stop_thresholds(tmp_path: Path, ltspice_exe: Path, lib: 
     starts = _crossings(t, vout, 0.2, "rise")
     assert starts, "output never started"
     t_start = starts[0]
-    # measured: t_start - t_rise = 0.30 ms (the soft start needs 0.29 ms to 0.2 V)
+    # measured: t_start - t_rise = 0.322 ms (the soft start needs 0.29 ms to 0.2 V)
     assert 0.0 <= t_start - t_rise <= 0.6e-3, f"started {t_start - t_rise} s after UVLO_RISE"
     v_start = _at(t, vin, t_start)
-    # measured: V(vin) at the start = 4.36 V (UVLO_RISE 4.3 V + 0.2 V/ms x 0.30 ms)
+    # measured: V(vin) at the start = 4.364 V (UVLO_RISE 4.3 V + 0.2 V/ms x 0.32 ms)
     assert abs(v_start - 4.3) <= 0.25, f"start threshold measured {v_start:.3f} V"
     assert float(_window(t, vout, 0.0, t_rise).max()) < 0.1, "output moved below UVLO_RISE"
 
     collapse = [x for x in _crossings(t, vout, 3.0, "fall") if x > 40e-3]
     assert collapse, "output never collapsed"
     t_stop = collapse[0]
-    # measured: t_stop - t_fall = 12 us (the discharge sweeps 0.27 V in 18 us)
+    # measured: t_stop - t_fall = 18.1 us (the 10 ohm discharge sweeps 0.27 V in 18 us)
     assert 0.0 <= t_stop - t_fall <= 0.3e-3, f"stopped {t_stop - t_fall} s after UVLO_FALL"
     v_stop = _at(t, vin, t_stop)
-    # measured: V(vin) at the stop = 3.895 V for UVLO_FALL = 3.9 V
+    # measured: V(vin) at the stop = 3.893 V for UVLO_FALL = 3.9 V
     assert abs(v_stop - 3.9) <= 0.10, f"stop threshold measured {v_stop:.3f} V"
     hysteresis = v_start - v_stop
-    # measured: 0.47 V for UVLO_RISE - UVLO_FALL = 0.4 V (the rise reading carries the
-    # soft-start delay of 0.06 V)
+    # measured: 0.472 V for UVLO_RISE - UVLO_FALL = 0.4 V (the rise reading carries the
+    # soft-start delay of 0.064 V)
     assert abs(hysteresis - 0.4) <= 0.3, f"hysteresis measured {hysteresis:.3f} V"
 
     assert float(_window(t, vout, 35e-3, 39.9e-3).min()) > 3.2, "output not regulated while running"
@@ -349,13 +357,14 @@ def test_enable_threshold_hysteresis_and_polarity(
     assert starts, "output never started"
     t_start = starts[0]
     assert 0.0 <= t_start - t_en_rise <= 0.6e-3, f"started {t_start - t_en_rise} s after EN_RISE"
-    # measured: V(en) at the start = 1.28 V for EN_RISE = 1.25 V
+    # measured: V(en) at the start = 1.282 V for EN_RISE = 1.25 V and the start delay is
+    # 0.322 ms
     assert abs(_at(t, ven, t_start) - 1.25) <= 0.10, f"rise measured {_at(t, ven, t_start):.3f} V"
     collapse = [x for x in _crossings(t, vout, 3.0, "fall") if x > t_en_fall - 1e-3]
     assert collapse, "output never collapsed"
     t_stop = collapse[0]
     assert 0.0 <= t_stop - t_en_fall <= 0.3e-3, f"stopped {t_stop - t_en_fall} s after EN_FALL"
-    # measured: V(en) at the stop = 1.148 V for EN_FALL = 1.15 V
+    # measured: V(en) at the stop = 1.148 V for EN_FALL = 1.15 V, stop delay 18.4 us
     assert abs(_at(t, ven, t_stop) - 1.15) <= 0.05, f"fall measured {_at(t, ven, t_stop):.3f} V"
     assert float(_window(t, vout, 2e-3, 12.4e-3).max()) < 0.1, "ran before EN_RISE"
     assert float(_window(t, vout, 18e-3, 28.4e-3).min()) > 3.2, "not regulated after EN_RISE"
@@ -390,7 +399,7 @@ def test_enable_threshold_hysteresis_and_polarity(
     raw = _simulate(tmp_path, ltspice_exe, lib, "en_low", spec)
     t = _t(raw)
     vout = raw.column("V(vout_l)")
-    # measured: 0.0 V with the pin high (3.3 V) and 3.269 V after it goes low
+    # measured: 0.0000 V with the pin high (3.3 V) and 3.26911 V after it goes low
     assert float(_window(t, vout, 2e-3, 15e-3).max()) < 0.1, "active-low part ran with EN high"
     assert float(_window(t, vout, 30e-3, 40e-3).min()) > 3.2, (
         "active-low part did not run with EN low"
@@ -449,19 +458,19 @@ def test_soft_start_ramp_law_monotonic_and_no_overshoot(
         slope = _slope(t, fb, lo, hi)
         slopes[css] = slope
         expected = ISS / css
-        # measured: 169.5 V/s for CSS=10n and 42.4 V/s for CSS=40n (law: 170 / 42.5)
+        # measured: 170.11 V/s for CSS=10n and 42.50 V/s for CSS=40n (law: 170.00 / 42.50)
         assert abs(slope - expected) / expected <= 0.10, f"{name}: slope {slope:.2f} V/s"
 
         ramp = _window(t, fb, starts[0], starts[0] + 0.9 * css / ISS * 0.8)
         steps = np.diff(ramp)
-        # measured: the smallest step is +89 uV (no numerical dip on a 0.6 mV step)
+        # measured: no step below -200 uV over the ramp window
         assert float(steps.min()) > -2e-4, f"{name}: ramp not monotonic ({steps.min():.2e} V)"
-        # measured: max V(FB) = 0.8072 V (VREF 0.8 V, +0.9 %); the reference is clamped
+        # measured: max V(FB) = 0.8071 V (VREF 0.8 V, +0.88 %); the reference is clamped
         assert float(fb.max()) <= 0.8 * 1.02, f"{name}: overshoot to {fb.max():.4f} V"
         assert abs(fb[-1] - 0.8) <= 0.016, f"{name}: settled at {fb[-1]:.5f} V"
 
     ratio = slopes[10e-9] / slopes[40e-9]
-    # measured: 4.00 for the CSS ratio of 4
+    # measured: 4.003 for the CSS ratio of 4
     assert abs(ratio - 4.0) <= 0.4, f"CSS ratio measured {ratio:.2f}"
 
 
@@ -509,7 +518,7 @@ def test_regulation_follows_external_feedback_divider(
         settles = float(np.mean(_window(t, vout, 25e-3, 30e-3)))
         measured[label] = settles
         error = (settles - expect) / expect
-        # measured: 3.26913 V for 3.2716 V (-0.076 %) and 8.2015 V for 8.210 V (-0.10 %)
+        # measured: 3.26913 V for 3.2716 V (-0.076 %) and 8.20735 V for 8.210 V (-0.03 %)
         assert abs(error) <= 0.02, f"{label}: settled at {settles:.4f} V vs {expect:.4f} V"
         fb_final = float(np.mean(_window(t, fb, 25e-3, 30e-3)))
         assert abs(fb_final - 0.8) <= 0.008, f"{label}: V(FB) = {fb_final:.5f} V vs VREF 0.8 V"
@@ -549,10 +558,10 @@ def test_ldo_template_regulates_through_the_divider(
     vout = raw.column("V(vout_l)")
     fb = raw.column("V(fb)")
     settles = float(np.mean(_window(t, vout, 25e-3, 30e-3)))
-    # measured: 3.26917 V for the 3.2716 V target (-0.075 %)
+    # measured: 3.26913 V for the 3.2716 V target (-0.075 %)
     assert abs(settles - 3.2716) / 3.2716 <= 0.02, f"LDO settled at {settles:.4f} V"
     assert abs(float(np.mean(_window(t, fb, 25e-3, 30e-3))) - 0.8) <= 0.008, "LDO V(FB) != VREF"
-    # measured: PG released to 3.3 V once the output is inside the window
+    # measured: PG released to 3.3000 V once the output is inside the window
     assert float(_window(t, raw.column("V(pg)"), 25e-3, 30e-3).min()) > 3.0, "LDO PG not released"
     # the LDO is not a switching model, and the buck is
     assert is_switching("BM_REG_BUCK") and not is_switching("BM_REG_LDO")
@@ -604,10 +613,10 @@ def test_current_limit_hiccup_retries_every_retry_ms(
     vout = raw.column("V(vout_l)")
 
     rest = _window(t, i_out, 6e-3, 7.9e-3)
-    # measured: 10.1 mA before the step
+    # measured: 10.014 mA before the step
     assert float(rest.max()) < 0.1, f"load current before the step: {rest.max():.3f} A"
     bursts = _window(t, i_out, 8.2e-3, 50e-3)
-    # measured: bursts peak at 3.000 A for ILIM = 3.0 A (the limit is exact)
+    # measured: bursts peak at 3.00002 A for ILIM = 3.0 A (the limit is exact)
     assert float(bursts.max()) <= 3.0 * 1.001, f"limit exceeded: {bursts.max():.4f} A"
     assert float(bursts.max()) >= 3.0 * 0.98, f"limit never reached: {bursts.max():.4f} A"
     # measured: the output collapses to 0 V between bursts
@@ -619,9 +628,10 @@ def test_current_limit_hiccup_retries_every_retry_ms(
     periods = np.diff(pulses)
     typical = float(np.median(periods))
     gaps = _window(t, i_out, pulses[0] + 0.5e-3, pulses[1] - 0.5e-3)
-    # measured: 0 A between bursts (the drive is gated off for the whole interval)
+    # measured: 0.0 A between bursts (the drive is gated off for the whole interval)
     assert float(gaps.max()) < 0.1, f"drive not off between bursts: {gaps.max():.3f} A"
-    # measured: 8.19 ms for RETRY_MS = 8 ms (RETRY_MS + the 0.18 ms re-trip ramp)
+    # measured: 8.210 ms median over 5 bursts for RETRY_MS = 8 ms (RETRY_MS plus the
+    # 0.18 ms the fault memory needs to charge)
     assert abs(typical - 8e-3) <= 0.25 * 8e-3, f"hiccup period measured {typical * 1e3:.3f} ms"
 
 
@@ -673,7 +683,7 @@ def test_current_limit_latch_requires_enable_cycle(
     vout = raw.column("V(vout_l)")
     ven = raw.column("V(en)")
 
-    # measured: the burst peaks at 3.000 A and stops (no second burst before 30 ms)
+    # measured: one burst (3.000 A) before the EN cycle, none in 8..30 ms afterwards
     assert float(_window(t, i_out, 8e-3, 30e-3).max()) <= 3.0 * 1.001, "limit exceeded"
     bursts = [x for x in _crossings(t, i_out, 1.0, "rise") if 8e-3 < x < 30e-3]
     assert len(bursts) == 1, f"{len(bursts)} bursts observed; a latch must produce one"
@@ -748,7 +758,7 @@ def test_power_good_window_delay_open_drain_and_sink_only(
     # exceeds the pull-up rail (measured: min -1e-13 A, max V(PG) 3.3000 V)
     assert float(i_pu.min()) > -1e-9, f"PG sourced current: {i_pu.min():.3e} A"
     assert float(pg.max()) <= 3.3 + 1e-6, f"PG above its pull-up rail: {pg.max():.6f} V"
-    # measured: 16.3 mV low before the output is up, 3.300 V after the window
+    # measured: 16.42 mV low before the output is up, 3.3000 V after the window
     assert float(_window(t, pg, 1e-3, 2e-3).max()) < 0.2, "PG not low before the output is up"
     assert float(_window(t, pg, 25e-3, 29e-3).min()) > 3.0, "PG not released inside the window"
 
@@ -756,11 +766,11 @@ def test_power_good_window_delay_open_drain_and_sink_only(
     rises = [x for x in _crossings(t, pg, 1.65, "rise") if x > enter]
     assert rises, "PG never asserted"
     measured = rises[0] - enter
-    # measured: 0.206 ms for PG_DELAY = 0.2 ms (the assertion is the delayed edge)
+    # measured: 207.4 us for PG_DELAY = 200 us (the assertion is the delayed edge)
     assert abs(measured - delay) <= 0.35 * delay, f"PG_DELAY measured {measured * 1e6:.1f} us"
 
-    # the low state is t < 3 ms (output not yet up): measured V(PG) = 16.3 mV through
-    # the 10 k pull-up, i.e. V(PG)/I(pull-up) = 49.7 ohm for the documented 50 ohm
+    # the low state is t < 3 ms (output not yet up): measured V(PG) = 16.42 mV through
+    # the 10 k pull-up, i.e. V(PG)/I(pull-up) = 50.00 ohm for the documented 50 ohm
     low = int(np.searchsorted(t, 1.5e-3))
     r_pd = float(pg[low] / i_pu[low])
     assert abs(r_pd - 50.0) <= 10.0, f"pull-down measured {r_pd:.1f} ohm"
@@ -827,15 +837,17 @@ def test_output_discharge_when_disabled(tmp_path: Path, ltspice_exe: Path, lib: 
         measured = float(-i_out[sample])
         currents[rdis] = measured
         expected = before / r_eff - before / 10e3  # model sinks, 10 k load still draws
-        # measured: 310 mA for 10 ohm, 78 mA for 40 ohm, 310 mA for the clamped 2 ohm
+        # measured: 288 mA for 10 ohm, 79 mA for 40 ohm, 288 mA for the clamped 2 ohm
+        # (the sample is 20 us after the disable, by which time the 22 uF output has
+        # already drooped by V/R/C x 20 us = 0.3 V)
         assert abs(measured - expected) / expected <= 0.15, (
             f"{name}: discharge {measured * 1e3:.1f} mA vs {expected * 1e3:.1f} mA"
         )
         assert float(_window(t, vout, 24e-3, 25e-3).max()) < 0.1, f"{name}: did not discharge"
 
-    # measured: 310 mA / 78 mA = 3.98 for a 40/10 ohm ratio of 4
+    # measured: 288 mA / 79 mA = 3.64 for a 40/10 ohm ratio of 4
     assert abs(currents[10.0] / currents[40.0] - 4.0) <= 0.4, "RDISCHARGE mapping is not 1/R"
-    # measured: 2 ohm gives the same current as 10 ohm (the documented floor)
+    # measured: 2 ohm gives the same current as 10 ohm to 0.01 % (the documented floor)
     assert abs(currents[2.0] - currents[10.0]) / currents[10.0] <= 0.05, "floor not applied"
 
 
@@ -884,15 +896,15 @@ def test_prebias_start_does_not_sink_and_holds_off(
     fb = raw.column("V(fb)")
     i_out = (raw.column("V(vout)") - raw.column("V(vout_l)")) / 1e-3
 
-    # measured: the pin current never goes below -2e-13 A over the whole run
+    # measured: the pin current never goes below 0 A over the whole run
     assert float(i_out.min()) > -1e-9, f"model sank {i_out.min():.3e} A from the pre-bias"
     t_cross = prebias * 0.8 / 3.2716 * 10e-9 / ISS
-    # measured: VOUT holds 1.5 V; the 9.7 mV droop over the window is the external
+    # measured: VOUT holds 1.4903 V; the 9.7 mV droop over the window is the external
     # 13.24 k divider discharging the node at 113 uA (5.1 V/s), not the model - the
     # model's own pin current stays below 1e-5 A until the ramp reaches V(FB)
     assert float(_window(t, vout, 20e-6, t_cross - 0.3e-3).min()) > prebias - 0.02
     assert float(_window(t, i_out, 20e-6, t_cross - 0.3e-3).max()) < 1e-5
-    # measured: the drive starts at 2.19 ms against the 2.16 ms prediction, and the
+    # measured: the drive starts at 2.161 ms against the 2.158 ms prediction, and the
     # output then rises to the regulation value
     drivings = [x for x in _crossings(t, i_out, 1e-3, "rise")]
     assert drivings, "model never drove the output"
@@ -954,7 +966,7 @@ def test_reverse_current_blocking(tmp_path: Path, ltspice_exe: Path, lib: Path) 
 
     # measured: -1.4e-17 A with REVERSE_BLOCK=1 (the pin cannot source at all)
     assert currents[1] > -1e-9, f"reverse current {currents[1]:.3e} A with blocking"
-    # measured: -0.488 A with REVERSE_BLOCK=0 - the sink side is enabled and the input
+    # measured: -0.4859 A with REVERSE_BLOCK=0 - the sink side is enabled and the input
     # current follows -POUT/ETA/VIN (I_sink = 0.5 x the 0.668 V over-voltage error)
     assert currents[0] < -0.05, (
         f"REVERSE_BLOCK=0 shows no reverse path ({currents[0]:.3e} A); the blocked case "
@@ -1010,12 +1022,14 @@ def test_input_current_law_and_no_energy_creation(
     eta = 0.9
 
     # the law itself, sample by sample in the steady state: measured worst deviation
-    # 0.002 % of POUT from POUT/ETA (E(vin) >= 1 V here, so the floor is inactive)
+    # 0.153 % of POUT from POUT/ETA (E(vin) >= 1 V here, so the floor is inactive; the
+    # 1 mohm shunts are read from float32 columns, which sets a ~0.3 % noise floor)
     lo = int(np.searchsorted(t, 10e-3))
     hi = int(np.searchsorted(t, 15e-3))
     law = np.abs(p_in[lo:hi] - p_out[lo:hi] / eta) / np.maximum(p_out[lo:hi], 1e-12)
     assert float(law.max()) <= 0.02, f"input power law deviates by {law.max():.4f}"
-    # measured: 0.995 A of output current for a 3.3 ohm load (POUT about 3.2 W)
+    # measured: 0.991 A of output current for a 3.3 ohm load (POUT about 3.24 W); the
+    # input current never exceeds IIN_MAX
     assert float(_window(t, i_out, 10e-3, 15e-3).min()) > 0.9, "load current too small to test"
     assert float(np.abs(_window(t, i_in, 0.0, 20e-3)).max()) <= 5.0, "IIN above IIN_MAX"
 
@@ -1027,8 +1041,9 @@ def test_input_current_law_and_no_energy_creation(
         return e_in, e_out
 
     e_in, e_out = energy(5e-3, 19e-3)
-    # measured: EOUT = 46.36 mJ = 0.8999 x EIN (ETA = 0.9); the model never creates
-    # energy, and it does transfer energy (the check would be vacuous otherwise)
+    # measured: EIN = 50.186 mJ and EOUT = 45.223 mJ over 5..19 ms, i.e. EOUT is
+    # 1.0012 x ETA*EIN (the 0.12 % is the float32 shunt noise floor) - the model never
+    # creates energy and it does transfer energy (the check would be vacuous otherwise)
     assert e_out <= eta * e_in * 1.05, (
         f"energy created: EOUT {e_out:.6f} > ETA*EIN {eta * e_in:.6f}"
     )

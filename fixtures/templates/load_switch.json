@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "family": "load_switch",
+  "part": "load_switch_5v_3a",
+  "subckt": "BM_LOAD_SWITCH",
+  "ports": ["VIN", "EN", "VOUT", "GND"],
+  "parameters": [
+    {"name": "RON", "type": "float", "unit": "ohm", "default": 0.1},
+    {"name": "ILIM", "type": "float", "unit": "A", "default": 3.0},
+    {"name": "EN_RISE", "type": "float", "unit": "V", "default": 1.25},
+    {"name": "EN_FALL", "type": "float", "unit": "V", "default": 1.15},
+    {"name": "POL_EN", "type": "int", "unit": "", "default": 1},
+    {"name": "CSS", "type": "float", "unit": "F", "default": 1e-09},
+    {"name": "RDISCHARGE", "type": "float", "unit": "ohm", "default": 10},
+    {"name": "IQ", "type": "float", "unit": "A", "default": 1e-05}
+  ],
+  "behaviors": [
+    {
+      "behavior": "soft_start",
+      "capability": "startup",
+      "status": "supported",
+      "detail": "VOUT follows the CSS-charged reference through the pass element after EN crosses EN_RISE"
+    },
+    {
+      "behavior": "disable_discharge",
+      "capability": "shutdown",
+      "status": "supported",
+      "detail": "while disabled the output is pulled down through max(RDISCHARGE,10) ohm"
+    },
+    {
+      "behavior": "supply_current",
+      "capability": "input_current",
+      "status": "supported",
+      "detail": "the pass current and IQ are drawn from the VIN pin"
+    },
+    {
+      "behavior": "dc_regulation",
+      "capability": "dc_regulation",
+      "status": "unsupported",
+      "detail": "a load switch does not regulate; the static drop is the modelled I*RON"
+    },
+    {
+      "behavior": "overload_current_limit",
+      "capability": "current_limit_recovery",
+      "status": "unsupported",
+      "detail": "the pass element clamps at ILIM, but no retry or latch recovery is modelled"
+    },
+    {
+      "behavior": "thermal_behaviour",
+      "capability": "thermal_dependence",
+      "status": "unsupported",
+      "detail": "no temperature dependence is modelled"
+    }
+  ],
+  "valid_domain": {
+    "VIN": "pass-element only; RON and ILIM define the declared behaviour"
+  },
+  "exclusions": [
+    "constant-current clamping is modelled without any retry, latch or thermal shutdown",
+    "reverse-current blocking is a side effect of the source-only pass element and is not claimed",
+    "no upper VIN limit, breakdown or thermal behaviour is modelled"
+  ],
+  "notes": "5 V, 3 A-class load switch: 0.1 ohm pass element, 1 nF soft-start capacitor, 10 ohm discharge path.",
+  "deck": {
+    "title": "BM_LOAD_SWITCH application: 5 V rail, EN at 2 ms, 10 ohm load, 10 uF output cap",
+    "tstep": 2.5e-06,
+    "tstop": 0.005,
+    "tstart": 0.0,
+    "tmax": 5e-07,
+    "uic": true,
+    "instance": {
+      "refdes": "X1",
+      "nodes": {"VIN": "vin", "EN": "en", "VOUT": "vout", "GND": "0"},
+      "params": {}
+    },
+    "elements": ["Cout vout 0 10u", "Rload vout 0 10", "Ren en 0 1k"],
+    "sources": [
+      {
+        "name": "V1",
+        "plus": "vin",
+        "minus": "0",
+        "kind": "pwl",
+        "points": [[0.0, 0.0], [0.0005, 0.0], [0.001, 5.0], [0.008, 5.0]]
+      },
+      {
+        "name": "Ven",
+        "plus": "en",
+        "minus": "0",
+        "kind": "pwl",
+        "points": [[0.0, 0.0], [0.002, 0.0], [0.0021, 3.3], [0.008, 3.3]]
+      }
+    ],
+    "save": ["V(vin)", "V(en)", "V(vout)", "I(V1)"],
+    "measures": [
+      {"name": "vout_before_enable_v", "signal": "V(vout)", "kind": "max", "from_s": 0.0015, "to_s": 0.0019, "abs": 0.05},
+      {"name": "vout_after_enable_v", "signal": "V(vout)", "kind": "avg", "from_s": 0.0035, "to_s": 0.0049},
+      {"name": "en_high_v", "signal": "V(en)", "kind": "avg", "from_s": 0.0035, "to_s": 0.0049},
+      {"name": "v1_current_a", "signal": "I(V1)", "kind": "avg", "from_s": 0.0035, "to_s": 0.0049}
+    ]
+  }
+}

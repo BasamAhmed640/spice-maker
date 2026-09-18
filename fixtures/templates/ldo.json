@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "family": "ldo",
+  "part": "ldo_3v3_3v3",
+  "subckt": "BM_REG_LDO",
+  "ports": ["VIN", "EN", "FB", "PG", "VOUT", "GND"],
+  "parameters": [
+    {"name": "VREF", "type": "float", "unit": "V", "default": 0.8},
+    {"name": "VOUT_NOM", "type": "float", "unit": "V", "default": 3.3},
+    {"name": "UVLO_RISE", "type": "float", "unit": "V", "default": 2.2},
+    {"name": "UVLO_FALL", "type": "float", "unit": "V", "default": 2.0},
+    {"name": "EN_RISE", "type": "float", "unit": "V", "default": 1.25},
+    {"name": "EN_FALL", "type": "float", "unit": "V", "default": 1.15},
+    {"name": "POL_EN", "type": "int", "unit": "", "default": 1},
+    {"name": "CSS", "type": "float", "unit": "F", "default": 1e-08},
+    {"name": "ILIM", "type": "float", "unit": "A", "default": 3.0},
+    {"name": "ILIM_MODE", "type": "int", "unit": "", "default": 0},
+    {"name": "RETRY_MS", "type": "float", "unit": "s", "default": 0.008},
+    {"name": "RDISCHARGE", "type": "float", "unit": "ohm", "default": 10},
+    {"name": "VPREBIAS_MAX", "type": "float", "unit": "V", "default": 0.05},
+    {"name": "REVERSE_BLOCK", "type": "int", "unit": "", "default": 1},
+    {"name": "ETA", "type": "float", "unit": "", "default": 0.9},
+    {"name": "VMIN_FLOOR", "type": "float", "unit": "V", "default": 1},
+    {"name": "IIN_MAX", "type": "float", "unit": "A", "default": 5},
+    {"name": "GM", "type": "float", "unit": "S", "default": 50},
+    {"name": "PG_DELAY", "type": "float", "unit": "s", "default": 0.0001}
+  ],
+  "behaviors": [
+    {
+      "behavior": "rail_startup",
+      "capability": "startup",
+      "status": "supported",
+      "detail": "soft-start ramp raises the reference until the external divider holds V(FB) at VREF"
+    },
+    {
+      "behavior": "rail_shutdown",
+      "capability": "shutdown",
+      "status": "supported",
+      "detail": "disable drops the drive; RDISCHARGE pulls VOUT down while the converter is off"
+    },
+    {
+      "behavior": "dc_regulation",
+      "capability": "dc_regulation",
+      "status": "supported",
+      "detail": "steady state is V(FB) = VREF through the external divider; no fixed internal output target exists"
+    },
+    {
+      "behavior": "load_step_response",
+      "capability": "load_transients",
+      "status": "supported",
+      "detail": "the compensation-limited error amplifier moves the output current with the load"
+    },
+    {
+      "behavior": "input_current_law",
+      "capability": "input_current",
+      "status": "supported",
+      "detail": "IIN = clamp(POUT/(ETA*max(VIN,VMIN_FLOOR)), 0, IIN_MAX)"
+    },
+    {
+      "behavior": "current_limit_hiccup",
+      "capability": "current_limit_recovery",
+      "status": "supported",
+      "detail": "the ILIM clamp is followed by hiccup (ILIM_MODE=0) or latch (ILIM_MODE=1) recovery"
+    },
+    {
+      "behavior": "prebias_and_reverse_block",
+      "capability": "reverse_current_prebias",
+      "status": "supported",
+      "detail": "source-only output with VPREBIAS_MAX hold-off and REVERSE_BLOCK"
+    },
+    {
+      "behavior": "switch_node_waveforms",
+      "capability": "switching_waveforms",
+      "status": "unsupported",
+      "detail": "a linear regulator has no switch node; SW is not a port of this template"
+    },
+    {
+      "behavior": "compensation_loop",
+      "capability": "compensation_loop",
+      "status": "not_tested",
+      "detail": "a lag/zero compensation network exists in the text, but no loop-gain claim is made"
+    },
+    {
+      "behavior": "thermal_behaviour",
+      "capability": "thermal_dependence",
+      "status": "unsupported",
+      "detail": "no temperature dependence is modelled"
+    }
+  ],
+  "valid_domain": {
+    "VIN": {"min": 2.0, "unit": "V"}
+  },
+  "exclusions": [
+    "the model is SYNTHETIC_ANALYTICAL: it is not correlated to silicon or to a vendor model",
+    "no dropout voltage vs load, no upper VIN limit, no thermal model is included",
+    "the declared domain is the UVLO_RISE/UVLO_FALL window of this parameter set, not a datasheet range"
+  ],
+  "notes": "3.3 V to 3.3 V linear part: 10k/3.24k divider sets 3.2716 V, PG open drain with a 10k pull-up.",
+  "deck": {
+    "title": "BM_REG_LDO application: 3.3 V ramp, EN tied to VIN, divider 10k/3.24k, 330 ohm load",
+    "tstep": 1.5e-05,
+    "tstop": 0.03,
+    "tstart": 0.0,
+    "tmax": 1e-06,
+    "uic": true,
+    "instance": {
+      "refdes": "X1",
+      "nodes": {
+        "VIN": "vin",
+        "EN": "en",
+        "FB": "fb",
+        "PG": "pg",
+        "VOUT": "vout",
+        "GND": "0"
+      },
+      "params": {}
+    },
+    "elements": [
+      "Rfbt vout fb 10k",
+      "Rfbb fb 0 3.24k",
+      "Rpg pg vddpu 10k",
+      "Cout vout 0 22u",
+      "Rload vout 0 330",
+      "Ren en vin 1"
+    ],
+    "sources": [
+      {
+        "name": "V1",
+        "plus": "vin",
+        "minus": "0",
+        "kind": "ramp",
+        "params": {"v0": 0.0, "v1": 3.3, "delay_s": 0.0, "rise_s": 0.002, "hold_s": 0.05}
+      },
+      {
+        "name": "Vpu",
+        "plus": "vddpu",
+        "minus": "0",
+        "kind": "dc",
+        "params": {"v": 3.3}
+      }
+    ],
+    "save": ["V(vin)", "V(vout)", "V(fb)", "V(pg)", "I(V1)"],
+    "measures": [
+      {"name": "vout_steady_v", "signal": "V(vout)", "kind": "avg", "from_s": 0.025, "to_s": 0.0299},
+      {"name": "fb_steady_v", "signal": "V(fb)", "kind": "avg", "from_s": 0.025, "to_s": 0.0299},
+      {"name": "pg_steady_v", "signal": "V(pg)", "kind": "min", "from_s": 0.025, "to_s": 0.0299},
+      {"name": "vin_steady_v", "signal": "V(vin)", "kind": "avg", "from_s": 0.025, "to_s": 0.0299},
+      {"name": "v1_current_a", "signal": "I(V1)", "kind": "avg", "from_s": 0.025, "to_s": 0.0299}
+    ]
+  }
+}

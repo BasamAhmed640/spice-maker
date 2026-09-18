@@ -1,0 +1,13 @@
+{
+  "family": "ldo",
+  "values": {
+    "vout_steady_v": 3.269127585741938,
+    "fb_steady_v": 0.7999979853630066,
+    "pg_steady_v": 3.299999952316284,
+    "vin_steady_v": 3.299999952316284,
+    "v1_current_a": -0.011175968968404495
+  },
+  "tolerances": {},
+  "produced_by": "boardmodeler.models.regression.run_family_deck with LTspice 26.0.0, invoked from tests/regression/test_templates.py --generate",
+  "note": "ldo_3v3_3v3 (BM_REG_LDO) template instantiation, deck 'BM_REG_LDO application: 3.3 V ramp, EN tied to VIN, divider 10k/3.24k, 330 ohm load' (ldo.cir); conditions: V1 vin 0 PWL(0 0 0.002 3.3 0.052 3.3); Vpu vddpu 0 DC 3.3; Rfbt vout fb 10k; Rfbb fb 0 3.24k; Rpg pg vddpu 10k; Cout vout 0 22u; Rload vout 0 330; Ren en vin 1; X1 vin en fb pg vout 0 BM_REG_LDO; .tran 1.5e-05 0.03 0 1e-06 uic; .save V(vin) V(vout) V(fb) V(pg) I(V1); .meas TRAN vout_steady_v AVG V(vout) FROM=0.025 TO=0.0299; .meas TRAN fb_steady_v AVG V(fb) FROM=0.025 TO=0.0299; .meas TRAN pg_steady_v MIN V(pg) FROM=0.025 TO=0.0299; .meas TRAN vin_steady_v AVG V(vin) FROM=0.025 TO=0.0299; .meas TRAN v1_current_a AVG I(V1) FROM=0.025 TO=0.0299; values measured from ldo.raw by boardmodeler.models.regression.measure_raw; simulator LTspice 26.0.0"
+}
