@@ -22,7 +22,7 @@ from boardmodeler.domain.ids import run_id as make_run_id
 from boardmodeler.domain.records import TestCase
 from boardmodeler.simulation.limits import RunUsability, check_run_usable
 from boardmodeler.simulation.log import LogSummary, parse_log
-from boardmodeler.simulation.ltspice import BatchResult, run_batch
+from boardmodeler.simulation.ltspice import BatchResult, LtspiceLockTimeout, run_batch
 from boardmodeler.simulation.measures import RunDiagnostics, diagnose
 from boardmodeler.simulation.raw import RawFile, RawFormatError, read_raw
 
@@ -165,16 +165,29 @@ def run_case(
             duration_s=time.monotonic() - started,
         )
 
-    batch = run_batch(
-        ctx.ltspice,
-        deck_path,
-        run_dir,
-        timeout_s=ctx.timeout_s,
-        extra_switches=ctx.extra_switches,
-        ascii_raw=ctx.ascii_raw,
-        cancel=cancel,
-        ltspice_lib_dir=ctx.ltspice_lib_dir,
-    )
+    try:
+        batch = run_batch(
+            ctx.ltspice,
+            deck_path,
+            run_dir,
+            timeout_s=ctx.timeout_s,
+            extra_switches=ctx.extra_switches,
+            ascii_raw=ctx.ascii_raw,
+            cancel=cancel,
+            ltspice_lib_dir=ctx.ltspice_lib_dir,
+        )
+    except LtspiceLockTimeout as exc:
+        return _blocked_artifacts(
+            identifier,
+            case,
+            run_dir,
+            "simulator_busy",
+            str(exc),
+            deck_path=deck_path,
+            deck_text=deck_text,
+            deck_sha256=deck_hash,
+            duration_s=time.monotonic() - started,
+        )
 
     log = parse_log(batch.log_path) if batch.log_path else LogSummary(path=None)
     raw: RawFile | None = None

@@ -74,10 +74,6 @@ hidden parameter.
 ``BM_PG``
     open-drain power-good *pin* emulator: asserts low when the sensed level is good.
 
-``BM_RESET_SUP``
-    active-low reset supervisor: holds RESET# low while the sensed power-good level is
-    bad and releases it TD after it becomes good (the polarity BM_PG does not provide).
-
     Open-drain power-good output: the pin is only ever pulled low through a
     switched resistance and needs an external pull-up.  The threshold shift is
     ``V(th) = VTH + VHYS/2 - VHYS*logic`` (positive feedback, *non-inverting*
@@ -87,6 +83,10 @@ hidden parameter.
     50 ohm pull-down.  ``PULLUP_MAX`` is documentation only: it is never used by
     the topology and exists so a deck can record the maximum allowed external
     pull-up next to the instance.
+
+``BM_RESET_SUP``
+    active-low reset supervisor: holds RESET# low while the sensed power-good level is
+    bad and releases it TD after it becomes good (the polarity BM_PG does not provide).
 
 Decks are written by the caller (tests and the pipeline) under a run directory;
 nothing in this module ever writes into an LTspice installation or library

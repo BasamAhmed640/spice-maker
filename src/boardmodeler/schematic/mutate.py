@@ -329,10 +329,10 @@ MUTATORS: dict[str, Callable[[Path], Mutation]] = {
     "slow_rail_u2": _mutator(
         "slow_rail_u2",
         "Overload the 1V8 rail so it cannot reach its window in time.",
-        ["project.json:timing.load_step_1v8_a=1.5"],
+        ["project.json:loads.I2=1.5"],
         detection="rail_never_valid",
         metadata={
-            "note": "the declared 1V8 load step is what the deck applies (project.json timing)"
+            "note": "the declared 1V8 nominal load is what the deck applies (project.json loads)"
         },
     ),
     "missing_pg": _mutator(
@@ -355,8 +355,8 @@ MUTATORS: dict[str, Callable[[Path], Mutation]] = {
     ),
     "release_reset_early": _mutator(
         "release_reset_early",
-        "Short the reset release delay to zero so PERST# rises with the first rail.",
-        ["project.json:timing.pg_delay_s=0"],
+        "Short the reset release delay so PERST# rises with the first rail.",
+        ["project.json:timing.pg_delay_s=1e-06"],
         detection="reset_release_too_early",
     ),
     "remove_rail": _mutator(

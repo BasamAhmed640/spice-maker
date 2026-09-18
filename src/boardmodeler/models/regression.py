@@ -47,7 +47,7 @@ from boardmodeler.models.templates import (
 )
 from boardmodeler.simulation.deck import MeasSpec
 from boardmodeler.simulation.log import parse_log
-from boardmodeler.simulation.ltspice import run_batch
+from boardmodeler.simulation.ltspice import LtspiceLockTimeout, run_batch
 from boardmodeler.simulation.ltspice import version as ltspice_version
 from boardmodeler.simulation.raw import RawFile, read_raw
 from boardmodeler.verification.corners import worst_status
@@ -326,7 +326,10 @@ def run_family_deck(
     target_dir = Path(workdir)
     target_dir.mkdir(parents=True, exist_ok=True)
     application = write_application_deck(contract, target_dir / f"{contract.family}.cir")
-    result = run_batch(Path(exe), application.deck, target_dir, timeout_s=timeout_s)
+    try:
+        result = run_batch(Path(exe), application.deck, target_dir, timeout_s=timeout_s)
+    except LtspiceLockTimeout as exc:
+        raise RuntimeError(f"{contract.family}: simulator unavailable: {exc}") from exc
     detail = (
         f"exit_code={result.exit_code} timed_out={result.timed_out} "
         f"cancelled={result.cancelled} wall_s={result.wall_s:.2f}"

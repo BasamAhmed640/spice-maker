@@ -52,7 +52,7 @@ __all__ = [
     "BatchResult",
     "LocateOutcome",
     "LtspiceInstall",
-    "SimulatorBusyError",
+    "LtspiceLockTimeout",
     "SmokeResult",
     "default_lib_dir",
     "locate",
@@ -70,16 +70,6 @@ _VERSION_RE = re.compile(r"(\d+\.\d+(?:\.\d+)*)")
 _LOCK_FILENAME = "boardmodeler-ltspice.lock"
 
 
-class SimulatorBusyError(RuntimeError):
-    """Raised when another BoardModeler process holds the simulator lock."""
-
-
-def _lock_path() -> Path:
-    import tempfile
-
-    return Path(tempfile.gettempdir()) / _LOCK_FILENAME
-
-
 class LtspiceLockTimeout(RuntimeError):
     """Another live process held the simulator lock for the whole timeout.
 
@@ -87,6 +77,12 @@ class LtspiceLockTimeout(RuntimeError):
     already-running instance, so two unlocked batch runs silently steal each
     other's deck. Waiting and failing loudly is the only honest option.
     """
+
+
+def _lock_path() -> Path:
+    import tempfile
+
+    return Path(tempfile.gettempdir()) / _LOCK_FILENAME
 
 
 def _acquire_lock(timeout_s: float) -> Path:
@@ -719,7 +715,17 @@ def smoke_test(
         )
     exe_version = version(exe)
 
-    result = run_batch(exe, deck, workdir, timeout_s=timeout_s)
+    try:
+        result = run_batch(exe, deck, workdir, timeout_s=timeout_s)
+    except LtspiceLockTimeout as exc:
+        return SmokeResult(
+            status="fail",
+            detail=f"the simulator was busy: {exc}",
+            measured_v=None,
+            expected_v=SMOKE_EXPECTED_V,
+            tolerance_pct=SMOKE_TOLERANCE_PCT,
+            version=exe_version,
+        )
     observed = result.observed()
 
     if result.timed_out:

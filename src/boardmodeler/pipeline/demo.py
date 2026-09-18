@@ -726,31 +726,39 @@ def _vin_ramp(rise_s: float) -> tuple[tuple[float, float], ...]:
     return ((0.0, 0.0), (rise_s, 12.0), (rise_s + 10e-3, 12.0))
 
 
-def _load_step(current_a: float, at_s: float) -> dict[str, str]:
-    """BM_LOAD parameters that apply ``current_a`` from ``at_s`` on."""
-    return {"I_STATIC": "0", "I_STEP": f"{current_a:g}", "T_STEP": f"{at_s:g}"}
-
-
-def _nominal_loads(project: NeutralProject) -> dict[str, dict[str, str]]:
+def _nominal_loads(
+    project: NeutralProject, *, step_times: Mapping[str, float] | None = None
+) -> dict[str, dict[str, str]]:
     """The nominal load profile, taken from the project the deck is built for.
 
-    The amplitudes and step times live in the neutral ``project.json`` (``loads``
-    and ``timing``) so that the circuit description is the single source: a deck
-    that carried its own copy would ignore an edit to the project, and the fault
-    matrix's load/sequencing mutators would inject a change nothing simulated.
+    ``loads.I1``/``loads.I2`` are the nominal currents; each is applied as a
+    step at ``timing.load_step_3v3_s``/``load_step_1v8_s``. It has to be a step
+    from zero (``I_STATIC=0``): ``BM_LOAD`` sinks ``I_STATIC`` even while its rail
+    is unpowered, so a static term drags a starting rail negative. Everything
+    lives in the neutral ``project.json`` so that the circuit description is the
+    single source: a deck that carried its own copy would ignore an edit to the
+    project, and the fault matrix's load mutators would inject a change nothing
+    simulated. ``step_times`` overrides only the step instant, for the scenarios
+    that declare a different one.
     """
-    declared = project.loads or {"I1": 0.25, "I2": 0.4}
+    declared = project.loads or {}
     timing = project.timing
-    return {
-        "I1": _load_step(
-            float(timing.get("load_step_3v3_a", declared.get("I1", 0.25))),
-            float(timing.get("load_step_3v3_s", 2.5e-3)),
-        ),
-        "I2": _load_step(
-            float(timing.get("load_step_1v8_a", declared.get("I2", 0.4))),
-            float(timing.get("load_step_1v8_s", 3e-3)),
-        ),
-    }
+    specs = (
+        ("I1", 0.25, "load_step_3v3_s", 2.5e-3),
+        ("I2", 0.4, "load_step_1v8_s", 3e-3),
+    )
+    profile: dict[str, dict[str, str]] = {}
+    for refdes, current_default, time_key, time_default in specs:
+        if step_times is not None and refdes not in step_times:
+            continue
+        profile[refdes] = {
+            "I_STATIC": "0",
+            "I_STEP": _spice_value(float(declared.get(refdes, current_default))),
+            "T_STEP": _spice_value(
+                float((step_times or {}).get(refdes, timing.get(time_key, time_default)))
+            ),
+        }
+    return profile
 
 
 @dataclass(frozen=True)
@@ -766,7 +774,8 @@ class ScenarioStimulus:
     """One scenario's injection, as data the deck builder consumes.
 
     ``loads`` is the BM_LOAD profile keyed by refdes; ``None`` (the default) means
-    the nominal profile and ``{}`` means the loads are omitted.
+    the nominal profile and ``{}`` means the loads are omitted. ``load_step_s``
+    overrides the step instant of the nominal profile (a subset of refdes).
     """
 
     applied: bool = True
@@ -774,6 +783,7 @@ class ScenarioStimulus:
     vin: tuple[tuple[float, float], ...] | None = None
     clock: ClockStimulus = ClockStimulus()
     loads: Mapping[str, Mapping[str, str]] | None = None
+    load_step_s: Mapping[str, float] | None = None
     drop: frozenset[str] = frozenset()
     node_overrides: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
     param_overrides: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
@@ -808,7 +818,8 @@ SCENARIO_STIMULI: dict[str, ScenarioStimulus] = {
     "staggered_rails": ScenarioStimulus(
         node_overrides={"U2": {"EN": "EN_U2_DLY"}},
         extra_elements=("X_seq PG_3V3 EN_U2_DLY 3V3 0 BM_DELAY TD=1m TR=100n",),
-        loads={"I1": _load_step(0.25, 2.5e-3), "I2": _load_step(0.4, 4.5e-3)},
+        loads=None,
+        load_step_s={"I1": 2.5e-3, "I2": 4.5e-3},
         note="U2's EN is driven from PG_3V3 through a 1 ms BM_DELAY, so the 1V8 rail ramps "
         "after the 3V3 rail with a declared 1 ms separation",
     ),
@@ -824,7 +835,8 @@ SCENARIO_STIMULI: dict[str, ScenarioStimulus] = {
             "R7r PG_3V3_RAW 3V3 20k",
             "X_pgdelay PG_3V3_RAW PG_3V3 3V3 0 BM_DELAY TD=5m TR=100n",
         ),
-        loads={"I1": _load_step(0.25, 2.5e-3), "I2": _load_step(0.4, 9e-3)},
+        loads=None,
+        load_step_s={"I1": 2.5e-3, "I2": 9e-3},
         note="U1's PG output is routed through a 5 ms BM_DELAY (R7r keeps the open-drain pin "
         "pulled up while delayed) before it reaches the dependent logic, so PG_3V3 asserts "
         "about 5 ms later than in the nominal deck",
@@ -887,7 +899,8 @@ SCENARIO_STIMULI: dict[str, ScenarioStimulus] = {
     "partial_power": ScenarioStimulus(
         node_overrides={"U2": {"EN": "0"}},
         extra_sources=(Source.dc("V_1v8_clamp", "1V8", "0", 0.0),),
-        loads={"I1": _load_step(0.25, 2.5e-3)},
+        loads=None,
+        load_step_s={"I1": 2.5e-3},
         note="the 1V8 domain is unpowered: U2's EN is tied to ground so the LDO stays off and "
         "an ideal clamp holds the 1V8 rail at 0 V while the 3V3 domain runs normally",
     ),
@@ -897,15 +910,16 @@ SCENARIO_STIMULI: dict[str, ScenarioStimulus] = {
             Source.dc("V_1v8_clamp", "1V8", "0", 0.0),
             Source.dc("V_ext_drive", "CONFIG0", "0", 3.3),
         ),
-        loads={"I1": _load_step(0.25, 2.5e-3)},
+        loads=None,
+        load_step_s={"I1": 2.5e-3},
         note="the 1V8 domain is unpowered (U2 disabled, rail clamped to 0 V) while an external "
         "3.3 V driver holds its CONFIG0 strap pin high: a drive on a dead domain. U5 has no "
         "model, so the drive level, not a back-power current, is what the deck shows",
     ),
     "invalid_strap": ScenarioStimulus(
-        extra_sources=(Source.dc("V_strap_cfg1", "CONFIG1", "0", 1.8),),
-        note="CONFIG1 is driven high by an ideal source, making the sampled strap word 111, "
-        "outside the documented set (101)",
+        extra_sources=(Source.ramp("V_strap_cfg1", "CONFIG1", "0", v0=0.0, v1=1.8, rise_s=100e-6),),
+        note="CONFIG1 is driven high by an ideal source at start-up, making the sampled strap "
+        "word 111, outside the documented set (101)",
     ),
     "late_strap": ScenarioStimulus(
         extra_sources=(
@@ -1010,14 +1024,21 @@ def _stimulus_cards(
     include_loads: bool,
 ) -> dict[str, str]:
     """The element cards a deck built from ``stimulus`` contains."""
-    loads = (
-        _nominal_loads(project)
-        if stimulus.loads is None
-        else {refdes: dict(params) for refdes, params in stimulus.loads.items()}
-    )
+    if stimulus.loads is None:
+        loads = _nominal_loads(project, step_times=stimulus.load_step_s)
+    else:
+        loads = {refdes: dict(params) for refdes, params in stimulus.loads.items()}
     param_overrides: dict[str, dict[str, object]] = {
         refdes: dict(params) for refdes, params in stimulus.param_overrides.items()
     }
+    pg_delay = project.timing.get("pg_delay_s")
+    if pg_delay is not None:
+        for refdes, model_id in project.model_assignments.items():
+            spec = BOARD_MODELS.get(model_id)
+            if spec is not None and spec.subckt == "BM_RESET_SUP":
+                param_overrides.setdefault(refdes, {}).setdefault(
+                    "TD", _spice_value(float(pg_delay))
+                )
     for refdes, params in loads.items():
         param_overrides.setdefault(refdes, {}).update(params)
     drop = set(stimulus.drop)
@@ -1039,26 +1060,25 @@ def _stimulus_plan(
     """Resolve one scenario's deck cards and the exact injection they carry."""
     spec = scenario(scenario_id)
     stimulus = stimulus_for(scenario_id)
-    active = stimulus if stimulus.applied else SCENARIO_STIMULI["nominal_startup"]
     sources = (
         Source(
             name="V1",
             terminals=("VIN_12V_SRC", "0"),
             kind="pwl",
-            points=active.vin if active.vin is not None else _vin_ramp(VIN_RAMP),
+            points=stimulus.vin if stimulus.vin is not None else _vin_ramp(VIN_RAMP),
         ),
-        _clock_source(active.clock),
-        *active.extra_sources,
+        _clock_source(stimulus.clock),
+        *stimulus.extra_sources,
     )
-    cards = _stimulus_cards(project, active, include_loads=include_loads)
+    cards = _stimulus_cards(project, stimulus, include_loads=include_loads)
     nominal_cards = _stimulus_cards(
         project, SCENARIO_STIMULI["nominal_startup"], include_loads=include_loads
     )
 
     injection: list[str] = []
-    if active.applied:
+    if stimulus.applied:
         injection = [source.card() for source in sources]
-        injection.extend(active.extra_elements)
+        injection.extend(stimulus.extra_elements)
         for refdes, card in sorted(nominal_cards.items()):
             if refdes in ("V1", "V2"):
                 continue
@@ -1066,8 +1086,8 @@ def _stimulus_plan(
                 injection.append(f"* removed: {card}")
             elif cards[refdes] != card:
                 injection.append(f"* changed: {card} -> {cards[refdes]}")
-        if active.initial_conditions:
-            injection.append(_ic_card(active.initial_conditions))
+        if stimulus.initial_conditions:
+            injection.append(_ic_card(stimulus.initial_conditions))
 
     comments = [
         f"* scenario {scenario_id}: {spec.title} ({spec.kind}, intent {spec.intent})",
@@ -1077,7 +1097,7 @@ def _stimulus_plan(
         comments.append(f"* injection: {line}")
     if stimulus.note:
         comments.append(f"* note: {stimulus.note}")
-    comments.extend(f"* {line}" for line in active.comments)
+    comments.extend(f"* {line}" for line in stimulus.comments)
     comments.append(f"* {CLOCK_STANDIN_NOTE}")
     comments.append(f"* {LOAD_NOTE}")
     comments.append(f"* {LDO_NOTE}")
@@ -1924,13 +1944,15 @@ def run_fault_matrix(
     watched = ["circuit/connections.csv", "circuit/components.csv", "circuit/project.json"]
     before = {name: sha256_file(root / name) for name in watched if (root / name).is_file()}
 
+    baseline = check_circuit(root, ltspice=ltspice)
+
     entries: list[dict[str, object]] = []
     for fault_id in faults or fault_ids():
         variant = work / fault_id
         mutation = MUTATORS[fault_id](root)
         apply_edits(root, mutation.edits, variant, fault_id=fault_id)
         check = check_circuit(variant, ltspice=ltspice)
-        detected = _detected(check, mutation.expected_detection)
+        detected = _detected(check, baseline)
         entries.append(
             {
                 "fault_id": fault_id,
@@ -1939,7 +1961,7 @@ def run_fault_matrix(
                 "detected": detected,
                 "status": check.status.value,
                 "summary": check.summary(),
-                "evidence": _detection_evidence(check),
+                "evidence": _detection_evidence(check, baseline),
                 "modifications": [edit.as_dict() for edit in mutation.edits],
             }
         )
@@ -1957,43 +1979,53 @@ def run_fault_matrix(
     return report
 
 
-def _detected(check: CheckResult, expected: str) -> bool:
-    """Was the injected fault actually caught?
+def _failing_findings(check: CheckResult) -> set[tuple[str, str | None]]:
+    return {
+        (finding.code, finding.refdes)
+        for finding in check.findings
+        if finding.status is Status.FAIL
+    }
 
-    A fault counts as detected when the check it is supposed to trip fired: the
-    static-check findings always count, and the dynamic results count when a test
-    in the fault scenario reported FAIL — which, for a `violate_detected` case,
-    means the violation was observed.
+
+def _detected(check: CheckResult, baseline: CheckResult) -> bool:
+    """Was the injected fault actually caught, relative to the unmutated project?
+
+    A fault counts as detected only when the mutated check shows something the
+    baseline check did not: a new failing static finding, a newly observed
+    violation (a `violate_detected` case that now passes), or a new dynamic
+    failure. Comparing against the baseline is what keeps a mutation that changed
+    no simulated behaviour from being recorded as detected just because the check
+    already had some unrelated FAIL.
     """
-    for finding in check.findings:
-        if finding.code.startswith(expected) and finding.status is Status.FAIL:
+    if _failing_findings(check) - _failing_findings(baseline):
+        return True
+    baseline_status = {result.test_id: result.status for result in baseline.results}
+    for result in check.results:
+        before = baseline_status.get(result.test_id)
+        if before is result.status:
+            continue
+        if result.status is Status.PASS and "violation detected" in result.detail:
             return True
-    if expected in (
-        "rail_never_valid",
-        "sequencing_never_completes",
-        "open_drain_level",
-        "strap_word_invalid",
-        "reset_release_too_early",
-        "sideband_level",
-        "strap_connection",
-        "reset_pullup_domain",
-    ):
-        return any(
-            result.status is Status.PASS and "violation detected" in result.detail
-            for result in check.results
-        ) or any(result.status is Status.FAIL for result in check.results)
-    return any(finding.status is Status.FAIL for finding in check.findings)
+        if result.status is Status.FAIL and before is not Status.FAIL:
+            return True
+    return False
 
 
-def _detection_evidence(check: CheckResult) -> list[str]:
+def _detection_evidence(check: CheckResult, baseline: CheckResult | None = None) -> list[str]:
+    baseline_status = (
+        {result.test_id: result.status for result in baseline.results} if baseline else {}
+    )
     evidence = [
         f"{finding.code} [{finding.status.value}] {finding.message[:120]}"
         for finding in check.findings
         if finding.status is not Status.PASS
     ]
-    evidence.extend(
-        f"{result.test_id} [{result.status.value}] {result.detail[:120]}"
-        for result in check.results
-        if result.status is not Status.PASS
-    )
+    for result in check.results:
+        if (
+            result.status is Status.PASS
+            and baseline is not None
+            and baseline_status.get(result.test_id) is Status.PASS
+        ):
+            continue
+        evidence.append(f"{result.test_id} [{result.status.value}] {result.detail[:120]}")
     return evidence[:8]
