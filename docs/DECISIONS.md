@@ -446,13 +446,30 @@ about the datasheet; (c) generating the model from a template and calling it
 agent-authored — the owner asked for authorship, and the template path remains
 available as a *seed* the agent may read, not as the answer.
 
-**Time bounds (owner's rule, 2026-09-18):** bound how often the *agent* repeats, never how
-thoroughly the *harness* verifies. Concretely: at most `max_iterations` author turns (2 in
-the window, 3 by default), 600 s per agent invocation, and a 1500 s deadline checked only at
-iteration boundaries — never mid-probe, never mid-extraction. The probe set, the per-probe
-timeout and the number of judged rows are not reduced for speed: a probe that cannot finish
-is `UNKNOWN(run_timeout)` on its own row. When a bound bites, the result is `UNKNOWN` naming
-which bound stopped it, carrying every row measured up to that point.
+**Termination (owner's rule, 2026-09-18, revised the same day):** *no wall clock ends a
+build.* The first cut used a per-turn timeout and a build deadline; the owner rejected time
+limits outright — "I want the agents to run until satisfied". The loop therefore ends on
+satisfaction or on the agent stalling, and nothing else:
+
+* `PASS` — the harness passes for every covered characteristic;
+* `UNKNOWN` — the agent made no progress for `stall_patience` (2) consecutive turns. A turn
+  makes progress when the model bytes changed **and** the failing set differs from the
+  previous turn's; a failure that changed shape is still motion. The detail names the turn
+  count and the probes still failing, and the result carries every row measured so far;
+* `UNKNOWN` — a caller-set `max_iterations` was reached. `None` is the default: no cap;
+* `UNKNOWN(cancelled)`.
+
+`turn_timeout_s` defaults to `None` (an agent invocation is unbounded); setting it is the
+caller's choice, not the tool's policy. The probe set, the per-probe timeout and the number
+of judged rows are never reduced for speed — that is the half of the old rule that stands:
+bound the agent's repetitions, never the harness's diligence.
+
+**Internet reinforcement (same day):** the owner asked that the internet be searched for
+supporting material while a model is made. The stage records errata, application notes and
+vendor-model caveats, but only text this tool actually retrieved, stored verbatim with its
+URL and hash; an agent's claim we could not fetch is kept as `retrieved=false` with the
+reason. Nothing in it can change a status — the datasheet rows stay the only oracle — so it
+can inform a reader without ever upgrading a model's claims.
 
 **Cost of the drift, recorded honestly:** the UI (3.4 kloc), the circuit checker and
 schematic layer (4.0 kloc), and the board demonstration were built against the earlier
