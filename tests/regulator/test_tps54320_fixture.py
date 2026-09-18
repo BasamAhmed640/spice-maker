@@ -207,7 +207,10 @@ def test_citation_verification_rejects_an_invented_quote() -> None:
     assert excerpt_on_page(document, "Voltage reference", 4)
 
 
-@pytest.mark.skipif(not ADAPTED_MODEL.is_file(), reason="adapted model is git-ignored")
+@pytest.mark.skipif(
+    not VENDOR_MODEL.is_file(),
+    reason="vendor model original is git-ignored (D-003); fetch it with tools/fetch_fixtures.py",
+)
 def test_adapted_model_keeps_the_vendor_port_order() -> None:
     original = subckt_ports(VENDOR_MODEL.read_text(encoding="utf-8", errors="replace"))
     adapted = subckt_ports(ADAPTED_MODEL.read_text(encoding="utf-8"))
