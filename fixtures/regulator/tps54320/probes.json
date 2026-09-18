@@ -1,0 +1,197 @@
+{
+  "part": "TPS54320",
+  "subckt": "BM_REG_BUCK",
+  "note": "Datasheet requirements -> deterministic probe bindings. Every requirement id of requirements.json appears exactly once: either bound to a probe (with the deck parameters the probe needs) or declared not_testable with the concrete reason. A bound requirement must declare a numeric limit, because the harness judges one measured number per characteristic; behavioural statements and quantities the model family cannot expose (internal nodes, thermal network, oscillator, package) are never stretched onto a probe. Params are deck parameters, never model parameters: the model under test runs with its own defaults.",
+  "bindings": [
+    {
+      "req_id": "REQ_TPS54320_ELEC_001",
+      "probe": null,
+      "not_testable_reason": "operating-range statement for a power-stage input the reduced model does not expose (single VIN port, no PVIN), so there is no separate power-stage input to observe"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_002",
+      "probe": null,
+      "not_testable_reason": "operating-range statement, not a threshold: the harness measures the start voltage (uvlo_rise) but the guaranteed 4.5 V operating minimum is not a datum this model exposes"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_003",
+      "probe": "load_regulation",
+      "params": {}
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_004",
+      "probe": "uvlo_rise",
+      "params": {}
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_005",
+      "probe": null,
+      "not_testable_reason": "the reduced model's UVLO hysteresis is a free parameter (UVLO_RISE - UVLO_FALL, default 400 mV) that is not calibrated to the datasheet's 150 mV typical; the harness reports the characteristic untested instead of claiming it"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_006",
+      "probe": "shutdown_current",
+      "params": {}
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_007",
+      "probe": "quiescent_current",
+      "params": {}
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_010",
+      "probe": "en_rise",
+      "params": {}
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_011",
+      "probe": "en_fall",
+      "params": {}
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_012",
+      "probe": null,
+      "not_testable_reason": "the reduced model's EN input is a high-impedance comparator with no modelled bias-current source, so the datasheet's 1.15 uA / 3.4 uA pin sourcing current cannot be observed at the pin"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_020",
+      "probe": "vref",
+      "params": {}
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_021",
+      "probe": null,
+      "not_testable_reason": "the extracted requirement declares no numeric limit, and this harness judges numeric limits against measured values; the external-divider path is exercised by the vref and load_regulation probes but this statement is not converted into a PASS"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_022",
+      "probe": null,
+      "not_testable_reason": "error-amplifier transconductance is an internal small-signal parameter; the reduced model's amplifier is a fixed internally-compensated gm stage with no pin-level stimulus defined in this harness"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_023",
+      "probe": null,
+      "not_testable_reason": "error-amplifier dc gain is an internal parameter of the reduced model and this harness defines no pin-level measurement of it"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_024",
+      "probe": null,
+      "not_testable_reason": "the COMP node is internal to the reduced model and is not one of its ports, so the 0.25 V start-switching threshold cannot be measured"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_030",
+      "probe": null,
+      "not_testable_reason": "the high-side switch current is internal to the converter and the reduced model has no switch branch or PVIN/SW current path, so the 4.2 A - 6.2 A switch limit cannot be observed"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_031",
+      "probe": null,
+      "not_testable_reason": "the low-side switch current limit is internal and the reduced model has no low-side switch branch to probe"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_032",
+      "probe": null,
+      "not_testable_reason": "the low-side sink current limit is internal and the reduced model has no low-side switch branch to probe"
+    },
+    {
+      "req_id": "REQ_TPS54320_TEMPORAL_033",
+      "probe": null,
+      "not_testable_reason": "hiccup is specified in switching cycles of an internal oscillator the reduced model does not implement (it uses a time-constant retry), so cycle counts cannot be observed"
+    },
+    {
+      "req_id": "REQ_TPS54320_THERM_034",
+      "probe": null,
+      "not_testable_reason": "thermal shutdown needs a thermal network; the reduced model has no temperature dependence, so junction temperature is not a simulated quantity"
+    },
+    {
+      "req_id": "REQ_TPS54320_TEMPORAL_040",
+      "probe": null,
+      "not_testable_reason": "the SS/TR pin is not a port of the reduced model and its ramp current is an internal constant, so the datasheet's 2.3 uA sourcing current is not observable"
+    },
+    {
+      "req_id": "REQ_TPS54320_FUNC_041",
+      "probe": null,
+      "not_testable_reason": "the extracted requirement declares no numeric limit; the soft_start probe observes the resulting ramp but a behavioural 'lower of reference and SS/TR' statement is not a number the harness can judge"
+    },
+    {
+      "req_id": "REQ_TPS54320_TEMPORAL_042",
+      "probe": null,
+      "not_testable_reason": "SS/TR is not a port of the reduced model and the requirement declares no numeric limit, so the post-shutdown discharge cannot be observed"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_043",
+      "probe": null,
+      "not_testable_reason": "SS/TR is not a port of the reduced model, so the internal-node matching error against VSENSE at V(SS/TR) = 0.4 V cannot be measured"
+    },
+    {
+      "req_id": "REQ_TPS54320_PG_050",
+      "probe": null,
+      "not_testable_reason": "the extracted requirement declares no numeric limit; the pg_threshold probe observes the open-drain pin state with a pull-up, but a behavioural window statement is not converted into a PASS"
+    },
+    {
+      "req_id": "REQ_TPS54320_PG_051",
+      "probe": null,
+      "not_testable_reason": "the extraction merges the falling (91 %) and rising (94 %) PWRGD thresholds into one [0.91, 0.94] band that no single measured edge answers, and the reduced model's window (+/-10.5 % / +/-8.5 % of VOUT_NOM) is a different pair, so the harness does not claim this characteristic"
+    },
+    {
+      "req_id": "REQ_TPS54320_PG_052",
+      "probe": "pg_threshold",
+      "params": {}
+    },
+    {
+      "req_id": "REQ_TPS54320_PG_053",
+      "probe": null,
+      "not_testable_reason": "application-connectivity requirement on the surrounding circuit: the probe decks use a 10 kohm pull-up to a 5 V rail, but a deck constant is not a measurement of the model, so the harness does not claim it"
+    },
+    {
+      "req_id": "REQ_TPS54320_PG_054",
+      "probe": null,
+      "not_testable_reason": "the extracted numeric is a VIN level at which PWRGD becomes defined (1 V), not a pin-level limit; the harness measures pin quantities and cannot judge it"
+    },
+    {
+      "req_id": "REQ_TPS54320_PG_055",
+      "probe": null,
+      "not_testable_reason": "the SS/TR 1.2 V threshold is an internal node of the reduced model and is not a port, so the 'PWRGD low while SS/TR below threshold' condition cannot be observed"
+    },
+    {
+      "req_id": "REQ_TPS54320_FUNC_060",
+      "probe": null,
+      "not_testable_reason": "the extracted requirement declares no numeric limit and the reduced model's EN port has no internal pull-up current source, so neither a limit check nor a behavioural claim is available"
+    },
+    {
+      "req_id": "REQ_TPS54320_FUNC_061",
+      "probe": null,
+      "not_testable_reason": "the extracted requirement declares no numeric limit; the soft_start probe observes the ramp (including its overshoot) but a monotonic pre-biased start-up statement is not converted into a PASS"
+    },
+    {
+      "req_id": "REQ_TPS54320_TEMPORAL_062",
+      "probe": "uvlo_rise",
+      "params": {}
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_063",
+      "probe": null,
+      "not_testable_reason": "BOOT and PH are not ports of the reduced model, so the bootstrap UVLO threshold cannot be observed"
+    },
+    {
+      "req_id": "REQ_TPS54320_ELEC_064",
+      "probe": null,
+      "not_testable_reason": "the reduced model has no oscillator (it regulates continuously), so the RT/CLK switching-frequency range cannot be observed"
+    },
+    {
+      "req_id": "REQ_TPS54320_CONN_065",
+      "probe": null,
+      "not_testable_reason": "application/package requirement (0.1 uF bootstrap capacitor and soldered thermal pad); not a measurable model quantity"
+    },
+    {
+      "req_id": "REQ_TPS54320_CONN_066",
+      "probe": null,
+      "not_testable_reason": "package/mechanical requirement with no numeric limit; the thermal pad connection is not observable in simulation"
+    },
+    {
+      "req_id": "REQ_TPS54320_SYSTEM_070",
+      "probe": null,
+      "not_testable_reason": "board-level supply statement with no numeric limit; the reduced model exposes a single VIN port, so the PVIN/VIN supply split cannot be observed"
+    }
+  ]
+}

@@ -1,16 +1,37 @@
 # BoardModeler
 
-Datasheet-grounded LTspice model acquisition and generation, plus schematic-level
-bring-up verification for power regulators and PCIe-switch interfaces.
+**Give it a datasheet and a part number; agents author an LTspice model; real simulator
+runs judge it against the datasheet's own rows; you get a `.lib`, a symbol and a card
+saying exactly what was tested.** That is the product. Everything below the fold is
+supporting machinery, and the board/circuit/UI layers date from an earlier, wider spec.
 
-Two input paths, one evidence trail:
+```powershell
+uv sync --all-extras
+uv run boardmodeler doctor            # confirms LTspice is usable (real smoke test)
+uv run boardmodeler model build `
+    --part TPS54320 --subckt TPS54320 `
+    --requirements fixtures/regulator/tps54320/requirements.json `
+    --bindings     fixtures/regulator/tps54320/probes.json `
+    --out build/tps54320
+uv run boardmodeler model test --out build/tps54320     # re-judge any time
+uv run boardmodeler model install --out build/tps54320 --user-lib --apply
+```
 
-* **Datasheet → model.** Give it a datasheet plus an optional part identity and it
-  produces a grounded LTspice model — symbol, example schematic, executable tests,
-  evidence, declared limitations — or an explicit `BLOCKED` naming what is missing.
-* **Circuit → verdicts.** Give it a circuit (neutral CSVs today, LTspice `.asc` or a
-  SPICE netlist) and it checks electrical and timing behaviour, including schematic
-  connection mistakes, against requirements that carry their citations.
+What each piece guarantees:
+
+* **The spec is frozen before the agent starts.** Limits, tolerances, probe bindings and
+  citations live in `spec/characteristics.json`; the agent may write only
+  `model/<SUBCKT>.lib` and `.asy`. A changed spec aborts the build as `UNKNOWN(spec_tampered)`.
+* **The harness owns the verdicts.** One probe deck per bound characteristic runs in real
+  LTspice; the measured value is compared to the cited limit. A probe that cannot answer
+  its question (no crossing, signal not saved, run truncated, port missing) is `UNKNOWN`
+  with the reason — never `PASS`.
+* **Unreachable rows stay visible.** Datasheet rows no probe can exercise (internal
+  oscillator behavior, thermal response, package facts) are listed on `MODEL_CARD.md` with
+  a `not_testable_reason`, so a reader sees the size of the claim, not a summary of it.
+
+The older paths — circuit checking, the board demonstration, the desktop UI — remain in
+the tree and are described further down; they are not on the model-authoring path.
 
 ## Honesty invariants
 

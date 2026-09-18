@@ -5,17 +5,36 @@ the result below is its actual output** — never a remembered or expected value
 
 ## Current milestone
 
-**Phase 6 — broader device coverage** (template families with committed regression
-baselines and the explicit blocked path for real-device qualification). The core
-phases (0–5) are complete; the integrated board demonstration is running end to end.
+**The model maker (D-014).** The product is: *datasheet + part number + agent key in,
+an agent-authored model judged by real simulator runs out, saved where LTspice can use
+it.* The board/circuit/UI layers built against the earlier, wider spec are dormant and
+reachable only by explicit flags (`boardmodeler ui --board-ui`, `boardmodeler demo …`).
 
 ## What the product does (one paragraph)
 
-Give it a datasheet and an optional part identity, and it produces a grounded
-LTspice model — symbol, example schematic, executable tests, evidence, limits —
-or, given a circuit, it checks the electrical/timing behaviour including schematic
-connection mistakes. Every status is one of `PASS/FAIL/UNKNOWN/BLOCKED/NOT_APPLICABLE`;
-no PASS is ever recorded without an observed simulator artifact.
+Give it a datasheet and a part number; agents author an LTspice model; one deterministic
+probe deck per datasheet characteristic runs in real LTspice and compares the measured
+value to the cited limit; you get the `.lib`, a validated symbol, a runnable example
+circuit, and a model card listing every row — judged, unknown, or not reachable by
+simulation. Every status is one of `PASS/FAIL/UNKNOWN/BLOCKED/NOT_APPLICABLE`; no PASS is
+ever recorded without an observed simulator artifact.
+
+### Model maker — observed results (2026-09-18)
+
+|What|Observed|
+|---|---|
+|Harness against the known-good `BM_REG_BUCK` library|**8 PASS / 0 FAIL**, 9 datasheet rows judged, **6.2 s** wall, one LTspice run per probe|
+|Measured vs model constants|`uvlo_rise` 4.30223 V (UVLO_RISE 4.3) · `uvlo_fall` 3.89727 V (3.9) · `en_rise` 1.25106 V (1.25) · `en_fall` 1.14863 V (1.15) · `vref` 0.799993 V (0.8 VREF) · `current_limit` 3 A (ILIM 3) · `soft_start` 4.4853 ms (analytic 4.47 ms) · `load_regulation` error 0.049 % at 2 A · `pg_threshold` 24.9 mV low, 0.50 mA sink|
+|Known-bad model (`VREF` 0.8 → 0.5)|`vref` **FAIL**: measured 0.499996 V vs required 0.792–0.808 V (page 4), detail names the deficit and appends the verbatim excerpt; 6 PASS + 1 UNKNOWN alongside|
+|Missing port (`VOUT` renamed)|**8/8 UNKNOWN** with `port_missing:VOUT` — zero PASS, zero FAIL|
+|Deck that cannot finish|UNKNOWN with the observed reason, never PASS|
+|Bindings|all **38** TPS54320 rows accounted for: 9 bound to probes, 29 with a written `not_testable_reason`|
+|Author loop (scripted agent, real LTspice)|turn 1 writes the bundled template → **PASS**, 8 probe outcomes, 7.5 s wall|
+|Loop safety paths (scripted)|fail-then-pass ends PASS after 2 turns with the turn-1 feedback in the turn-2 prompt · spec edit → `UNKNOWN(spec_tampered)` with **zero** simulations run · cap → UNKNOWN naming the failing probe · unavailable backend → BLOCKED with the reason verbatim|
+|Bob integration|argv verified against IBM's docs: `bob run --format json --max-turns <n> [--team-id <t>] <prompt>`; `status:error` → failure; timeout/cancel kills the process tree; a sentinel key never appears in results, argv, or messages; availability reports `bob_shell_not_installed` / `bob_credentials_unavailable`|
+|Suites|`uv run pytest -q tests/authoring` → **103 passed** (independently re-run); `tests/gui/test_model_maker.py` → 3 passed; `tests/test_cli_model.py` → 5 passed|
+|Window (`boardmodeler ui`)|model maker: part number · datasheet · output folder · agent key (+ keyring save) · stage table · datasheet-row table · install/open/retest. Fixed 980×700, retro styling|
+|Setup wizard|fixed 960×620; the key-hints line moved into a reserved strip so it can no longer be overlapped by Qt's button bar (clipping observed in the owner's screenshot, now gone)|
 
 ## Completed phases
 

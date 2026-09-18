@@ -8,7 +8,29 @@ uv run pytest -q                           # unit + integration (LTspice-marked 
 uv run pytest -q -m "not ltspice"          # simulator-free subset
 uv run ruff check . ; uv run ruff format --check .
 uv run boardmodeler doctor --json
+
+# the product: datasheet -> agent-authored, simulator-judged model
+uv run boardmodeler ui                     # the model maker window
+uv run boardmodeler model build --part TPS54320 --datasheet <pdf> --out build/tps54320
+uv run boardmodeler model test  --out build/tps54320
+uv run boardmodeler model install --out build/tps54320 --user-lib --apply
 ```
+
+## The model-maker path (D-014)
+
+* `authoring/` is the engine: `spec.py` (the frozen datasheet rows), `probes.py` (one deck
+  per characteristic), `harness.py` (run + judge), `backends.py` + `loop.py` (the agent),
+  `card.py` (deliverables). `pipeline/make_model.py` chains them; `ui/model_maker.py` and
+  `boardmodeler model …` are two faces of that one chain.
+* The **spec is frozen**: `spec/characteristics.json` is hashed before the agent starts and
+  re-checked after every turn. A changed spec stops the build as `UNKNOWN(spec_tampered)`;
+  the agent may write only `model/<SUBCKT>.lib` and `model/<SUBCKT>.asy`.
+* A row that a probe cannot answer is `UNKNOWN` with its reason; a datasheet row no probe can
+  reach keeps a written `not_testable_reason` and appears on the card. Never stretch a probe
+  to cover a row it does not exercise, and never relax a limit to make a model pass.
+* The board/circuit layers (`schematic/`, `pipeline/demo.py`, `ui/main_window.py`,
+  `reporting/html.py`) belong to the earlier spec. They are dormant: the model path must not
+  import them, and they are reached only by explicit flags.
 
 ## Layout rules
 

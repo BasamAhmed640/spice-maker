@@ -38,6 +38,11 @@ def main(argv: Sequence[str] | None = None, *, exec_app: bool = True) -> int:
     parser.add_argument(
         "--installer", action="store_true", help="launch the setup wizard instead of the app"
     )
+    parser.add_argument(
+        "--board-ui",
+        action="store_true",
+        help="launch the earlier board/circuit window instead of the model maker",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     app = build_application([sys.argv[0]])
@@ -51,12 +56,21 @@ def main(argv: Sequence[str] | None = None, *, exec_app: bool = True) -> int:
             return 0
         return int(wizard.exec())
 
-    from boardmodeler.ui.main_window import MainWindow
+    if args.board_ui:
+        from boardmodeler.ui.main_window import MainWindow
 
-    window = MainWindow()
-    if args.project is not None:
-        window.load_project(args.project)
-    window.show()
+        window = MainWindow()
+        if args.project is not None:
+            window.load_project(args.project)
+        window.show()
+        if not exec_app:
+            return 0
+        return int(app.exec())
+
+    from boardmodeler.ui.model_maker import ModelMakerWindow
+
+    maker = ModelMakerWindow()
+    maker.show()
     if not exec_app:
         return 0
     return int(app.exec())

@@ -114,6 +114,9 @@ QCheckBox::indicator:checked {{ background: {CGA["bright_green"]}; }}
 TITLE_H = 26
 BODY_PITCH = 15
 BODY_ROWS = 9
+#: Reserved strip under the body rows for the key hints, so they never land under the
+#: wizard's button bar (which Qt paints over the bottom of the page).
+HINT_H = 20
 FRAME = 3
 CURSOR_MS = 420
 
@@ -162,7 +165,7 @@ class RetroPage(QWizardPage):
         self._timer.setInterval(CURSOR_MS)
         self._timer.timeout.connect(self._blink)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, TITLE_H + BODY_ROWS * BODY_PITCH + 8, 16, 14)
+        layout.setContentsMargins(16, TITLE_H + BODY_ROWS * BODY_PITCH + 8 + HINT_H, 16, 14)
         layout.setSpacing(6)
         self.body_area = layout
 
@@ -234,7 +237,7 @@ class RetroPage(QWizardPage):
         painter.setPen(QColor(CGA["dark_grey"]))
         painter.drawText(
             inner.left() + 14,
-            inner.bottom() - 4,
+            inner.top() + TITLE_H + BODY_ROWS * BODY_PITCH + 13,
             "F2=SKIP STEP  ENTER=NEXT  ESC=ABORT  (every step is skippable)",
         )
         painter.end()
@@ -407,6 +410,9 @@ class InstallerWizard(QWizard):
         super().__init__(parent)
         self.setWindowTitle("BoardModeler setup")
         self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
+        #: Fixed size: every page lays out inside this frame, so nothing clips and the
+        #: window never resizes as the user walks through the steps.
+        self.setFixedSize(960, 620)
         self.setOption(QWizard.WizardOption.NoBackButtonOnStartPage, True)
         self.setStyleSheet(RETRO_STYLESHEET)
         self.setButtonText(QWizard.WizardButton.NextButton, "NEXT >")

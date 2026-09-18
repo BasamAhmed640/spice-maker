@@ -382,3 +382,72 @@ step removed it passes at 3.2703 V, so it is a real and passing claim.
 choose the answer instead of measuring it. Rejected too: deleting the scenarios; a
 scenario that cannot be concluded is exactly what UNKNOWN is for, and the FAIL is
 evidence that the gate is missing rather than evidence about the board.
+
+---
+
+## D-014 — Agent-authored models, judged by a frozen datasheet harness (the product pivot)
+
+**Date:** 2026-09-18. **Status:** implemented (`boardmodeler model build|test|install`).
+
+**What the owner actually asked for:** "give it a part number and a datasheet, spin up
+agents to make a SPICE model that is thoroughly tested and saved, so I can go into
+LTspice and wire it up." The delivered product had drifted: the AI read the datasheet
+into requirement rows, but the *model* was a hand-written template library
+(`BM_REG_BUCK`/`BM_REG_LDO`) whose parameters were typed by hand, and the "agent"
+never authored SPICE. The board demonstration, the circuit checker and the desktop UI
+are all outside that ask.
+
+**Decision.** Add one path and make it the front door:
+
+```
+boardmodeler model build --part <PN> --subckt <NAME> --requirements <json> \
+    --bindings <json> --out <dir> [--iterations N]
+```
+
+1. The datasheet's extracted rows become a **frozen spec** (`<workdir>/spec/characteristics.json`):
+   requirement id, limit, unit, page, verbatim excerpt, and the probe bound to it.
+2. An **agent authors** `<workdir>/model/<SUBCKT>.lib` and `<SUBCKT>.asy`. Nothing else
+   the agent writes is used, and the spec directory may not change — `build_model`
+   re-hashes it after every turn and stops with `UNKNOWN(spec_tampered)` if it did.
+   Tolerance relaxation is therefore impossible by construction, not by instruction.
+3. A **deterministic harness** runs one probe deck per bound characteristic through
+   real LTspice and compares the measured value to the cited limit. No measurement →
+   `UNKNOWN` with a reason. A characteristic no probe can reach keeps its
+   `not_testable_reason` on the card.
+4. Deliverables: `<SUBCKT>.lib`, a symbol whose `SpiceOrder` bijection is validated,
+   `example.cir`, `harness-report.json`, and `MODEL_CARD.md` — every number on the card
+   comes from an observed run, and unmeasured rows are listed as declared gaps.
+
+**Agent backend: IBM Bob Shell**, chosen by the owner. Interface verified against IBM's
+own documentation on 2026-09-18 (recorded here because D-011 requires endpoint/CLI
+strings to come from official docs, never invention):
+
+|Fact|Source|
+|---|---|
+|Install (Windows)|`powershell -c "irm -Uri https://bob.ibm.com/download/bobshell.ps1 \| iex"`; Node ≥ 24 (`/docs/shell/getting-started/install-and-setup`)|
+|Non-interactive run|`bob run [options] [prompt...]`, prompt may be piped (`/docs/shell/getting-started/start-bobshell-non-interactive`)|
+|Automation flags|`--format json\|stream-json`, `--max-turns <n>`, `--max-cost <amount>`, `--resume <task-id>\|latest`|
+|Result object|`{type:"result", timestamp, status:"success"\|"error", stats:{task_id,total_tokens,input_tokens,output_tokens,cache_read_tokens,cache_write_tokens,cache_ratio}}`|
+|Auth|`BOB_API_KEY`; a key with Scope **Inference** needs nothing else, a **general** key also needs `--team-id <team-id>` (`/docs/ide/account/api-keys`)|
+|Skills|YAML frontmatter (`name`, `description`) + Markdown; repo copy at `skills/ltspice-model-author/SKILL.md` (`/docs/shell/features/skills`)|
+|Usage accounting|Bob reports **tokens**; the shell path counts runs in **turns** — never converted silently (D-011)|
+
+**Why a frozen harness rather than "the agent tests itself":** an LLM can write a
+plausible `.lib` for any part; what it cannot do is decide whether the result matches
+the silicon. The harness is the part of the system that can be trusted, so it owns the
+limits, the measurements, and the verdicts, and the agent owns only text. This also
+keeps the earlier honesty invariants intact: `PASS` still requires an observed
+simulator artifact, and a row that cannot be judged is still `UNKNOWN` with its reason.
+
+**Rejected:** (a) letting the agent edit the spec or tolerances — that is the failure
+mode the whole design exists to prevent; (b) judging an agent's model against another
+model (vendor or template) as the oracle — a comparison between two models says nothing
+about the datasheet; (c) generating the model from a template and calling it
+agent-authored — the owner asked for authorship, and the template path remains
+available as a *seed* the agent may read, not as the answer.
+
+**Cost of the drift, recorded honestly:** the UI (3.4 kloc), the circuit checker and
+schematic layer (4.0 kloc), and the board demonstration were built against the earlier
+spec and are not part of this path. They are left in place, dormant, rather than
+deleted; nothing in the new path imports them.
+

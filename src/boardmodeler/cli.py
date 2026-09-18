@@ -40,9 +40,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="boardmodeler",
         description=(
-            "Datasheet-grounded LTspice model acquisition plus schematic-level "
-            "bring-up verification."
+            "Make LTspice models for ICs from their datasheets: an agent authors the "
+            "model and real simulator runs judge it against the datasheet's own rows."
         ),
+        epilog=(
+            "start here:  boardmodeler model build --part <PN> --datasheet <pdf> "
+            "--out <dir>\n"
+            "             boardmodeler model install --out <dir> --user-lib --apply\n"
+            "             boardmodeler ui      (the same thing as a window)"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--version", action="version", version=f"boardmodeler {__version__}")
     sub = parser.add_subparsers(dest="command", required=False)
@@ -77,13 +84,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     setup_cmd.add_argument("--project", type=Path, default=None, help="project directory to record")
 
-    ui_cmd = sub.add_parser("ui", help="launch the desktop application")
+    ui_cmd = sub.add_parser(
+        "ui", help="launch the model maker window (add --installer for setup)"
+    )
     ui_cmd.add_argument("--project", type=Path, default=None, help="project directory to open")
     ui_cmd.add_argument(
         "--installer", action="store_true", help="launch the setup wizard instead of the app"
     )
 
-    run = sub.add_parser("run", help="execute project work")
+    run = sub.add_parser("run", help="execute project work (earlier board workflow)")
     run_sub = run.add_subparsers(dest="run_command", required=True)
     run_tests = run_sub.add_parser(
         "tests", help="run the project's test cases against the simulator"
@@ -127,7 +136,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_mutations.add_argument("--json", action="store_true")
 
-    demo = sub.add_parser("demo", help="the integrated board-level demonstration")
+    demo = sub.add_parser("demo", help="the board demonstration (earlier spec)")
     demo_sub = demo.add_subparsers(dest="demo_command", required=True)
     demo_build = demo_sub.add_parser("build", help="assemble the demo project from the fixtures")
     demo_build.add_argument("--out", type=Path, required=True, help="project directory to create")
@@ -136,7 +145,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-probe", action="store_true", help="skip capability probing (faster, less evidence)"
     )
 
-    circuit = sub.add_parser("circuit", help="circuit-level checks")
+    circuit = sub.add_parser("circuit", help="circuit-level checks (earlier spec)")
     circuit_sub = circuit.add_subparsers(dest="circuit_command", required=True)
     circuit_check = circuit_sub.add_parser(
         "check", help="static checks plus the dynamic scenarios against a built project"
@@ -174,6 +183,83 @@ def build_parser() -> argparse.ArgumentParser:
     )
     extract.add_argument("--allow-remote", action="store_true", help="permit remote inference")
     extract.add_argument("--json", action="store_true")
+
+    model = sub.add_parser(
+        "model",
+        help="author an LTspice model from a datasheet and judge it with real simulation",
+    )
+    model_sub = model.add_subparsers(dest="model_command")
+
+    model_build = model_sub.add_parser(
+        "build",
+        help="let an agent author the model, then judge it against the datasheet rows",
+    )
+    model_build.add_argument("--part", required=True, help="part number, e.g. TPS54320")
+    model_build.add_argument(
+        "--subckt",
+        default=None,
+        help="subcircuit name the model must declare (default: the part number, sanitized)",
+    )
+    model_build.add_argument(
+        "--datasheet",
+        type=Path,
+        default=None,
+        help="the datasheet PDF: its rows are extracted, bound to probes, and judged",
+    )
+    model_build.add_argument(
+        "--requirements",
+        type=Path,
+        default=None,
+        help="extracted requirements JSON with citations (offline alternative to --datasheet)",
+    )
+    model_build.add_argument(
+        "--bindings", type=Path, default=None, help="requirement -> probe binding JSON"
+    )
+    model_build.add_argument("--out", type=Path, required=True, help="output directory for the model")
+    model_build.add_argument(
+        "--backend",
+        default="bob",
+        choices=["bob"],
+        help="which agent authors the model (bob = IBM Bob Shell, non-interactive)",
+    )
+    model_build.add_argument("--team-id", default=None, help="Bob team id for a general API key")
+    model_build.add_argument(
+        "--provider", default=None, help="extraction provider for --datasheet (default: from config)"
+    )
+    model_build.add_argument(
+        "--allow-remote", action="store_true", help="permit sending the datasheet to the provider"
+    )
+    model_build.add_argument("--iterations", type=int, default=4, help="author/try cycles (default 4)")
+    model_build.add_argument("--timeout", type=float, default=120.0, help="seconds per simulation")
+    model_build.add_argument("--json", action="store_true")
+    model_build.add_argument(
+        "--strict", action="store_true", help="exit 1 when the outcome is not PASS"
+    )
+
+    model_test = model_sub.add_parser(
+        "test", help="re-run the probe harness on a built model and rewrite its card"
+    )
+    model_test.add_argument("--out", type=Path, required=True)
+    model_test.add_argument("--timeout", type=float, default=120.0)
+    model_test.add_argument("--json", action="store_true")
+    model_test.add_argument("--strict", action="store_true")
+
+    model_install = model_sub.add_parser(
+        "install", help="copy a built model where LTspice can find it"
+    )
+    model_install.add_argument("--out", type=Path, required=True, help="a built model directory")
+    model_install.add_argument(
+        "--into", type=Path, default=None, help="destination directory for the .lib and .asy"
+    )
+    model_install.add_argument(
+        "--user-lib",
+        action="store_true",
+        help="use the per-user LTspice library (%%LOCALAPPDATA%%\\LTspice\\lib)",
+    )
+    model_install.add_argument(
+        "--apply", action="store_true", help="actually copy (without it, the plan is printed)"
+    )
+    model_install.add_argument("--json", action="store_true")
     return parser
 
 
@@ -636,6 +722,414 @@ def _cmd_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_model(args: argparse.Namespace) -> int:
+    action = getattr(args, "model_command", None)
+    if action == "build":
+        return _cmd_model_build(args)
+    if action == "test":
+        return _cmd_model_test(args)
+    if action == "install":
+        return _cmd_model_install(args)
+    print("error: specify a model subcommand: build, test or install")
+    return 2
+
+
+def _spec_json_in(out_dir: Path) -> Path:
+    for candidate in (
+        out_dir / "spec" / "characteristics.json",
+        out_dir / "build" / "spec" / "characteristics.json",
+    ):
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError(
+        f"no spec/characteristics.json under {out_dir}; build the model first with 'model build'"
+    )
+
+
+def _model_lib_in(out_dir: Path, subckt: str) -> Path:
+    for candidate in (
+        out_dir / f"{subckt}.lib",
+        out_dir / "model" / f"{subckt}.lib",
+        out_dir / "build" / "model" / f"{subckt}.lib",
+    ):
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError(f"no {subckt}.lib found under {out_dir}")
+
+
+def _publish_model_files(
+    *, out_dir: Path, workdir: Path, subckt: str
+) -> tuple[Path, Path, list[str]]:
+    """Copy the agent's model into the output directory, and guarantee a valid symbol."""
+    from boardmodeler.authoring.card import write_symbol_for
+    from boardmodeler.models.library import subckt_ports
+    from boardmodeler.models.symbolism import validate_symbol
+
+    notes: list[str] = []
+    source_lib = None
+    source_asy = None
+    for directory in (workdir / "model", workdir):
+        if source_lib is None and (directory / f"{subckt}.lib").is_file():
+            source_lib = directory / f"{subckt}.lib"
+        if source_asy is None and (directory / f"{subckt}.asy").is_file():
+            source_asy = directory / f"{subckt}.asy"
+    if source_lib is None:
+        raise FileNotFoundError(f"the agent left no {subckt}.lib in {workdir}")
+
+    lib_text = source_lib.read_text(encoding="utf-8", errors="replace")
+    ports = list(subckt_ports(lib_text, subckt))
+    if not ports:
+        raise ValueError(f"{source_lib} declares no .subckt {subckt}")
+    lib_target = out_dir / f"{subckt}.lib"
+    lib_target.write_text(lib_text, encoding="utf-8", newline="\n")
+
+    asy_target = out_dir / f"{subckt}.asy"
+    if source_asy is not None:
+        asy_text = source_asy.read_text(encoding="utf-8", errors="replace")
+        findings = validate_symbol(asy_text, ports=ports, model_file=lib_target.name)
+        if not findings:
+            asy_target.write_text(asy_text, encoding="utf-8", newline="\n")
+            return lib_target, asy_target, notes
+        notes.append(
+            "the agent's symbol was rejected ("
+            + "; ".join(f"{f.code}" for f in findings)
+            + "); generated one instead"
+        )
+    write_symbol_for(
+        out_path=asy_target,
+        name=subckt,
+        ports=ports,
+        model_file=lib_target.name,
+        model_name=subckt,
+        description=f"{subckt} generated model",
+    )
+    if not notes:
+        notes.append("symbol generated from the model's declared ports")
+    return lib_target, asy_target, notes
+
+
+def _cmd_model_build(args: argparse.Namespace) -> int:
+    from boardmodeler.authoring.backends import BobShellBackend
+    from boardmodeler.authoring.card import write_deliverables
+    from boardmodeler.authoring.loop import BuildRequest, build_model, prepare_workdir
+    from boardmodeler.authoring.spec import load_tps54320_spec
+    from boardmodeler.simulation.ltspice import locate
+
+    install = locate()
+    out_dir: Path = args.out
+
+    def emit(payload: dict[str, Any], code: int) -> int:
+        if args.json:
+            print(json.dumps(payload, indent=2))
+        else:
+            print(f"model build: {payload['status']} — {payload['detail']}")
+            for line in payload.get("history", []):
+                print(f"  {line}")
+            for row in payload.get("rows", []):
+                print(
+                    f"  {row['status']:14} {row['req_id']:28} {row['required'][:28]:28} "
+                    f"{str(row['measured'])[:28]}"
+                )
+            for probe in payload.get("probes", []):
+                print(
+                    f"  {probe['status']:8} {probe['probe_id']:20} {probe['detail'][:80]}"
+                )
+            for path in payload.get("files", []):
+                print(f"  wrote {path}")
+        return code
+
+    subckt = args.subckt or _sanitize_subckt(args.part)
+    if args.datasheet is not None:
+        return _cmd_model_build_from_datasheet(args, subckt=subckt, emit=emit)
+    if args.requirements is None or args.bindings is None:
+        return emit(
+            {
+                "tool": "boardmodeler",
+                "command": "model build",
+                "status": "BLOCKED",
+                "detail": "give --datasheet, or both --requirements and --bindings",
+                "history": [],
+                "probes": [],
+                "files": [],
+            },
+            2,
+        )
+    try:
+        spec = load_tps54320_spec(
+            args.requirements, args.bindings, part=args.part, subckt=subckt
+        )
+    except (OSError, ValueError) as exc:
+        return emit(
+            {
+                "tool": "boardmodeler",
+                "command": "model build",
+                "status": "BLOCKED",
+                "detail": f"spec could not be loaded: {exc}",
+                "history": [],
+                "probes": [],
+                "files": [],
+            },
+            1,
+        )
+    if install is None:
+        return emit(
+            {
+                "tool": "boardmodeler",
+                "command": "model build",
+                "status": "BLOCKED",
+                "detail": "LTspice was not found; run 'boardmodeler doctor' or set LTSPICE_EXE",
+                "history": [],
+                "probes": [],
+                "files": [],
+            },
+            1,
+        )
+
+    workdir = out_dir / "build"
+    prepare_workdir(spec=spec, subckt=subckt, workdir=workdir)
+    backend = BobShellBackend(team_id=args.team_id)
+    request = BuildRequest(
+        part=args.part,
+        subckt=subckt,
+        spec=spec,
+        workdir=workdir,
+        ltspice=install.path,
+        backend=backend,
+        max_iterations=args.iterations,
+        timeout_s=args.timeout,
+    )
+    outcome = build_model(request)
+
+    files: list[str] = []
+    notes: list[str] = []
+    if outcome.report.model_sha256:
+        try:
+            lib, asy, symbol_notes = _publish_model_files(
+                out_dir=out_dir, workdir=workdir, subckt=subckt
+            )
+            files += [str(lib), str(asy)]
+            notes += symbol_notes
+        except (OSError, ValueError) as exc:
+            notes.append(f"model files not published: {exc}")
+
+    written = write_deliverables(
+        out_dir=out_dir,
+        part=args.part,
+        subckt=subckt,
+        spec=spec,
+        report=outcome.report,
+        document=spec.doc_id,
+        backend=backend.name,
+        iterations=outcome.iterations,
+    )
+    files += [str(path) for path in written]
+    report_path = out_dir / "harness-report.json"
+    report_path.write_text(outcome.report.to_json(), encoding="utf-8", newline="\n")
+    files.append(str(report_path))
+
+    payload = {
+        "tool": "boardmodeler",
+        "command": "model build",
+        "part": args.part,
+        "subckt": subckt,
+        "status": outcome.status,
+        "detail": outcome.detail + (f"; {'; '.join(notes)}" if notes else ""),
+        "iterations": outcome.iterations,
+        "counts": outcome.report.counts(),
+        "probes": [outcome_probe.to_json() for outcome_probe in outcome.report.outcomes],
+        "history": list(outcome.history),
+        "files": files,
+        "card": str(out_dir / "MODEL_CARD.md"),
+    }
+    return emit(payload, 1 if (args.strict and outcome.status != "PASS") else 0)
+
+
+def _sanitize_subckt(part: str) -> str:
+    """A SPICE-legal subcircuit name derived from the part number."""
+    cleaned = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in part.strip())
+    return cleaned.upper() or "MODEL"
+
+
+def _cmd_model_build_from_datasheet(args: argparse.Namespace, *, subckt: str, emit: Any) -> int:
+    """The product path: datasheet in, agent-authored and simulator-judged model out."""
+    from boardmodeler.pipeline.make_model import MakeModelRequest, make_model
+
+    if not args.datasheet.is_file():
+        return emit(
+            {
+                "tool": "boardmodeler",
+                "command": "model build",
+                "status": "BLOCKED",
+                "detail": f"datasheet not found: {args.datasheet}",
+                "history": [],
+                "probes": [],
+                "files": [],
+            },
+            1,
+        )
+    request = MakeModelRequest(
+        part=args.part,
+        subckt=subckt,
+        datasheet=args.datasheet,
+        out_dir=args.out,
+        backend_name=args.backend,
+        provider=args.provider,
+        team_id=args.team_id,
+        max_iterations=args.iterations,
+        timeout_s=args.timeout,
+        allow_remote=args.allow_remote,
+    )
+    quiet = args.json
+
+    def on_stage(event: Any) -> None:
+        if not quiet:
+            counts = f" {event.counts}" if getattr(event, "counts", None) else ""
+            print(f"  {event.stage:8} {event.status:8} {event.detail}{counts}"[:160], flush=True)
+
+    result = make_model(request, progress=on_stage)
+    payload = json.loads(result.to_json())
+    payload.update({"tool": "boardmodeler", "command": "model build"})
+    payload["rows"] = [
+        {
+            "req_id": row.req_id,
+            "required": row.required,
+            "measured": row.measured,
+            "status": row.status,
+            "page": row.page,
+        }
+        for row in result.rows
+    ]
+    return emit(payload, 1 if (args.strict and result.status != "PASS") else 0)
+
+
+def _cmd_model_test(args: argparse.Namespace) -> int:
+    from boardmodeler.authoring.card import write_deliverables
+    from boardmodeler.authoring.harness import run_harness
+    from boardmodeler.authoring.spec import SpecSet
+    from boardmodeler.simulation.ltspice import locate
+
+    out_dir: Path = args.out
+    install = locate()
+    if install is None:
+        payload = {
+            "tool": "boardmodeler",
+            "command": "model test",
+            "status": "BLOCKED",
+            "detail": "LTspice was not found; run 'boardmodeler doctor' or set LTSPICE_EXE",
+        }
+        print(json.dumps(payload, indent=2) if args.json else f"model test: {payload['detail']}")
+        return 1
+
+    try:
+        spec_json = _spec_json_in(out_dir)
+        spec = SpecSet.from_json(spec_json.read_text(encoding="utf-8"))
+        lib = _model_lib_in(out_dir, spec.subckt)
+    except (OSError, ValueError) as exc:
+        payload = {
+            "tool": "boardmodeler",
+            "command": "model test",
+            "status": "BLOCKED",
+            "detail": str(exc),
+        }
+        print(json.dumps(payload, indent=2) if args.json else f"model test: {exc}")
+        return 1
+
+    report = run_harness(
+        model_lib=lib,
+        subckt=spec.subckt,
+        spec=spec,
+        workdir=out_dir / "harness",
+        ltspice=install.path,
+        timeout_s=args.timeout,
+    )
+    report_path = out_dir / "harness-report.json"
+    report_path.write_text(report.to_json(), encoding="utf-8", newline="\n")
+    written = write_deliverables(
+        out_dir=out_dir,
+        part=spec.part,
+        subckt=spec.subckt,
+        spec=spec,
+        report=report,
+        document=spec.doc_id,
+    )
+    status = "PASS" if report.passed() else "UNKNOWN"
+    payload = {
+        "tool": "boardmodeler",
+        "command": "model test",
+        "part": spec.part,
+        "subckt": spec.subckt,
+        "status": status,
+        "counts": report.counts(),
+        "probes": [outcome.to_json() for outcome in report.outcomes],
+        "files": [str(report_path), *(str(path) for path in written)],
+    }
+    if args.json:
+        print(json.dumps(payload, indent=2))
+    else:
+        print(f"model test: {status} {payload['counts']} (model {report.model_sha256[:12]})")
+        for outcome in report.outcomes:
+            print(f"  {outcome.status:8} {outcome.probe_id:20} {outcome.detail[:80]}")
+    return 1 if (args.strict and status != "PASS") else 0
+
+
+def _cmd_model_install(args: argparse.Namespace) -> int:
+    from boardmodeler.authoring.card import plan_install
+    from boardmodeler.authoring.spec import SpecSet
+
+    out_dir: Path = args.out
+    try:
+        spec = SpecSet.from_json(_spec_json_in(out_dir).read_text(encoding="utf-8"))
+        lib = _model_lib_in(out_dir, spec.subckt)
+    except (OSError, ValueError) as exc:
+        payload = {
+            "tool": "boardmodeler",
+            "command": "model install",
+            "status": "BLOCKED",
+            "detail": str(exc),
+        }
+        print(json.dumps(payload, indent=2) if args.json else f"model install: {exc}")
+        return 1
+    asy = out_dir / f"{spec.subckt}.asy"
+    if not asy.is_file():
+        payload = {
+            "tool": "boardmodeler",
+            "command": "model install",
+            "status": "BLOCKED",
+            "detail": f"no symbol at {asy}; run 'model test' to regenerate it",
+        }
+        print(json.dumps(payload, indent=2) if args.json else payload["detail"])
+        return 1
+
+    if args.into is None and not args.user_lib and not args.apply:
+        args.apply = False
+    plan = plan_install(
+        part=spec.part,
+        subckt=spec.subckt,
+        lib=lib,
+        asy=asy,
+        into=args.into,
+        user_lib=args.user_lib,
+        apply=args.apply,
+    )
+    payload = {
+        "tool": "boardmodeler",
+        "command": "model install",
+        "part": plan.part,
+        "copied": [str(path) for path in plan.copied],
+        "lib_target": str(plan.lib_target) if plan.lib_target else None,
+        "asy_target": str(plan.asy_target) if plan.asy_target else None,
+        "steps": list(plan.steps),
+        "detail": plan.detail,
+    }
+    if args.json:
+        print(json.dumps(payload, indent=2))
+    else:
+        print(f"model install: {plan.detail}")
+        for step in plan.steps:
+            print(f"  {step}")
+    return 0
+
+
 def _cmd_extract(args: argparse.Namespace) -> int:
     from boardmodeler.pipeline.project import Project, ProjectError
 
@@ -706,6 +1200,9 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(f"boardmodeler {__version__}")
         return 0
+
+    if args.command == "model":
+        return _cmd_model(args)
 
     if args.command == "doctor":
         payload = doctor_payload(

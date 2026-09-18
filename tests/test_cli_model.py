@@ -1,0 +1,224 @@
+"""The CLI's datasheet path: same engine as the window, printed for a terminal.
+
+The engine is stubbed here on purpose — its own tests cover the simulation work. What
+these tests pin is the CLI contract: argument routing, the JSON payload the automation
+consumes, the human output, and the exit codes.
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+from types import ModuleType
+
+import pytest
+
+from boardmodeler import cli
+
+
+@dataclass(frozen=True)
+class _Row:
+    req_id: str
+    required: str
+    measured: str
+    status: str
+    page: int | None
+    statement: str = ""
+
+
+@dataclass(frozen=True)
+class _Result:
+    status: str
+    detail: str
+    part: str
+    out_dir: Path
+    rows: tuple[_Row, ...]
+    counts: dict[str, int] = field(default_factory=dict)
+
+    def to_json(self) -> str:
+        return json.dumps(
+            {
+                "status": self.status,
+                "detail": self.detail,
+                "part": self.part,
+                "out_dir": str(self.out_dir),
+                "counts": self.counts,
+            },
+            indent=2,
+        )
+
+
+@dataclass(frozen=True)
+class _Request:
+    part: str
+    subckt: str
+    datasheet: Path
+    out_dir: Path
+    backend_name: str = "bob"
+    team_id: str | None = None
+    max_iterations: int = 3
+    timeout_s: float = 120.0
+    allow_remote: bool = False
+    provider: str | None = None
+    requirements_json: Path | None = None
+    bindings_json: Path | None = None
+
+
+class _Stage:
+    def __init__(self, stage: str, status: str, detail: str) -> None:
+        self.stage = stage
+        self.status = status
+        self.detail = detail
+        self.counts: dict[str, int] = {}
+
+
+def _install_fake_engine(monkeypatch, result: _Result, calls: list[_Request]) -> None:
+    module = ModuleType("boardmodeler.pipeline.make_model")
+
+    def make_model(request: _Request, progress=None, cancel=None) -> _Result:
+        calls.append(request)
+        if callable(progress):
+            progress(_Stage("extract", "ok", "38 rows"))
+            progress(_Stage("judge", "ok", "turn 1 PASS 1"))
+        return result
+
+    module.make_model = make_model  # type: ignore[attr-defined]
+    module.MakeModelRequest = _Request  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "boardmodeler.pipeline.make_model", module)
+
+
+@pytest.fixture
+def datasheet(tmp_path: Path) -> Path:
+    path = tmp_path / "tps54320.pdf"
+    path.write_bytes(b"%PDF-1.4 fake datasheet")
+    return path
+
+
+def test_datasheet_mode_reports_rows_and_exits_zero(
+    tmp_path: Path, datasheet: Path, monkeypatch, capsys
+) -> None:
+    calls: list[_Request] = []
+    result = _Result(
+        status="PASS",
+        detail="every testable row passes",
+        part="TPS54320",
+        out_dir=tmp_path / "out",
+        rows=(
+            _Row("REQ_1", "min 4 / max 4.5 V", "vin_uvlo_rise=4.21 V", "PASS", 4),
+            _Row("REQ_2", "no simulation probe", "-", "NOT_APPLICABLE", 9),
+        ),
+        counts={"PASS": 1, "NOT_APPLICABLE": 1},
+    )
+    _install_fake_engine(monkeypatch, result, calls)
+
+    code = cli.main(
+        [
+            "model",
+            "build",
+            "--part",
+            "TPS54320-Q1",
+            "--datasheet",
+            str(datasheet),
+            "--out",
+            str(tmp_path / "out"),
+        ]
+    )
+    output = capsys.readouterr().out
+    assert code == 0
+    assert calls and calls[0].part == "TPS54320-Q1"
+    assert calls[0].subckt == "TPS54320_Q1", "the subcircuit name must be SPICE-legal"
+    assert calls[0].backend_name == "bob"
+    assert "extract" in output and "judge" in output
+    assert "REQ_1" in output and "vin_uvlo_rise=4.21 V" in output
+
+
+def test_json_mode_emits_the_rows_for_automation(
+    tmp_path: Path, datasheet: Path, monkeypatch, capsys
+) -> None:
+    calls: list[_Request] = []
+    result = _Result(
+        status="UNKNOWN",
+        detail="harness left one probe UNKNOWN",
+        part="TPS54320",
+        out_dir=tmp_path,
+        rows=(_Row("REQ_1", "min 4 / max 4.5 V", "-", "UNKNOWN", 4),),
+        counts={"UNKNOWN": 1},
+    )
+    _install_fake_engine(monkeypatch, result, calls)
+
+    code = cli.main(
+        [
+            "model",
+            "build",
+            "--part",
+            "TPS54320",
+            "--datasheet",
+            str(datasheet),
+            "--out",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert payload["command"] == "model build"
+    assert payload["status"] == "UNKNOWN"
+    assert payload["rows"][0]["req_id"] == "REQ_1"
+    assert payload["counts"] == {"UNKNOWN": 1}
+
+
+def test_strict_turns_a_non_pass_into_a_failure_exit(
+    tmp_path: Path, datasheet: Path, monkeypatch, capsys
+) -> None:
+    calls: list[_Request] = []
+    result = _Result("UNKNOWN", "cap reached", "TPS54320", tmp_path, (), {})
+    _install_fake_engine(monkeypatch, result, calls)
+    code = cli.main(
+        [
+            "model",
+            "build",
+            "--part",
+            "TPS54320",
+            "--datasheet",
+            str(datasheet),
+            "--out",
+            str(tmp_path),
+            "--json",
+            "--strict",
+        ]
+    )
+    capsys.readouterr()
+    assert code == 1
+
+
+def test_a_missing_datasheet_is_blocked_before_any_engine_call(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    calls: list[_Request] = []
+    _install_fake_engine(monkeypatch, _Result("PASS", "", "X", tmp_path, (), {}), calls)
+    code = cli.main(
+        [
+            "model",
+            "build",
+            "--part",
+            "TPS54320",
+            "--datasheet",
+            str(tmp_path / "nope.pdf"),
+            "--out",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 1
+    assert payload["status"] == "BLOCKED" and "nope.pdf" in payload["detail"]
+    assert calls == []
+
+
+def test_neither_datasheet_nor_fixtures_is_rejected(tmp_path: Path, capsys) -> None:
+    code = cli.main(["model", "build", "--part", "TPS54320", "--out", str(tmp_path), "--json"])
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 2
+    assert "--datasheet" in payload["detail"] and "--bindings" in payload["detail"]
