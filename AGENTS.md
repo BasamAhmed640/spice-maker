@@ -28,6 +28,13 @@ uv run boardmodeler model install --out build/tps54320 --user-lib --apply
 * A row that a probe cannot answer is `UNKNOWN` with its reason; a datasheet row no probe can
   reach keeps a written `not_testable_reason` and appears on the card. Never stretch a probe
   to cover a row it does not exercise, and never relax a limit to make a model pass.
+* The UI has two surfaces and they must not grow: `ui/model_maker.py` is the build
+  (part number, datasheet, save location, GO, progress, results) and `ui/setup_dialog.py` is
+  everything persistent (LTspice path, agent key, model folder, LTspice library, web
+  reinforcement). Anything that is asked once per machine belongs in setup; anything asked
+  per build belongs in the window. Both are content-sized — never add fixed-height frames with
+  empty space, and never add a background rule that can repaint the buttons (see the pixel
+  test in `tests/gui/test_window_contract.py`).
 * The board/circuit layers (`schematic/`, `pipeline/demo.py`, `ui/main_window.py`,
   `reporting/html.py`) belong to the earlier spec. They are dormant: the model path must not
   import them, and they are reached only by explicit flags.

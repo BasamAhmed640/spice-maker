@@ -18,10 +18,14 @@ uv run boardmodeler model install --out build/tps54320 --user-lib --apply
 ```
 
 **Before the first run:** install Bob Shell (`powershell -c "irm -Uri https://bob.ibm.com/download/bobshell.ps1 | iex"`,
-Node ≥ 24) and create an API key at bob.ibm.com → API keys with **Scope = Inference**; the window stores it with **Save key**.
-Without an agent the run stops immediately with `BLOCKED` naming what is missing — it never substitutes another provider.
-A build costs a few agent turns plus about ten seconds of simulation: the TPS54320 fixtures judge 38 datasheet rows in **10.7 s**
-of real LTspice work once the model exists, and a repeated run makes **zero** further extraction calls.
+Node ≥ 24), then open **SETUP** in the window and store an API key from bob.ibm.com → API keys with
+**Scope = Inference**. Setup is one page and holds only what persists: the LTspice path (with a smoke test), the agent key
+(in the Windows credential store — never in a file), the folder finished models go to, the LTspice user library and an
+install-into-library switch, and the web-reinforcement switch. The main window holds nothing but the part number, the
+datasheet, the save location, **GO** and the progress detail. Without an agent the run stops immediately with `BLOCKED`
+naming what is missing — it never substitutes another provider. A build costs a few agent turns plus about ten seconds of
+simulation: the TPS54320 fixtures judge 38 datasheet rows in **10.7 s** of real LTspice work once the model exists, and a
+repeated run makes **zero** further extraction calls.
 
 What each piece guarantees:
 
