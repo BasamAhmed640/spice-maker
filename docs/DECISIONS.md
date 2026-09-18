@@ -331,3 +331,54 @@ must not do.
 10 test cases, 23/23 stimuli applied; `uv run boardmodeler run mutations` → 7/7
 detected with the original project byte-identical. The full-suite and
 scenario-check results are recorded under "Commands run" in `docs/STATUS.md`.
+
+---
+
+## D-013 — The three circuit FAILs are one model-fidelity finding, not three board faults
+
+**Date:** 2026-09-18
+**What was reported:** `staggered_rails`, `load_step` and `brownout_short_interrupt`
+FAIL the 3V3 rail-window requirement, and `pullup_missing` is UNKNOWN. A reader
+reasonably asks whether the board is broken. It is not, and the measurements below
+are why the number is misleading as it stands.
+
+**Measured, on the built demo project with real LTspice:**
+
+|Variant|min V(3V3) in the 4–10 ms window|Floor|
+|---|---|---|
+|`load_step` baseline (0.5 A step at 6 ms)|2.9107 V|3.135 V|
+|the same deck with the extra step removed|**3.2703 V** (in window)|3.135 V|
+|the same deck with the step at 0.05 A instead of 0.5 A|**3.2693 V** (in window)|3.135 V|
+|buck error-amp gain ×10 (`GM=50` → `GM=500`)|2.9107 V (unchanged)|3.135 V|
+|1V8 nominal load removed|2.7026 V (worse)|3.135 V|
+|output capacitance ×10|−5.79 V (worse)|3.135 V|
+|`BM_LOAD` given a supply-validity gate|2.8921 V|3.135 V|
+
+**Reading:** the excursion appears only in the window that contains a *hard current
+step*, scales with the step amplitude, is untouched by loop gain, and gets worse with
+more output capacitance. That is the large-signal step response of a **reduced
+behavioural model whose compensation is a template constant**, not a demonstrated
+rail-margin failure of a real converter (a switching regulator responds within a few
+switching cycles; this template has no switching stage at all). The brownout FAIL has
+the same shape: a sagging input with a constant-current load against a model whose
+protections latch.
+
+**The actual defect this exposes:** the demonstration asks a *transient-margin*
+question of a model whose transient response was never established, and the project
+already has the right mechanism for that — the capability gate (D-009). It was bypassed
+because `build_demo_project` was never given a `workdir`, so **no capability records
+were produced for the board's generated models** and nothing could be gated. A
+model-limited transient therefore surfaces as a circuit FAIL, which overstates what
+was learned in exactly the direction this project exists to avoid.
+
+**Fix (next action, not yet implemented):** probe the board models during the build so
+`models/capabilities/*.json` exists, bind the rail-window requirement's transient
+behaviour to `load_transients`, and let the gate turn these three results into UNKNOWN
+with `model_capability_unsupported` until the template's step response is validated
+against a declared criterion. The steady-state window check stays as it is: with the
+step removed it passes at 3.2703 V, so it is a real and passing claim.
+
+**Rejected:** widening the ±5 % window, or shrinking the step until it passes — both
+choose the answer instead of measuring it. Rejected too: deleting the scenarios; a
+scenario that cannot be concluded is exactly what UNKNOWN is for, and the FAIL is
+evidence that the gate is missing rather than evidence about the board.

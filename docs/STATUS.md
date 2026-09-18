@@ -111,7 +111,15 @@ Dynamic check, 10 scenarios against real LTspice — `check` completes in ~11 s:
 |FAIL|4|`staggered_rails` and `load_step` — the 3V3 rail dips to 3.126 V / 3.130 V against its declared 3.135 V floor when a load steps; `brownout_short_interrupt` — the rail collapses during the dip; `pullup_wrong_domain` — reported below|
 |UNKNOWN|1|`pullup_missing`: with its pull-up removed the sideband node is isolated, LTspice drops it from the `.raw`, and the level requirement cannot be evaluated — reported with its reason instead of a guess|
 
-Those FAILs are **findings, not test bugs**: the fixture declares a ±5 % window and
+Those FAILs are **one model-fidelity finding, not three board faults** (D-013):
+measured, they appear only in the window containing a hard load step, scale with the
+step amplitude, are unchanged by a 10x loop-gain increase, and worsen with more output
+capacitance — the large-signal step response of a reduced model whose compensation is a
+template constant. They should be UNKNOWN under the capability gate (D-009); they are
+FAIL only because the demo build was never given a `workdir`, so no capability records
+exist for the board's generated models. Fixing that is the next action in D-013.
+
+An earlier draft of this paragraph called these FAILs **findings, not test bugs**: the fixture declares a ±5 % window and
 the reduced behavioural models exceed it on a load step. They are reported as they
 are; nothing was widened to turn them green.
 

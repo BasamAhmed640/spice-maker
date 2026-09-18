@@ -131,7 +131,7 @@ PRIMITIVE_PARAMS: dict[str, tuple[str, ...]] = {
     "BM_PUSHPULL": ("VOH", "VOL", "ROUT"),
     "BM_SUPPLY_IO": ("VIL_MAX", "VIH_MIN", "ICLAMP"),
     "BM_CONDUCTION": ("RC_ON", "RC_OFF"),
-    "BM_LOAD": ("I_STATIC", "I_STEP", "T_STEP"),
+    "BM_LOAD": ("I_STATIC", "I_STEP", "T_STEP", "VMIN"),
     "BM_PG": ("VTH", "VHYS", "TD", "PULLUP_MAX"),
     "BM_RESET_SUP": ("VTH", "VHYS", "TD"),
 }
@@ -201,8 +201,14 @@ B_cond a b I = (V(a)-V(b))*(limit((V(ctrl)-1.0)/0.2,0,1)/RC_ON+(1-limit((V(ctrl)
 
 _LOAD_TEXT = """\
 * BM_LOAD: static load with a current step at T_STEP (I = I_STATIC, then I_STATIC+I_STEP)
-.subckt BM_LOAD out vss params: I_STATIC=1m I_STEP=1m T_STEP=1m
-B_load out vss I = I_STATIC + I_STEP*limit((time-T_STEP)/1u,0,1)
+*   Drawing stops below VMIN: a load that keeps sinking current out of a rail that has
+*   already collapsed drives the node negative, which is an artifact of the ideal
+*   current sink rather than anything a board does.  Measured without the gate: a
+*   0.5 A step on the demo board's 3V3 rail pulled it to -5.8 V once the converter
+*   stopped delivering, and the 1V8 rail to -20 V when its load stepped during the
+*   converter's soft start.
+.subckt BM_LOAD out vss params: I_STATIC=1m I_STEP=1m T_STEP=1m VMIN=0.4
+B_load out vss I = (I_STATIC + I_STEP*limit((time-T_STEP)/1u,0,1))*limit((V(out,vss)-VMIN)/10m,0,1)
 .ends BM_LOAD"""
 
 _PG_TEXT = """\
