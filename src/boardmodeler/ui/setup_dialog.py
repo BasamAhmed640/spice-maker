@@ -2,8 +2,8 @@
 
 Everything a model build does not need to be asked again each time lives here and only
 here: where LTspice is, the agent's API key, the folder finished models land in, the
-LTspice user library and whether models are installed into it, and whether the web is
-searched for supporting material. The main window carries none of it.
+LTspice user library and whether the web is searched for supporting material. The main
+window carries none of it.
 
 The page is sized to its content — no fixed-height frame with dead space under it.
 """
@@ -55,7 +55,6 @@ def describe_settings(config: AppConfig) -> dict[str, object]:
         "config_path": str(config_path()),
         "ltspice_path": config.ltspice.path,
         "model_dir": config.default_model_dir,
-        "install_to_ltspice_lib": config.install_to_ltspice_lib,
         "web_reinforcement": config.web_reinforcement,
         "ltspice_user_lib": str(ltspice_user_lib()),
         "bob_api_key": describe_credential(_BOB_KEY_NAME),
@@ -123,13 +122,9 @@ class SetupDialog(QDialog):
         grid.addWidget(QLabel("LTSPICE LIBRARY"), 6, 0)
         grid.addWidget(library, 6, 1, 1, 3)
 
-        self.install_check = QCheckBox("install finished models into the LTspice library")
-        self.install_check.setChecked(self._config.install_to_ltspice_lib)
-        grid.addWidget(self.install_check, 7, 1, 1, 3)
-
         self.reinforce_check = QCheckBox("search the web for supporting material while making a model")
         self.reinforce_check.setChecked(self._config.web_reinforcement)
-        grid.addWidget(self.reinforce_check, 8, 1, 1, 3)
+        grid.addWidget(self.reinforce_check, 7, 1, 1, 3)
 
         # --- actions ---------------------------------------------------------
         row = QHBoxLayout()
@@ -221,7 +216,6 @@ class SetupDialog(QDialog):
     def _save(self) -> None:
         self._config.ltspice.path = self.ltspice_edit.text().strip() or None
         self._config.default_model_dir = self.model_dir_edit.text().strip() or None
-        self._config.install_to_ltspice_lib = self.install_check.isChecked()
         self._config.web_reinforcement = self.reinforce_check.isChecked()
         try:
             path = save_config(self._config)

@@ -20,9 +20,12 @@ Honesty rules this module implements:
   (the excerpts inside it).
 
 The default fetcher is :func:`default_fetcher`: urllib with an explicit
-User-Agent, Python's default TLS verification, a 1 MiB size cap, a content-type
-allowlist (``text/html``, ``text/plain``, ``application/pdf``) and at most three
-redirects. A refusal, timeout, HTTP error or unreadable body is recorded on the
+User-Agent, Python's default TLS verification, a public-host check (loopback,
+private, link-local, multicast and reserved destinations are refused, and a
+hostname that resolves to one of those or does not resolve at all is refused),
+a 1 MiB size cap, a content-type allowlist (``text/html``, ``text/plain``,
+``application/pdf``) and at most three redirects, each re-checked for a public
+host. A refusal, timeout, HTTP error or unreadable body is recorded on the
 source as a ``reason``; nothing raises out of :func:`reinforce`.
 
 When no ``candidate_provider`` is injected, the stage asks the configured agent
@@ -71,8 +74,10 @@ sorted)::
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import re
+import socket
 import tempfile
 import urllib.error
 import urllib.parse
@@ -313,11 +318,64 @@ def _utc_now() -> str:
 # fetching
 
 
+def _is_public_address(address: str) -> bool:
+    """True only for a globally routable address (no private/reserved/link-local)."""
+    try:
+        parsed = ipaddress.ip_address(address)
+    except ValueError:
+        return False
+    mapped = getattr(parsed, "ipv4_mapped", None)
+    target = mapped if mapped is not None else parsed
+    if (
+        target.is_private
+        or target.is_loopback
+        or target.is_link_local
+        or target.is_multicast
+        or target.is_reserved
+        or target.is_unspecified
+    ):
+        return False
+    return target.is_global
+
+
+def _require_public_host(url: str) -> None:
+    """Refuse a destination that is not a public internet host.
+
+    A literal address is classified directly; a hostname must resolve, and every
+    address it resolves to must be globally routable. A host that does not
+    resolve is refused rather than attempted. The redirect handler calls this
+    for each hop so a redirect cannot escape the policy.
+    """
+    host = urllib.parse.urlsplit(url).hostname
+    if not host:
+        raise FetchRefused(f"host_refused: {url!r} has no host")
+    addresses: list[str] | None = None
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        try:
+            infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+        except OSError:
+            infos = []
+        addresses = [info[4][0] for info in infos]
+    if addresses is None:
+        addresses = [host]
+    if not addresses:
+        raise FetchRefused(f"host_refused: {host!r} does not resolve")
+    for address in addresses:
+        if not _is_public_address(address):
+            raise FetchRefused(f"host_refused: {host!r} resolves to non-public address {address}")
+
+
 class _RedirectCap(HTTPRedirectHandler):
-    """At most :data:`_MAX_REDIRECTS` hops; urllib raises when exceeded."""
+    """At most :data:`_MAX_REDIRECTS` hops, each still a public host."""
 
     max_repeats = _MAX_REDIRECTS
     max_redirections = _MAX_REDIRECTS
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        _require_public_host(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 def default_fetcher(url: str, *, timeout_s: float = _DEFAULT_TIMEOUT_S) -> tuple[bytes, str]:
@@ -335,6 +393,7 @@ def default_fetcher(url: str, *, timeout_s: float = _DEFAULT_TIMEOUT_S) -> tuple
         raise FetchRefused("credentials_in_url: refusing a URL that carries a secret")
     if timeout_s <= 0:
         raise FetchRefused(f"invalid_timeout: timeout_s must be > 0, got {timeout_s!r}")
+    _require_public_host(url)
     request = Request(url, headers={"User-Agent": _USER_AGENT, "Accept": _ACCEPT_HEADER})
     opener = build_opener(_RedirectCap())
     with opener.open(request, timeout=timeout_s) as response:

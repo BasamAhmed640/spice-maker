@@ -354,8 +354,7 @@ class ModelMakerWindow(QMainWindow):
                 subckt=spec.subckt,
                 lib=self._out_dir / f"{spec.subckt}.lib",
                 asy=self._out_dir / f"{spec.subckt}.asy",
-                user_lib=_install_to_ltspice_library(),
-                into=None if _install_to_ltspice_library() else self._out_dir,
+                user_lib=True,
                 apply=True,
             )
         except Exception as exc:
@@ -495,22 +494,14 @@ def _default_model_dir() -> str:
     return configured or str(Path.home() / "BoardModeler")
 
 
-def _install_to_ltspice_library() -> bool:
-    try:
-        from boardmodeler.config import load_config
-
-        return bool(load_config().install_to_ltspice_lib)
-    except Exception:  # pragma: no cover
-        return False
-
-
 def _window_stylesheet() -> str:
-    """The retro sheet plus a window scope that cannot repaint the buttons.
+    """The retro control sheet plus window-scoped rules only.
 
     The earlier version appended a bare ``QWidget`` rule, which tied with
     ``QPushButton`` on specificity and, being later, won — every button was painted
     black while the button text stayed black, so an enabled button was invisible.
-    Here the background is scoped by object name and the button states are explicit.
+    Here the background is scoped by object name and the button styling comes from
+    ``RETRO_STYLESHEET``, so a window rule can never repaint a control.
     """
     from boardmodeler.ui.theme import CGA, RETRO_STYLESHEET
 
@@ -525,17 +516,5 @@ QTableWidget {{ background: {CGA["black"]}; color: {CGA["bright_green"]};
 QHeaderView::section {{ background: {CGA["blue"]}; color: {CGA["white"]};
                         border: 0; padding: 3px; font-family: Consolas; }}
 QTableCornerButton::section {{ background: {CGA["blue"]}; }}
-QPushButton {{ background: {CGA["grey"]}; color: {CGA["black"]};
-               border: 2px solid {CGA["white"]}; padding: 5px 10px;
-               font-family: Consolas; font-weight: bold; }}
-QPushButton:hover, QPushButton:default {{ background: {CGA["white"]}; color: {CGA["black"]}; }}
-QPushButton:pressed {{ background: {CGA["dark_grey"]}; color: {CGA["white"]}; }}
-QPushButton:disabled {{ background: {CGA["dark_grey"]}; color: {CGA["grey"]};
-                        border-color: {CGA["dark_grey"]}; }}
-QProgressBar {{ background: {CGA["black"]}; color: {CGA["bright_green"]};
-                border: 2px solid {CGA["bright_blue"]}; text-align: center; }}
-QProgressBar::chunk {{ background: {CGA["blue"]}; }}
-QCheckBox {{ color: {CGA["grey"]}; font-family: Consolas; font-size: 10pt; }}
-QDialog {{ background: {CGA["black"]}; }}
 """
     )

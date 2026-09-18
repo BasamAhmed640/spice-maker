@@ -75,21 +75,20 @@ def build_parser() -> argparse.ArgumentParser:
     version_cmd.add_argument("--json", action="store_true")
 
     setup_cmd = sub.add_parser(
-        "setup", help="run the retro setup wizard (LTspice, provider, data policy)"
+        "setup", help="the one page of persistent settings (LTspice, API key, model folder)"
     )
     setup_cmd.add_argument(
         "--json",
         action="store_true",
-        help="walk every step with the default answers and print the observed outcome",
+        help="print the resolved settings instead of a window",
     )
-    setup_cmd.add_argument("--project", type=Path, default=None, help="project directory to record")
 
     ui_cmd = sub.add_parser(
         "ui", help="launch the model maker window (add --installer for setup)"
     )
     ui_cmd.add_argument("--project", type=Path, default=None, help="project directory to open")
     ui_cmd.add_argument(
-        "--installer", action="store_true", help="launch the setup wizard instead of the app"
+        "--installer", action="store_true", help="open the setup page instead of the model maker"
     )
 
     run = sub.add_parser("run", help="execute project work (earlier board workflow)")

@@ -50,7 +50,6 @@ def test_the_page_is_sized_to_its_content(dialog) -> None:
 def test_saving_persists_only_the_declared_settings(dialog, isolated_config: Path) -> None:
     dialog.model_dir_edit.setText(str(isolated_config.parent / "models"))
     dialog.ltspice_edit.setText(r"C:\tools\LTspice.exe")
-    dialog.install_check.setChecked(True)
     dialog.reinforce_check.setChecked(False)
 
     dialog._save()
@@ -58,7 +57,6 @@ def test_saving_persists_only_the_declared_settings(dialog, isolated_config: Pat
     saved = json.loads(isolated_config.read_text(encoding="utf-8"))
     assert saved["default_model_dir"] == str(isolated_config.parent / "models")
     assert saved["ltspice"]["path"] == r"C:\tools\LTspice.exe"
-    assert saved["install_to_ltspice_lib"] is True
     assert saved["web_reinforcement"] is False
 
 
@@ -85,14 +83,12 @@ def test_the_api_key_goes_to_the_credential_store_and_never_to_the_config(
 
 
 def test_settings_round_trip_through_the_config(dialog, isolated_config: Path) -> None:
-    dialog.install_check.setChecked(True)
     dialog.reinforce_check.setChecked(False)
     dialog._save()
 
     from boardmodeler.config import load_config
 
     reloaded = load_config(isolated_config)
-    assert reloaded.install_to_ltspice_lib is True
     assert reloaded.web_reinforcement is False
 
 

@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+from urllib.request import Request
 
 import pytest
 from reportlab.lib.pagesizes import letter
@@ -464,6 +465,63 @@ def test_default_fetcher_refuses_non_http_schemes_and_bad_timeouts() -> None:
     assert "invalid_timeout" in str(timeout.value)
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://127.0.0.1/",
+        "http://127.1.2.3/",
+        "http://[::1]/",
+        "http://10.0.0.1/",
+        "http://172.16.0.1/",
+        "http://192.168.1.1/",
+        "http://169.254.169.254/latest/meta-data/",
+        "http://[fe80::1]/",
+        "http://224.0.0.1/",
+        "http://240.0.0.1/",
+        "http://0.0.0.0/",
+    ],
+)
+def test_default_fetcher_refuses_non_public_destinations(url: str) -> None:
+    with pytest.raises(FetchRefused) as refusal:
+        default_fetcher(url)
+    assert "host_refused" in str(refusal.value)
+
+
+def test_default_fetcher_refuses_a_hostname_that_resolves_privately(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        reinforce_module.socket,
+        "getaddrinfo",
+        lambda *args, **kwargs: [(2, 1, 6, "", ("10.0.0.5", 0))],
+    )
+    with pytest.raises(FetchRefused) as refusal:
+        default_fetcher("https://intranet.example/a")
+    assert "host_refused" in str(refusal.value)
+
+
+def test_default_fetcher_refuses_a_hostname_that_does_not_resolve(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unreachable(*args: object, **kwargs: object) -> list[object]:
+        raise OSError("name resolution failed")
+
+    monkeypatch.setattr(reinforce_module.socket, "getaddrinfo", unreachable)
+    with pytest.raises(FetchRefused) as refusal:
+        default_fetcher("https://nowhere.example/a")
+    assert "host_refused" in str(refusal.value)
+
+
+def test_a_redirect_to_a_non_public_host_is_refused() -> None:
+    handler = reinforce_module._RedirectCap()
+    request = Request("https://93.184.216.34/a")
+    with pytest.raises(FetchRefused) as refusal:
+        handler.redirect_request(
+            request, None, 302, "Found", email.message.Message(), "http://169.254.169.254/"
+        )
+    assert "host_refused" in str(refusal.value)
+
+
 def test_candidate_carrying_credentials_is_never_recorded(tmp_path: Path) -> None:
     # A credentialed URL would be persisted into the report, so it is refused
     # before any fetch: the secret never reaches supporting.json.
@@ -535,7 +593,7 @@ def test_default_fetcher_sends_a_user_agent_and_honours_the_timeout(
     opener = _install_fake_opener(
         monkeypatch, _FakeResponse(b"hello", "text/plain; charset=utf-8")
     )
-    body, content_type = default_fetcher("https://example.invalid/a", timeout_s=7.5)
+    body, content_type = default_fetcher("https://93.184.216.34/a", timeout_s=7.5)
     assert body == b"hello"
     assert content_type == "text/plain"
     assert opener.timeout == 7.5
@@ -548,7 +606,7 @@ def test_default_fetcher_refuses_a_non_text_content_type(
 ) -> None:
     _install_fake_opener(monkeypatch, _FakeResponse(b"x", "application/octet-stream"))
     with pytest.raises(FetchRefused) as refusal:
-        default_fetcher("https://example.invalid/a")
+        default_fetcher("https://93.184.216.34/a")
     assert "content_type_refused: 'application/octet-stream'" in str(refusal.value)
 
 
@@ -564,7 +622,7 @@ def test_default_fetcher_refuses_oversize_bodies(
 ) -> None:
     _install_fake_opener(monkeypatch, response)
     with pytest.raises(FetchRefused) as refusal:
-        default_fetcher("https://example.invalid/a")
+        default_fetcher("https://93.184.216.34/a")
     assert expected in str(refusal.value)
 
 

@@ -469,7 +469,10 @@ supporting material while a model is made. The stage records errata, application
 vendor-model caveats, but only text this tool actually retrieved, stored verbatim with its
 URL and hash; an agent's claim we could not fetch is kept as `retrieved=false` with the
 reason. Nothing in it can change a status — the datasheet rows stay the only oracle — so it
-can inform a reader without ever upgrading a model's claims.
+can inform a reader without ever upgrading a model's claims. The fetcher refuses any
+destination that is not a public internet host (loopback, private, link-local, multicast
+or reserved addresses, and any name that resolves to one of those or does not resolve at
+all), and re-checks that policy on every redirect hop.
 
 **Cost of the drift, recorded honestly:** the UI (3.4 kloc), the circuit checker and
 schematic layer (4.0 kloc), and the board demonstration were built against the earlier

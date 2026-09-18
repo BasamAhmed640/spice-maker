@@ -240,57 +240,34 @@ def mutate_project(project_dir: Path, fault_id: str, out_dir: Path) -> Mutation
 def fault_ids() -> tuple[str, ...]
 ```
 
-## 4. GUI (`ui/`) and the installer wizard
+## 4. GUI (`ui/`) and the model maker
 
 * `ui/app.py`: `def main(argv: Sequence[str] | None = None) -> int` — QApplication
-  entry point; `--project <dir>` preloads a project.
-* `ui/main_window.py`: `class MainWindow(QMainWindow)` with `load_project(dir)`,
-  `start_run()`, `cancel_run()`, `export_project()`, `results_table()` (returns the
-  model), `stage_list()` and `findings_list()` accessors for tests.
-* `ui/worker_client.py`: `class WorkerClient(QObject)` — `start(request)` spawns
-  the worker, re-emits the protocol events as Qt signals, `cancel()` kills the
-  process tree, `resumed()` support by re-running with the same request.
-* `ui/waveforms.py`: `class WaveformView(QWidget)` — custom `QPainter` widget
-  (no QtCharts); `set_traces(list[Trace])`, `add_violation_marker(req_id, t_s)`,
-  pan/zoom via mouse, `trace_names()`.
-* `ui/results_panel.py`, `ui/review_panel.py`, `ui/settings.py`.
+  entry point; `--installer` opens the setup page and `--board-ui` the dormant board
+  window instead of the model maker.
+* `ui/model_maker.py`: `class ModelMakerWindow(QMainWindow)` — the build surface:
+  `part_edit`, `datasheet_edit`, `out_edit`, `go_button`, `cancel_button`, a stage
+  table and a datasheet-row table, with `SETUP` and `CHECK ENVIRONMENT` buttons. Fixed
+  900×600; all control styling comes from `ui/theme.py`'s `RETRO_STYLESHEET`.
+* `ui/setup_dialog.py`: `class SetupDialog(QDialog)` — the one page of persistent
+  settings (LTspice path + smoke test, Bob API key, model folder, the read-only LTspice
+  user library, web reinforcement), sized to its content. `describe_settings(config)`
+  returns those settings as data for `boardmodeler setup --json`, and `main(argv)` is
+  the `boardmodeler setup` entry point. Reached from the SETUP button, `boardmodeler
+  setup`, or `boardmodeler ui --installer`.
+* `ui/theme.py`: `CGA` palette and `RETRO_STYLESHEET` (controls only); a window adds
+  window-scoped rules and must scope its background by object name.
+* `ui/main_window.py`, `ui/worker_client.py`, `ui/waveforms.py`, `ui/results_panel.py`,
+  `ui/review_panel.py`, `ui/settings.py` belong to the dormant earlier board spec.
 * Tests run with `QT_QPA_PLATFORM=offscreen` and are marked `gui`.
-
-### Retro installer wizard (`ui/installer.py`) — user-requested
-
-A self-contained, light, low-resolution "retro" wizard that walks a new user
-through setup. Requirements:
-
-* Pure Qt Widgets, no extra dependency, no images: **every pixel is drawn in
-  code** — a chunky 8-bit look (fixed-size bitmap-ish font feel, 2–3 px borders,
-  hard-edged panels, a limited palette, dithered/solid backgrounds, a blinking
-  cursor, and a step counter like `[3/5]`).
-* Steps: (1) welcome/scan, (2) LTspice detection + smoke test, (3) provider and
-  credential setup (fixture / remote / Bob — never storing a secret in plain
-  text), (4) data policy + privacy acknowledgement, (5) finish/summary with the
-  exact commands to run.
-* It must show **observed** facts only: the LTspice path and version and the smoke
-  test result come from the same core functions the CLI uses
-  (`simulation.ltspice.smoke_test`), and a failure is displayed as a failure with
-  the observed detail. It never claims a step passed without running it.
-* Every step is skippable, and the wizard writes its choices through
-  `config.save_config`, so it can be run non-interactively in a test with an
-  injected answer set.
-* Test API: `class InstallerWizard(QWizard)` with
-  `page_ids() -> list[str]`, `set_answers(dict) -> None`,
-  `run_to_completion() -> InstallerOutcome` (dataclass: `completed: bool`,
-  `config_path: Path`, `steps: list[tuple[str, str]]` (step id, observed detail),
-  `skipped: list[str]`), so a test can drive the whole wizard offscreen and assert
-  the saved config.
-* A `--installer` flag on `boardmodeler ui` (or `boardmodeler setup`) launches it.
 
 ## 5. CLI surface (final)
 
 ```
 boardmodeler version [--json]
 boardmodeler doctor [--json] [--no-smoke] [--smoke-workdir DIR]
-boardmodeler setup [--json] [--project DIR]      # retro installer wizard
-boardmodeler ui [--project DIR] [--installer]
+boardmodeler setup [--json]                      # one page of persistent settings
+boardmodeler ui [--project DIR] [--installer]    # model maker (--installer: setup page)
 boardmodeler run tests --project DIR [--scope S] [--test ID] [--list-tests] [--json] [--out F]
                                      [--timeout S] [--ltspice EXE] [--ascii-raw] [--strict]
 boardmodeler demo build --out DIR [--json] [--no-probe]

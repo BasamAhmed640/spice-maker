@@ -1,4 +1,4 @@
-"""The shared retro look: the CGA palette, the control stylesheet and the font helper.
+"""The shared retro look: the CGA palette and the control stylesheet.
 
 Kept separate from any one window so the model maker and the setup page style themselves
 from the same source, and so the stylesheet cannot be accidentally shadowed by a window
@@ -7,9 +7,7 @@ that appends its own rules.
 
 from __future__ import annotations
 
-from PySide6.QtGui import QFont
-
-__all__ = ["CGA", "RETRO_STYLESHEET", "retro_font"]
+__all__ = ["CGA", "RETRO_STYLESHEET"]
 
 CGA: dict[str, str] = {
     "black": "#000000",
@@ -51,14 +49,8 @@ QCheckBox {{ color: {CGA["grey"]}; font-family: Consolas; font-size: 10pt; spaci
 QCheckBox::indicator {{ width: 12px; height: 12px; border: 2px solid {CGA["bright_green"]};
                         background: {CGA["black"]}; }}
 QCheckBox::indicator:checked {{ background: {CGA["bright_green"]}; }}
+QProgressBar {{ background: {CGA["black"]}; color: {CGA["bright_green"]};
+                border: 2px solid {CGA["bright_blue"]}; text-align: center; }}
+QProgressBar::chunk {{ background: {CGA["blue"]}; }}
 QLabel {{ color: {CGA["grey"]}; font-family: Consolas; font-size: 10pt; }}
 """
-
-
-def retro_font(size: int = 10, *, bold: bool = False) -> QFont:
-    """A chunky fixed-pitch font with antialiasing disabled."""
-    font = QFont("Consolas", size)
-    font.setStyleHint(QFont.StyleHint.Monospace)
-    font.setStyleStrategy(QFont.StyleStrategy.PreferBitmap)
-    font.setBold(bold)
-    return font
