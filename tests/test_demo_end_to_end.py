@@ -121,6 +121,27 @@ def test_the_nominal_scenario_passes_with_real_measurements(checked) -> None:
     assert max(rails) > 2.0, f"the rails never came up: {passed[0].measured}"
 
 
+def test_the_reset_fault_scenario_detects_the_short_hold(checked) -> None:
+    """The injected 200 us reset hold must be observed as a detected violation.
+
+    The declared nominal load steps must not land inside the reset-release window
+    and re-assert the supervisor, which would delay the release past the 1 ms
+    minimum and hide the very fault the scenario injects.
+    """
+    result = next((r for r in checked.results if "reset_early_release" in r.test_id), None)
+    assert result is not None, (
+        f"no reset_early_release result among {[r.test_id for r in checked.results]}"
+    )
+    assert result.status is Status.PASS, f"{result.test_id}: {result.status.value} {result.detail}"
+    assert result.run_id, f"{result.test_id} has no run id, so no artifact backs the detection"
+    delay = result.measured.get("REQ_DEMO_SEQ_003.delay_s")
+    assert isinstance(delay, (int, float)), f"no measured release delay: {result.measured}"
+    assert delay < 1e-3, (
+        f"the released-too-early fault measured {delay:g} s, which is not below the "
+        f"requirement's 1 ms minimum: {result.detail}"
+    )
+
+
 def test_unresolved_requirements_are_visible_as_unknown_or_blocked(checked) -> None:
     """The fixture's clock is an assumption, so nothing depending on it may pass."""
     statuses = {result.status for result in checked.results}

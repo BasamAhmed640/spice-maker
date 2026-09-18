@@ -858,8 +858,15 @@ SCENARIO_STIMULI: dict[str, ScenarioStimulus] = {
     ),
     "reset_early_release": ScenarioStimulus(
         param_overrides={"U3": {"TD": "200u"}, "U4": {"TD": "200u"}},
+        # The nominal load steps (2.5 ms on 3V3, 3 ms on 1V8) land inside the
+        # reset-release window: the PG glitches they cause discharge the reset
+        # supervisor's TD lag network and re-assert PERST#, so the shortened
+        # hold this scenario injects never reaches the output. The declared
+        # amplitudes are still applied, after the reset window has closed.
+        load_step_s={"I1": 6e-3, "I2": 8e-3},
         note="U3's assertion delay, the reset hold after its PG input becomes valid, is "
-        "shortened from 2 ms to 200 us",
+        "shortened from 2 ms to 200 us; the nominal load steps are moved after the "
+        "reset-release window so a load-step PG glitch cannot hide the injected fault",
     ),
     "brownout_short_interrupt": ScenarioStimulus(
         vin=(
