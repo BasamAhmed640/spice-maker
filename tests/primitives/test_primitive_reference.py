@@ -549,6 +549,7 @@ def test_port_and_param_tables_match_the_specification() -> None:
         "BM_CONDUCTION": ("a", "b", "ctrl"),
         "BM_LOAD": ("out", "vss"),
         "BM_PG": ("open_in", "out", "vdd", "vss"),
+        "BM_RESET_SUP": ("pg_in", "out", "vdd", "vss"),
     }
     assert PRIMITIVE_PARAMS == {
         "BM_SCHMITT": ("VTH", "VHYS", "VOH", "VOL", "TPD"),
@@ -559,6 +560,7 @@ def test_port_and_param_tables_match_the_specification() -> None:
         "BM_CONDUCTION": ("RC_ON", "RC_OFF"),
         "BM_LOAD": ("I_STATIC", "I_STEP", "T_STEP"),
         "BM_PG": ("VTH", "VHYS", "TD", "PULLUP_MAX"),
+        "BM_RESET_SUP": ("VTH", "VHYS", "TD"),
     }
 
 
@@ -658,3 +660,55 @@ Xpg pg_in pg_out vdd 0 BM_PG
     assert abs(_value_at(t, raw.column("I(Vsense_ld)"), 1.4e-3) - 2e-3) < 1e-4
     # BM_PG released the pin into the pull-up
     assert float(raw.column("V(pg_out)")[final]) > 3.2
+
+
+# BM_RESET_SUP
+
+
+@pytest.mark.ltspice
+def test_reset_supervisor_holds_low_and_releases_after_the_delay(
+    tmp_path: Path, ltspice_exe: Path, lib: Path
+) -> None:
+    """The reset contract: low while the sense is bad, released TD after it is good.
+
+    This is the polarity `BM_PG` deliberately does not provide (it *asserts* when its
+    sense is good), and it is what the demo board's reset supervisors need: an
+    inverted reset line made `PERST#` rise before any power-good pin was valid.
+    """
+    vth, vhys, td = 1.2, 0.2, 200e-6
+    body = f"""
+.tran 0 2m 0 1u
+Vdd vdd 0 3.3
+* sense starts bad (low), goes good at 500 us
+Vpg pg 0 PWL(0 0 500u 0 500.1u 3.3 2m 3.3)
+Rpu out vdd 10k
+Xr pg out vdd 0 BM_RESET_SUP VTH={vth} VHYS={vhys} TD={td}
+* a second unit whose sense is bad for the whole run: the output must stay low
+Vpg2 pg2 0 0
+Rpu2 out2 vdd 10k
+Xr2 pg2 out2 vdd 0 BM_RESET_SUP VTH={vth} VHYS={vhys} TD={td}
+"""
+    raw, _ = _simulate(tmp_path, ltspice_exe, lib, "reset_sup", body)
+    t = raw.time_column()
+    assert t is not None
+
+    always_bad = float(raw.column("V(out2)")[-1])
+    # measured: held low through the pull-down (50 ohm against a 10k pull-up)
+    assert always_bad <= 0.05 * 3.3, (
+        f"reset output released while its sense was bad: {always_bad:.5f} V"
+    )
+
+    v_out = raw.column("V(out)")
+    before = float(np.mean(v_out[t < 400e-6]))
+    assert before <= 0.05 * 3.3, f"reset asserted high before power was good: {before:.5f} V"
+
+    release = _crossings(t, v_out, 0.5 * 3.3, "rise")
+    assert release, "the reset output never released"
+    measured_delay = release[0] - 500e-6
+    # the lag network is TD/(ln 3) * C, so the release lands within 35 % of TD
+    assert abs(measured_delay - td) <= 0.35 * td, (
+        f"release delay {measured_delay * 1e6:.1f} us vs {td * 1e6:.1f} us"
+    )
+
+    settled = float(np.mean(v_out[t > 1.5e-3]))
+    assert settled >= 0.95 * 3.3, f"the reset output did not reach the rail: {settled:.3f} V"

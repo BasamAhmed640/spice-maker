@@ -69,9 +69,9 @@
   },
   "timing": {
     "load_step_1v8_a": 0.2,
-    "load_step_1v8_s": 0.002,
+    "load_step_1v8_s": 0.003,
     "load_step_3v3_a": 0.15,
-    "load_step_3v3_s": 0.002,
+    "load_step_3v3_s": 0.0025,
     "pg_delay_s": 0.002,
     "reset_release_max_s": 0.1,
     "reset_release_min_s": 0.001,

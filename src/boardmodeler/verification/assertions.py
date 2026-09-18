@@ -422,14 +422,18 @@ def _eval_event_window(expr: Expr, ctx: EvalContext, *, op: str, quantity: str) 
             },
         )
     requirement_end = start_time + max_s
-    if requirement_end > float(time_axis[-1]) * (1.0 - 1e-3):
-        return _unknown(
-            op,
-            "window_does_not_cover_max",
-            f"the start event occurred at {start_time:g} s and the requirement allows up to "
-            f"{max_s:g} s, but the run only reaches {float(time_axis[-1]):g} s",
-        )
+    covers_requirement = requirement_end <= float(time_axis[-1]) * (1.0 - 1e-3)
     if end_time is None:
+        if not covers_requirement:
+            # Nothing was observed *and* the run stops before the allowed maximum,
+            # so the delay is genuinely undecidable: the end event could still be
+            # coming. This is the only case the coverage guard protects.
+            return _unknown(
+                op,
+                "window_does_not_cover_max",
+                f"the start event occurred at {start_time:g} s and the requirement allows up to "
+                f"{max_s:g} s, but the run only reaches {float(time_axis[-1]):g} s",
+            )
         measured = {
             f"{quantity}_s": f"not observed within {max_s:g} s",
             "start_s": start_time,
@@ -444,6 +448,9 @@ def _eval_event_window(expr: Expr, ctx: EvalContext, *, op: str, quantity: str) 
             measured,
         )
 
+    # The end event was observed, so the quantity is measured and the verdict is
+    # decidable even when the run stops before ``start + max_s``: a produced
+    # observation must not be downgraded to UNKNOWN for want of extra window.
     measured_value = end_time - start_time
     measured = {
         f"{quantity}_s": measured_value,

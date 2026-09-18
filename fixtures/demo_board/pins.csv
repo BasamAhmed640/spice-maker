@@ -37,11 +37,11 @@ R8,1,A,power,not_applicable,,power,required,
 R8,2,B,power,not_applicable,,power,required,
 R9,1,A,power,not_applicable,,power,required,
 R9,2,B,power,not_applicable,,power,required,
-U3,open_in,open_in,input,active_high,3V3,input_only,required,
+U3,pg_in,pg_in,input,active_high,3V3,input_only,required,
 U3,out,out,output,active_low,3V3,open_drain,required,leave open
 U3,vdd,vdd,power,not_applicable,3V3,power,required,
 U3,vss,vss,ground,not_applicable,,power,required,
-U4,open_in,open_in,input,active_high,3V3,input_only,required,
+U4,pg_in,pg_in,input,active_high,3V3,input_only,required,
 U4,out,out,output,active_low,3V3,open_drain,required,leave open
 U4,vdd,vdd,power,not_applicable,3V3,power,required,
 U4,vss,vss,ground,not_applicable,,power,required,

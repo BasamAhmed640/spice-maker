@@ -107,9 +107,7 @@ def regulation_requirement() -> Requirement:
             "unit": "V",
             "interval": {"start_s": 0.8 * TSTOP, "end_s": TSTOP},
         },
-        statement=(
-            "V(VOUT) regulates to Vref * (1 + Rfbt/Rfbb) through the external divider."
-        ),
+        statement=("V(VOUT) regulates to Vref * (1 + Rfbt/Rfbb) through the external divider."),
     )
 
 
@@ -180,9 +178,7 @@ def overload_deck(run_dir: Path, *, rfbt: float, params: dict[str, object] | Non
             f"Rfbt VOUT FB {rfbt:g}",
             f"Rfbb FB 0 {RFBB:g}",
         ),
-        tran=TranSpec(
-            tstep=stop / 5000.0, tstop=stop, tstart=0.0, tmax=TSTOP / 2000.0
-        ),
+        tran=TranSpec(tstep=stop / 5000.0, tstop=stop, tstart=0.0, tmax=TSTOP / 2000.0),
         save=("V(VOUT)", "V(FB)", "V(PG)", "V(EN)"),
         options={"method": "gear", "trtol": 20},
     )

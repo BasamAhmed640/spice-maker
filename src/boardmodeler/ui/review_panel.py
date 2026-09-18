@@ -111,7 +111,7 @@ class ReviewPanel(QWidget):
             return self.items()
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except OSError, json.JSONDecodeError:
             return self.items()
         if isinstance(payload, list):
             self.set_items(payload)
@@ -157,7 +157,7 @@ class ReviewPanel(QWidget):
             return False
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except OSError, json.JSONDecodeError:
             return False
         if not isinstance(payload, list):
             return False

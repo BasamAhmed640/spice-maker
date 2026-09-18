@@ -272,7 +272,14 @@ def test_event_delay_fails_when_the_end_event_never_occurs() -> None:
     assert "never observed within" in verdict.detail
 
 
-def test_event_delay_is_unknown_when_the_window_does_not_cover_max_s() -> None:
+def test_event_delay_is_unknown_when_nothing_is_observed_and_the_window_is_short() -> None:
+    """The coverage guard protects an *unobserved* end event, and only that.
+
+    With the end event never occurring and the run stopping before ``start + max_s``
+    the delay is genuinely undecidable: the event could still be coming. When the
+    end event *is* observed the quantity is measured, and a produced observation
+    must not be downgraded to UNKNOWN for want of extra window.
+    """
     t = np.linspace(0, 6e-4, 601)
     ramp = np.clip(t / 2e-4, 0.0, 1.0)
     expr = parse_expr(
@@ -284,9 +291,15 @@ def test_event_delay_is_unknown_when_the_window_does_not_cover_max_s() -> None:
             "max_s": 5e-3,
         }
     )
-    verdict = evaluate(expr, ctx(make_raw(t, **{"V(in)": ramp, "V(out)": ramp})))
+    never = np.zeros_like(t)
+    verdict = evaluate(expr, ctx(make_raw(t, **{"V(in)": ramp, "V(out)": never})))
     assert verdict.status is Status.UNKNOWN
     assert verdict.unknown_reason == "window_does_not_cover_max"
+
+    # Same window, but now the end event is observed: the delay is decided.
+    observed = evaluate(expr, ctx(make_raw(t, **{"V(in)": ramp, "V(out)": ramp})))
+    assert observed.status is Status.PASS
+    assert observed.measured["delay_s"] == pytest.approx(0.0, abs=1e-9)
 
 
 def test_pulse_width_measures_the_high_time() -> None:

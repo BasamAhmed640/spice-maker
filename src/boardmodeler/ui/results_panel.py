@@ -177,7 +177,9 @@ class FindingsTableModel(QAbstractTableModel):
             return _status_colour(str(row.get("status", "")))
         if role == Qt.ItemDataRole.ToolTipRole:
             detail = row.get("detail") or {}
-            return "\n".join(f"{k}={v}" for k, v in detail.items()) if detail else row.get("message")
+            return (
+                "\n".join(f"{k}={v}" for k, v in detail.items()) if detail else row.get("message")
+            )
         return None
 
     def _cell(self, row: Mapping[str, Any], column: int) -> str:
@@ -269,9 +271,7 @@ class ResultsPanel(QWidget):
     def set_findings(self, findings: Sequence[Mapping[str, Any]]) -> None:
         self.findings_model.set_findings(findings)
         row_count = self.findings_model.rowCount()
-        critical = sum(
-            1 for row in self.findings_model.rows() if row.get("status") == "FAIL"
-        )
+        critical = sum(1 for row in self.findings_model.rows() if row.get("status") == "FAIL")
         self.findings_label.setText(
             f"Findings (most critical first): {row_count} total, {critical} FAIL"
             if row_count

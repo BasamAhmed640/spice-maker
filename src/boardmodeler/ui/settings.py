@@ -121,9 +121,7 @@ class SettingsDialog(QDialog):
         self.allow_remote.setChecked(bool(policy.allow_remote))
         self.deny_unknown = QCheckBox("Refuse documents with unknown classification", self)
         self.deny_unknown.setChecked(bool(policy.deny_unknown_classification))
-        self.allow_bob_shell = QCheckBox(
-            "Allow Bob Shell (non-interactive tool execution)", self
-        )
+        self.allow_bob_shell = QCheckBox("Allow Bob Shell (non-interactive tool execution)", self)
         self.allow_bob_shell.setChecked(bool(policy.allow_bob_shell))
         self.cache_extraction = QCheckBox("Cache extraction by prompt hash", self)
         self.cache_extraction.setChecked(bool(policy.cache_extraction))

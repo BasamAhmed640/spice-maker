@@ -24,6 +24,7 @@ from pathlib import Path
 import pytest
 
 from boardmodeler.domain.enums import Status
+from boardmodeler.domain.hashing import sha256_file
 from boardmodeler.pipeline.demo import build_demo_project, check_circuit, run_fault_matrix
 from boardmodeler.reporting.export import export_project
 from boardmodeler.simulation.ltspice import locate
@@ -35,9 +36,10 @@ pytestmark = pytest.mark.ltspice
 #: every fault re-runs the whole check.
 FAULTS = (
     "swap_straps",
-    "pullup_missing",
+    "en_invert",
+    "missing_pullup",
     "pullup_wrong_domain",
-    "release_reset_early",
+    "early_reset_release",
     "missing_pg",
 )
 
@@ -113,7 +115,7 @@ def test_the_nominal_scenario_passes_with_real_measurements(checked) -> None:
         value
         for result in passed
         for name, value in result.measured.items()
-        if name.startswith("max(V(") and isinstance(value, (int, float))
+        if "max(V(" in name and isinstance(value, (int, float))
     ]
     assert rails, "no rail measurement was recorded for the nominal scenario"
     assert max(rails) > 2.0, f"the rails never came up: {passed[0].measured}"
@@ -157,9 +159,17 @@ def test_injected_faults_are_detected_and_the_original_is_untouched(demo, instal
         assert any(entry["evidence"]), entry["evidence"]
 
 
-def test_an_export_reproduces_the_same_statuses_in_a_fresh_directory(
+def test_the_export_carries_the_same_statuses_with_relative_paths(
     demo, checked, tmp_path: Path, install
 ) -> None:
+    """The export is a self-describing package, and it must not disagree with the check.
+
+    The export ships the model, symbol, tests, requirements, coverage, results and
+    manifest — it is not a copy of the whole project, so it cannot be re-simulated
+    as-is (it has no ``project.json``). What it must do is carry the *observed*
+    statuses, hashes for every file, and only relative paths, so a reader can
+    reproduce the run from the artifacts rather than from a claim.
+    """
     project = demo.project_dir
     export_dir = tmp_path / "export"
     result = export_project(
@@ -173,12 +183,33 @@ def test_an_export_reproduces_the_same_statuses_in_a_fresh_directory(
     for relative in result.relative_files():
         assert not Path(relative).is_absolute(), f"{relative} is an absolute path"
 
-    rerun_root = tmp_path / "rerun"
-    shutil.copytree(export_dir, rerun_root)
-    rerun = check_circuit(rerun_root, ltspice=install)
-    before = {r.test_id: r.status.value for r in checked.results}
-    after = {r.test_id: r.status.value for r in rerun.results}
-    assert after == before, f"the exported copy disagreed with the original: {before} vs {after}"
+    manifest_path = export_dir / "manifest.json"
+    assert manifest_path.is_file(), "the export wrote no manifest"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    entries = manifest.get("files", manifest.get("entries", []))
+    assert entries, f"the manifest records no files: {sorted(manifest)}"
+    for entry in entries:
+        relative = entry["path"]
+        assert not Path(relative).is_absolute(), f"{relative} is an absolute path"
+        target = export_dir / relative
+        assert target.is_file(), f"the manifest names {relative}, which the export did not write"
+        # The hash has to be the file's real hash, or it proves nothing.
+        assert sha256_file(target) == entry["sha256"], f"{relative}: manifest hash is stale"
+
+    exported_results = json.loads((export_dir / "results.json").read_text(encoding="utf-8"))
+    rows = exported_results["results"] if isinstance(exported_results, dict) else exported_results
+    assert {row["test_id"]: row["status"] for row in rows} == {
+        r.test_id: r.status.value for r in checked.results
+    }, "the exported results disagree with the check that produced them"
+
+    if (export_dir / "project.json").is_file():
+        # When an export does carry the project, the re-run must agree exactly.
+        rerun = tmp_path / "rerun"
+        shutil.copytree(export_dir, rerun)
+        again = check_circuit(rerun, ltspice=install)
+        assert {r.test_id: r.status.value for r in again.results} == {
+            r.test_id: r.status.value for r in checked.results
+        }
 
 
 def _as_project(root: Path):

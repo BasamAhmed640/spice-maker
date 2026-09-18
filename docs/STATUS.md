@@ -80,8 +80,8 @@ Built from `fixtures/demo_board` plus the synthetic `fixtures/switch_fixture`:
 1V8, reset circuit driving `PERST#`, strap pull-ups, sideband, per-rail loads, and
 the unmodelled PCIe switch `U5`.
 
-`uv run boardmodeler demo build --out build/demo` → **28 requirements, 10 test
-cases, 10 static findings**:
+`uv run boardmodeler demo build --out build/demo` → **30 requirements, 10 test
+cases, 10 static findings, 23/23 scenario stimuli applied**.
 
 |Check|Observed result|
 |---|---|
@@ -93,14 +93,43 @@ cases, 10 static findings**:
 |SC006 symbol prefix/model|PASS — 6 symbols declare `Prefix X` and an existing `SpiceModel`|
 |SC007 duplicate/dropped|PASS — 79 connections, each pin on at most one net|
 |SC008 export portability|PASS — every include/model target inside the project root|
-|SC009 supply domain|PASS — 78 power-capable pins evaluated individually against the net each is really on|
-|SC010 abstraction boundary|UNKNOWN for `U1` — the reduced behavioural buck has no switching node, so its `SW` boundary does not preserve connectivity. **Deliberate**: a reduced-coverage disclosure, not a defect|
+|SC009 supply domain|PASS — 78 power-capable pins evaluated individually|
+|SC010 abstraction boundary|UNKNOWN for `U1` — the reduced behavioural buck has no switching node, so its `SW` boundary does not preserve connectivity. **Deliberate**|
 
-The fixture's own defects were found by these checks and fixed rather than
-suppressed: the source pin's declared domain, an abstraction entry naming a net
-instead of a refdes, a fixture that declared `PRECONDITIONS_SATISFIED` as device
-pin 21 while its own contract says it is a diagnostic signal and *not* a pin, and
-two nets missing from `supply_domains`.
+Static checks found real fixture defects, which were fixed rather than suppressed:
+a source pin's declared domain, an abstraction entry naming a net instead of a
+refdes, a fixture that declared `PRECONDITIONS_SATISFIED` as device pin 21 while its
+own contract says it is a diagnostic signal and *not* a pin, two nets missing from
+`supply_domains`, and a reset supervisor wired with the polarity of a power-good
+*pin* emulator (see D-012).
+
+Dynamic check, 10 scenarios against real LTspice — `check` completes in ~11 s:
+
+|Status|Count|Where|
+|---|---|---|
+|PASS|5|the nominal board, the slow-rail sequencing, the fast-rail boundary, the reset-early-release fault (violation detected as expected), and the invalid-strap fault (violation detected as expected)|
+|FAIL|4|`staggered_rails` and `load_step` — the 3V3 rail dips to 3.126 V / 3.130 V against its declared 3.135 V floor when a load steps; `brownout_short_interrupt` — the rail collapses during the dip; `pullup_wrong_domain` — reported below|
+|UNKNOWN|1|`pullup_missing`: with its pull-up removed the sideband node is isolated, LTspice drops it from the `.raw`, and the level requirement cannot be evaluated — reported with its reason instead of a guess|
+
+Those FAILs are **findings, not test bugs**: the fixture declares a ±5 % window and
+the reduced behavioural models exceed it on a load step. They are reported as they
+are; nothing was widened to turn them green.
+
+Fault matrix (`boardmodeler run mutations`): **7 of 7 injected faults detected**
+(`swap_straps`, `en_invert`, `missing_pullup`, `pullup_wrong_domain`,
+`early_reset_release`, `missing_pg`, `slow_rail_u2`) with the **original project
+byte-identical afterwards** (hashes compared before and after). Getting there
+required four real fixes:
+
+* the deck is now rebuilt from the circuit on disk for each case, so a mutated
+  circuit is actually simulated rather than checked against the unmutated deck;
+* the fixture's `timing`/`loads` are the single source for the VIN ramp, the load
+  steps and the reset delay, so a mutation of them reaches the simulator;
+* two requirements were **missing**: nothing asserted the strap pin→net mapping or
+  the reset pull-up's domain, so a strap swap and a re-referenced reset pull-up were
+  invisible to every check. Added as `STRAP_011` and `RESET_012`;
+* the mutators' declared detecting check is now the one that actually fires
+  (`strap_connection`, `sideband_level`, `reset_pullup_domain`).
 
 ### Phase 4 — datasheet-to-model automation
 

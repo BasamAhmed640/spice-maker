@@ -273,3 +273,61 @@ avoid, and one that is invisible in the report because the scenario id looks rig
 report's per-scenario statuses unverifiable); shrinking the scenario list to the two
 injected ones (the plan fixes the scenario ids, and the ones that matter — clock,
 straps, reset, power-good — are exactly the ones that were missing).
+
+---
+
+## D-012 — The demo board's own defects, and which source owns the timing
+
+**Date:** 2026-09-18
+**Context:** wiring the scenario stimuli (D-011) and the fault matrix exposed four
+defects in the demonstration itself, each of which had made a claim unfalsifiable.
+
+1. **The reset supervisor had the polarity of a power-good *pin*.** `U3`/`U4` were
+   wired as `BM_PG`, whose documented behaviour is to *assert its output when the
+   sensed level is good*. A reset output must do the opposite: hold low while power
+   is bad and release after it is good. Measured consequence: `PERST#` tracked the
+   3V3 rail up at 2.05 ms, before either power-good pin was valid, and was pulled low
+   2 ms *after* power was good — the exact inverse of the fixture's own contract.
+   Fixed by adding the primitive the circuit actually needs: `BM_RESET_SUP`
+   (`pg_in out vdd vss`, `VTH/VHYS/TD`), same shape as `BM_PG` with inverted
+   polarity, documented as such in `models/primitives.py`. Measured after the fix:
+   PG_1V8 valid at 2.849 ms, `PERST#` released at 5.629 ms — a 2.78 ms hold, inside
+   the required 1 ms to 100 ms band.
+
+2. **The deck carried its own copy of the fixture's timing.** `loads` and `timing`
+   in `circuit/project.json` declared the load steps and the reset delay, while the
+   deck builder used module constants. A mutation of the declared value therefore
+   changed nothing the simulator saw — `release_reset_early` was inert, and
+   `slow_rail_u2`'s "1V8 overload" never reached the deck. Fixed by making the
+   project the single source: the deck reads `timing.load_step_*`, `loads` and
+   `timing.pg_delay_s` from the circuit it is building for. The fault matrix now
+   detects both mutations.
+
+3. **Two requirements were missing entirely.** Nothing asserted that the switch's
+   strap pins are on the nets their levels are read from, and nothing asserted the
+   `PERST#` pull-up's domain, so a strap *swap* and a reset pull-up re-referenced to
+   the 12 V rail were invisible to every check (the level measurements cannot see
+   either: the strap levels are unchanged by swapping which pin reads them). Added
+   `STRAP_011` (pin→net for all three straps) and `RESET_012` (the reset line idles
+   at the 3V3 level and never above it). Both are dynamic, so they fire on the deck.
+
+4. **A load step inside a converter's soft start is a different experiment.**
+   Stepping the 1V8 load at the instant its LDO starts dragged that rail to −20 V,
+   and a load step landing inside a requirement's steady window reported the
+   fixture's own stimulus as a rail violation. The load steps now land after each
+   rail is regulating, and the values live in the fixture.
+
+**Deliberately left failing.** With those fixed, four of the ten scenarios still
+report FAIL: `staggered_rails` and `load_step` dip the 3V3 rail to 3.126 V/3.130 V
+against its declared 3.135 V floor when a load steps, `brownout_short_interrupt`
+collapses during the dip, and `pullup_missing`'s removal isolates the sideband node
+so LTspice drops it from the `.raw` and the level requirement becomes UNKNOWN with
+its reason. These are reported as findings about the fixture and the reduced models.
+Widening the ±5 % window, or omitting the load until the number flips, would be
+choosing the answer rather than measuring it — which is the one thing this project
+must not do.
+
+**Evidence:** `uv run boardmodeler demo build --out build/demo` → 30 requirements,
+10 test cases, 23/23 stimuli applied; `uv run boardmodeler run mutations` → 7/7
+detected with the original project byte-identical; `uv run pytest -q
+tests/test_demo_end_to_end.py` → 8 passed.

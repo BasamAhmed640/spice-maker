@@ -72,6 +72,12 @@ hidden parameter.
     internal 1 us edge so the before/after values are unambiguous.
 
 ``BM_PG``
+    open-drain power-good *pin* emulator: asserts low when the sensed level is good.
+
+``BM_RESET_SUP``
+    active-low reset supervisor: holds RESET# low while the sensed power-good level is
+    bad and releases it TD after it becomes good (the polarity BM_PG does not provide).
+
     Open-drain power-good output: the pin is only ever pulled low through a
     switched resistance and needs an external pull-up.  The threshold shift is
     ``V(th) = VTH + VHYS/2 - VHYS*logic`` (positive feedback, *non-inverting*
@@ -113,6 +119,7 @@ PRIMITIVE_PORT_ORDER: dict[str, tuple[str, ...]] = {
     "BM_CONDUCTION": ("a", "b", "ctrl"),
     "BM_LOAD": ("out", "vss"),
     "BM_PG": ("open_in", "out", "vdd", "vss"),
+    "BM_RESET_SUP": ("pg_in", "out", "vdd", "vss"),
 }
 
 #: Public parameters of every primitive; each one has a default on the
@@ -126,6 +133,7 @@ PRIMITIVE_PARAMS: dict[str, tuple[str, ...]] = {
     "BM_CONDUCTION": ("RC_ON", "RC_OFF"),
     "BM_LOAD": ("I_STATIC", "I_STEP", "T_STEP"),
     "BM_PG": ("VTH", "VHYS", "TD", "PULLUP_MAX"),
+    "BM_RESET_SUP": ("VTH", "VHYS", "TD"),
 }
 
 # --------------------------------------------------------------------------- #
@@ -210,6 +218,24 @@ B_gate gate 0 V = limit(1e4*(V(lgd)-0.5), 0, 1)
 B_od out vss I = V(out,vss)*V(gate)/50
 .ends BM_PG"""
 
+_RESET_SUP_TEXT = """\
+* BM_RESET_SUP: reset supervisor for an active-low open-drain RESET# output.
+*   Holds `out` low through 50 ohm while `pg_in` is below VTH-VHYS/2, and releases
+*   it TD after `pg_in` rises above VTH+VHYS/2.  The lag network is on the sense
+*   signal, so the delay applies to the release; the assertion is immediate, which
+*   is what a reset output must do.  An external pull-up is required.
+*   Same port shape as BM_PG, but with the inverted polarity: BM_PG *asserts* its
+*   output when the sense is good, this one *releases* it.
+.subckt BM_RESET_SUP pg_in out vdd vss params: VTH=1.2 VHYS=0.2 TD=10u
+B_lg lg 0 V = limit(1e4*(V(pg_in,vss)-V(th)), 0, 1)
+B_th th 0 V = VTH + VHYS/2 - VHYS*V(lg)
+R_lag lg lgd {TD/(0.6931471805599453*1n)}
+C_lag lgd 0 1n
+B_gate gate 0 V = limit(1e4*(0.5-V(lgd)), 0, 1)
+B_od out vss I = V(out,vss)*V(gate)/50
+.ends BM_RESET_SUP"""
+
+
 _TEXTS: dict[str, str] = {
     "BM_SCHMITT": _SCHMITT_TEXT,
     "BM_DELAY": _DELAY_TEXT,
@@ -219,6 +245,7 @@ _TEXTS: dict[str, str] = {
     "BM_CONDUCTION": _CONDUCTION_TEXT,
     "BM_LOAD": _LOAD_TEXT,
     "BM_PG": _PG_TEXT,
+    "BM_RESET_SUP": _RESET_SUP_TEXT,
 }
 
 _LIBRARY_HEADER = (

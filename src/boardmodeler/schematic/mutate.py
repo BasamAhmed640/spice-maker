@@ -300,7 +300,7 @@ MUTATORS: dict[str, Callable[[Path], Mutation]] = {
             "connections.csv:U5.CONFIG0.net=CONFIG1",
             "connections.csv:U5.CONFIG1.net=CONFIG0",
         ],
-        detection="SC009_supply_domain_assignment",
+        detection="strap_connection",
     ),
     "en_invert": _mutator(
         "en_invert",
@@ -318,20 +318,22 @@ MUTATORS: dict[str, Callable[[Path], Mutation]] = {
         "pullup_wrong_domain",
         "Move the sideband pull-up from 3V3 to 1V8: a connection error even if the link works.",
         ["connections.csv:R17.B.net=1V8"],
-        detection="SC009_supply_domain_assignment",
+        detection="sideband_level",
     ),
     "early_reset_release": _mutator(
         "early_reset_release",
         "Release PERST# immediately by tying the reset pull-up to the input rail.",
         ["connections.csv:R12.B.net=12V"],
-        detection="SC009_supply_domain_assignment",
+        detection="reset_pullup_domain",
     ),
     "slow_rail_u2": _mutator(
         "slow_rail_u2",
         "Overload the 1V8 rail so it cannot reach its window in time.",
-        ["components.csv:I2.value=1V8-overload"],
+        ["project.json:timing.load_step_1v8_a=1.5"],
         detection="rail_never_valid",
-        metadata={"note": "the load value drives the BM_LOAD instance parameters in the deck"},
+        metadata={
+            "note": "the declared 1V8 load step is what the deck applies (project.json timing)"
+        },
     ),
     "missing_pg": _mutator(
         "missing_pg",

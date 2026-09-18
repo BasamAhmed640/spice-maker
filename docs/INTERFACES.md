@@ -19,46 +19,52 @@ class Stage(StrEnum):
     REPAIR = "REPAIR"
     EXPORT = "EXPORT"
 
-STAGE_ORDER: tuple[Stage, ...]          # exactly the order above
+
+STAGE_ORDER: tuple[Stage, ...]  # exactly the order above
+
 
 @dataclass
 class PipelineRequest:
     project_dir: Path
     mode: Literal["component", "circuit"] = "component"
-    document_paths: list[Path] = field(default_factory=list)   # inputs to ingest
+    document_paths: list[Path] = field(default_factory=list)  # inputs to ingest
     part_identity: PartIdentity | None = None
     use_profile: str = "Power and I/O sequencing"
-    scope: str | None = None                # limit which test cases run
+    scope: str | None = None  # limit which test cases run
     test_ids: list[str] | None = None
     allow_remote: bool = False
-    provider: str | None = None             # provider name; never auto-swapped
+    provider: str | None = None  # provider name; never auto-swapped
     max_repair_iterations: int = 3
     export_dir: Path | None = None
     deadline_s: float | None = None
 
+
 @dataclass
 class StageProgress:
     stage: Stage
-    status: Status                # PASS (done), FAIL, BLOCKED, UNKNOWN, NOT_APPLICABLE
+    status: Status  # PASS (done), FAIL, BLOCKED, UNKNOWN, NOT_APPLICABLE
     detail: str
     elapsed_s: float = 0.0
     test_counts: dict[str, int] = field(default_factory=dict)
     artifacts: list[str] = field(default_factory=list)
 
+
 @dataclass
 class PipelineResult:
-    status: Status                # worst status of the stage chain
+    status: Status  # worst status of the stage chain
     stages: list[StageProgress]
     results: list[TestResult]
     findings: list[Finding]
     review_items: list[ReviewItem]
-    artifacts: list[str]          # relative paths produced
+    artifacts: list[str]  # relative paths produced
     manifest_path: Path | None
     export_dir: Path | None
     diagnostics: dict[str, str] = field(default_factory=dict)
 
+
 class RepairViolation(RuntimeError):
     """Raised when a repair step would weaken the frozen baseline."""
+
 
 class PipelineController:
     def __init__(self, config: AppConfig | None = None) -> None: ...

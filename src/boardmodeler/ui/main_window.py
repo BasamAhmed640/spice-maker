@@ -49,7 +49,13 @@ __all__ = ["DEFAULT_USE_PROFILE", "InputsPanel", "MainWindow"]
 DEFAULT_USE_PROFILE = "Power and I/O sequencing"
 MAX_WAVEFORM_BYTES = 64 * 1024 * 1024
 """Above this the window refuses to load a ``.raw`` (it would freeze the GUI)."""
-SCOPES = ("(all)", "circuit_compliance", "fault_detection", "model_qualification", "primitive_reference")
+SCOPES = (
+    "(all)",
+    "circuit_compliance",
+    "fault_detection",
+    "model_qualification",
+    "primitive_reference",
+)
 PROVIDERS = ("(default)", "fixture", "http_inference", "bob_direct", "bob_shell")
 
 
@@ -173,8 +179,7 @@ class InputsPanel(QGroupBox):
 
     def document_paths(self) -> list[Path]:
         return [
-            Path(self.document_list.item(row).text())
-            for row in range(self.document_list.count())
+            Path(self.document_list.item(row).text()) for row in range(self.document_list.count())
         ]
 
     def circuit_file(self) -> Path | None:
@@ -600,9 +605,7 @@ class MainWindow(QMainWindow):
         stage = str(event.get("stage", ""))
         status = str(event.get("status", ""))
         detail = str(event.get("detail", ""))
-        text = (
-            f"{stage:<18} {status:<15} {float(event.get('elapsed_s', 0.0)):>6.2f}s  {detail}"
-        )
+        text = f"{stage:<18} {status:<15} {float(event.get('elapsed_s', 0.0)):>6.2f}s  {detail}"
         index = next(
             (position for position, row in enumerate(self._stage_rows) if row["stage"] == stage),
             None,
@@ -653,7 +656,7 @@ class MainWindow(QMainWindow):
                 self.waveforms.add_violation_marker(
                     str(violation.get("req_id", "")), float(violation.get("t_s", 0.0))
                 )
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 continue
         if len(self._waveform_refs) == 1:
             self.waveform_selector.setCurrentText(ref)

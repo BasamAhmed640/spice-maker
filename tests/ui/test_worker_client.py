@@ -184,7 +184,9 @@ def test_client_cancel_terminates_the_whole_process_tree(qapp, stub_project: Pat
         project_dir=stub_project, cancel_timeout_s=5.0, controller_module="stub_controller"
     )
     client.start({"project_dir": str(stub_project), "hold_s": 120.0})
-    assert _wait_for(lambda: (stub_project / "grandchild.pid").is_file()), "grandchild never started"
+    assert _wait_for(lambda: (stub_project / "grandchild.pid").is_file()), (
+        "grandchild never started"
+    )
     grandchild = int((stub_project / "grandchild.pid").read_text(encoding="utf-8"))
     assert psutil.pid_exists(grandchild)
 

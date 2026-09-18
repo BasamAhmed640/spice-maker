@@ -37,11 +37,11 @@ R8,A,1V8
 R8,B,FB_U2
 R9,A,FB_U2
 R9,B,GND
-U3,open_in,PG_3V3
+U3,pg_in,PG_3V3
 U3,out,PERST_N
 U3,vdd,3V3
 U3,vss,GND
-U4,open_in,PG_1V8
+U4,pg_in,PG_1V8
 U4,out,PERST_N
 U4,vdd,3V3
 U4,vss,GND

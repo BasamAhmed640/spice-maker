@@ -62,6 +62,7 @@ from boardmodeler.verification.engine import evaluate_case, gate_from_capability
 from boardmodeler.verification.scenarios import all_scenario_ids, scenario
 
 __all__ = [
+    "CLOCK_STANDIN_PERIOD_S",
     "DEMO_SCENARIOS",
     "BoardModelSpec",
     "CheckResult",
@@ -70,6 +71,7 @@ __all__ = [
     "check_circuit",
     "deck_for_scenario",
     "run_fault_matrix",
+    "stimulus_for",
 ]
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -111,16 +113,22 @@ BOARD_MODELS: dict[str, BoardModelSpec] = {
     ),
     "bm_pg_3v3": BoardModelSpec(
         "bm_pg_3v3",
-        "BM_PG",
-        PRIMITIVE_PORT_ORDER["BM_PG"],
-        {"VTH": "1.0", "VHYS": "0.1", "TD": "2m", "PULLUP_MAX": "100k"},
+        "BM_RESET_SUP",
+        PRIMITIVE_PORT_ORDER["BM_RESET_SUP"],
+        # Holds PERST# low while the 3V3 power-good pin is below threshold and
+        # releases it 2 ms after it is good — the reset contract REQ_DEMO_SEQ_003/004.
+        # (BM_PG would invert this: it asserts its output *when* the sense is good.)
+        {"VTH": "1.0", "VHYS": "0.1", "TD": "2m"},
         "primitive",
     ),
     "bm_pg_1v8": BoardModelSpec(
         "bm_pg_1v8",
-        "BM_PG",
-        PRIMITIVE_PORT_ORDER["BM_PG"],
-        {"VTH": "1.0", "VHYS": "0.1", "TD": "2m", "PULLUP_MAX": "100k"},
+        "BM_RESET_SUP",
+        PRIMITIVE_PORT_ORDER["BM_RESET_SUP"],
+        # Holds PERST# low while the 1V8 power-good pin is below threshold and
+        # releases it 2 ms after it is good — the reset contract REQ_DEMO_SEQ_003/004.
+        # (BM_PG would invert this: it asserts its output *when* the sense is good.)
+        {"VTH": "1.0", "VHYS": "0.1", "TD": "2m"},
         "primitive",
     ),
     "bm_load_3v3": BoardModelSpec(
@@ -159,6 +167,9 @@ DEMO_SCENARIOS: dict[str, str] = {
 # start-up, sequencing, the reset release and the strap sampling window.
 SIM_STOP = 10e-3
 SIM_TMAX = 20e-6
+#: Truncation-error tolerance. The board models contain discontinuous behavioural
+#: sources, so the default forces very small steps for no assertion-relevant gain.
+DEMO_TRTOL = 20
 VIN_RAMP = 2e-3
 
 
@@ -397,13 +408,50 @@ def board_requirements() -> list[Requirement]:
             statement="Both sideband pull-ups sit on the 3V3 domain.",
             limits=None,
             expression={
-                "op": "pullup_domain",
-                "refdes": "U5",
-                "pin": "SMB_DAT",
-                "net": "SMB_DAT",
-                "domain": "3V3",
+                # The pull-up's return net is asserted where it is observable: a
+                # passive's pins carry no names in the parsed netlist, so the
+                # requirement is the idle *level* being the 3V3 one and not above
+                # it (a 5 V or 12 V reference shows up here immediately).
+                "op": "all_of",
+                "items": [
+                    {"op": "rise_above", "signal": "V(SMB_CLK)", "value": 2.97, "unit": "V"},
+                    {"op": "lt", "signal": "V(SMB_CLK)", "value": 3.6, "unit": "V"},
+                    {"op": "lt", "signal": "V(SMB_DAT)", "value": 3.6, "unit": "V"},
+                ],
             },
             signals=("SMB_DAT",),
+        ),
+        requirement(
+            "STRAP_011",
+            kind=RequirementKind.CONNECTIVITY,
+            req_class=RequirementClass.USER_REQUIREMENT,
+            statement="Each switch strap pin is connected to the net its level is read on.",
+            limits=None,
+            expression={
+                "op": "all_of",
+                "items": [
+                    {"op": "net_equals", "refdes": "U5", "pin": "CONFIG0", "net": "CONFIG0"},
+                    {"op": "net_equals", "refdes": "U5", "pin": "CONFIG1", "net": "CONFIG1"},
+                    {"op": "net_equals", "refdes": "U5", "pin": "CONFIG2", "net": "CONFIG2"},
+                ],
+            },
+            signals=("CONFIG0", "CONFIG1", "CONFIG2"),
+        ),
+        requirement(
+            "RESET_012",
+            kind=RequirementKind.CONNECTIVITY,
+            req_class=RequirementClass.USER_REQUIREMENT,
+            statement="The PERST# pull-up is referenced to the 3V3 domain: PERST# idles at "
+            "the 3V3 level and never above it.",
+            limits=None,
+            expression={
+                "op": "all_of",
+                "items": [
+                    {"op": "rise_above", "signal": "V(PERST_N)", "value": 2.97, "unit": "V"},
+                    {"op": "lt", "signal": "V(PERST_N)", "value": 3.6, "unit": "V"},
+                ],
+            },
+            signals=("PERST_N",),
         ),
         requirement(
             "CONFIG_007",
@@ -521,39 +569,79 @@ def _symbol_orders(neutral: NeutralProject) -> dict[str, list[str]]:
 # decks
 
 
-def _model_instances(project: NeutralProject, out: Path) -> dict[str, str]:
-    """Instance cards for every modelled component, in the model's port order."""
+def _spice_value(value: object) -> str:
+    """Format one instance parameter for a SPICE card."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, float):
+        return f"{value:g}"
+    return str(value)
+
+
+def _net_pins(project: NeutralProject) -> dict[str, dict[str, str]]:
     nets: dict[str, dict[str, str]] = {}
     for connection in project.connections:
         nets.setdefault(connection.refdes, {})[connection.physical_pin] = connection.net_name
+    return nets
+
+
+def _model_instances(
+    project: NeutralProject,
+    *,
+    drop: Iterable[str] = (),
+    node_overrides: Mapping[str, Mapping[str, str]] | None = None,
+    param_overrides: Mapping[str, Mapping[str, object]] | None = None,
+) -> dict[str, str]:
+    """Instance cards for every modelled component, in the model's port order.
+
+    ``node_overrides`` rewires named ports (a scenario's stimulus), and
+    ``param_overrides`` replaces instance parameters (a load profile, a shortened
+    delay). A component listed in ``drop`` is not emitted at all.
+    """
+    nets = _net_pins(project)
+    dropped = set(drop)
+    node_overrides = node_overrides or {}
+    param_overrides = param_overrides or {}
 
     cards: dict[str, str] = {}
     for refdes, model_id in sorted(project.model_assignments.items()):
+        if refdes in dropped:
+            continue
         spec = BOARD_MODELS.get(model_id)
         if spec is None:
             continue
-        pins = nets.get(refdes, {})
+        pins = dict(nets.get(refdes, {}))
+        pins.update(node_overrides.get(refdes, {}))
         missing = [port for port in spec.ports if port not in pins]
         if missing:
             raise ValueError(f"{refdes}: model {model_id} needs pins {missing}")
         nodes = " ".join(pins[port] for port in spec.ports)
-        params = " ".join(f"{key}={value}" for key, value in sorted(spec.params.items()))
-        cards[refdes] = f"X{refdes} {nodes} {spec.subckt} {params}".strip()
+        params = {**spec.params, **param_overrides.get(refdes, {})}
+        params_text = " ".join(
+            f"{key}={_spice_value(value)}" for key, value in sorted(params.items())
+        )
+        cards[refdes] = f"X{refdes} {nodes} {spec.subckt} {params_text}".strip()
     return cards
 
 
-def _passive_cards(project: NeutralProject) -> dict[str, str]:
+def _passive_cards(
+    project: NeutralProject,
+    *,
+    drop: Iterable[str] = (),
+    node_overrides: Mapping[str, Mapping[str, str]] | None = None,
+) -> dict[str, str]:
     """Element cards for passives; two-terminal parts use the CSV pin order."""
-    nets: dict[str, dict[str, str]] = {}
-    for connection in project.connections:
-        nets.setdefault(connection.refdes, {})[connection.physical_pin] = connection.net_name
+    nets = _net_pins(project)
+    dropped = set(drop)
+    node_overrides = node_overrides or {}
     values = {row.refdes: row.value for row in project.components}
     cards: dict[str, str] = {}
     for row in project.components:
         refdes = row.refdes
-        if refdes in project.model_assignments:
+        if refdes in dropped or refdes in project.model_assignments:
             continue
-        pins = nets.get(refdes, {})
+        pins = dict(nets.get(refdes, {}))
+        pins.update(node_overrides.get(refdes, {}))
         if not pins:
             continue
         # Deterministic pin order: '+'/A/1 first, then '-'/B/2.
@@ -566,6 +654,443 @@ def _passive_cards(project: NeutralProject) -> dict[str, str]:
     return cards
 
 
+def _element_cards(
+    project: NeutralProject,
+    *,
+    drop: Iterable[str] = (),
+    node_overrides: Mapping[str, Mapping[str, str]] | None = None,
+    param_overrides: Mapping[str, Mapping[str, object]] | None = None,
+) -> dict[str, str]:
+    """Every element card a deck contains, keyed by refdes.
+
+    The independent sources are excluded: V1/V2 are rendered from
+    ``DeckSpec.sources``, and emitting them here as well produced two instances
+    with the same name, which LTspice rejects ("Instance with that name already
+    defined") and which made four scenario runs incomplete.
+    """
+    drop = set(drop) | {"V1", "V2"}
+    cards = _passive_cards(project, drop=drop, node_overrides=node_overrides)
+    cards.update(
+        _model_instances(
+            project, drop=drop, node_overrides=node_overrides, param_overrides=param_overrides
+        )
+    )
+    return cards
+
+
+# --------------------------------------------------------------------------- #
+# scenario stimuli
+#
+# Every scenario in ``verification.scenarios`` is either applied by its deck or
+# recorded as not applied; the table below is the single source for both the deck
+# builder and ``tests/scenario_stimulus.json``.
+#
+# Two fixture facts shape every deck:
+#
+# * ``REFCLK_100M`` is a stand-in. The fixture declares clock *availability* an
+#   assumption (``REQ_DEMO_CLK_009``) and V2 an abstraction boundary, and no
+#   requirement asserts the clock rate. Driving 100 MHz with 1 ns edges for the
+#   whole 10 ms window forces ~1e6 timesteps and a >120 MB ``.raw``, so every
+#   deck drives a documented slow pulse instead; ``clock_missing`` and
+#   ``clock_late`` differ from that stand-in exactly as their scenario says.
+# * ``BM_LOAD`` has no supply-validity gate: it sinks ``I_STATIC`` even while its
+#   rail is unpowered, which drags the rail negative and trips the regulator's
+#   current-limit latch (measured: the rail settles at -2.5 V and the converter
+#   never recovers inside the window). Every deck therefore applies its load as a
+#   step (``I_STATIC=0``, ``T_STEP`` after the rail is up), and a deck that
+#   collapses its rail omits the load rather than letting it sink from a dead
+#   rail.
+
+CLOCK_STANDIN_PERIOD_S = 10e-6  # 100 kHz
+CLOCK_STANDIN_EDGE_S = 100e-9
+CLOCK_STANDIN_WIDTH_S = 5e-6
+CLOCK_STANDIN_NOTE = (
+    "REFCLK_100M is a documented stand-in (100 kHz, 100 ns edges, period "
+    f"{CLOCK_STANDIN_PERIOD_S:g} s): the fixture declares clock availability an ASSUMPTION "
+    "(REQ_DEMO_CLK_009) and V2 an abstraction boundary, so no clock-dependent conclusion is "
+    "a PASS and no deck drives the 100 MHz silicon rate."
+)
+LOAD_NOTE = (
+    "BM_LOAD has no supply-validity gate, so each load is applied as a step (I_STATIC=0) "
+    "after its rail is up; a deck that collapses its rail omits the load instead of letting "
+    "it sink from a dead rail."
+)
+LDO_NOTE = (
+    "U2 declares VOUT_NOM=1.8 so its power-good window is the 1.8 V rail it regulates "
+    "(the model default 3.3 would hold PG_1V8 low for good)."
+)
+
+
+def _vin_ramp(rise_s: float) -> tuple[tuple[float, float], ...]:
+    """A 0 -> 12 V ramp with a real rise time, held past the scenario window."""
+    return ((0.0, 0.0), (rise_s, 12.0), (rise_s + 10e-3, 12.0))
+
+
+def _load_step(current_a: float, at_s: float) -> dict[str, str]:
+    """BM_LOAD parameters that apply ``current_a`` from ``at_s`` on."""
+    return {"I_STATIC": "0", "I_STEP": f"{current_a:g}", "T_STEP": f"{at_s:g}"}
+
+
+def _nominal_loads(project: NeutralProject) -> dict[str, dict[str, str]]:
+    """The nominal load profile, taken from the project the deck is built for.
+
+    The amplitudes and step times live in the neutral ``project.json`` (``loads``
+    and ``timing``) so that the circuit description is the single source: a deck
+    that carried its own copy would ignore an edit to the project, and the fault
+    matrix's load/sequencing mutators would inject a change nothing simulated.
+    """
+    declared = project.loads or {"I1": 0.25, "I2": 0.4}
+    timing = project.timing
+    return {
+        "I1": _load_step(
+            float(timing.get("load_step_3v3_a", declared.get("I1", 0.25))),
+            float(timing.get("load_step_3v3_s", 2.5e-3)),
+        ),
+        "I2": _load_step(
+            float(timing.get("load_step_1v8_a", declared.get("I2", 0.4))),
+            float(timing.get("load_step_1v8_s", 3e-3)),
+        ),
+    }
+
+
+@dataclass(frozen=True)
+class ClockStimulus:
+    """How one deck drives the ``REFCLK_100M`` stand-in."""
+
+    delay_s: float = 0.0
+    held_low: bool = False
+
+
+@dataclass(frozen=True)
+class ScenarioStimulus:
+    """One scenario's injection, as data the deck builder consumes.
+
+    ``loads`` is the BM_LOAD profile keyed by refdes; ``None`` (the default) means
+    the nominal profile and ``{}`` means the loads are omitted.
+    """
+
+    applied: bool = True
+    note: str = ""
+    vin: tuple[tuple[float, float], ...] | None = None
+    clock: ClockStimulus = ClockStimulus()
+    loads: Mapping[str, Mapping[str, str]] | None = None
+    drop: frozenset[str] = frozenset()
+    node_overrides: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
+    param_overrides: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
+    extra_sources: tuple[Source, ...] = ()
+    extra_elements: tuple[str, ...] = ()
+    initial_conditions: Mapping[str, float] = field(default_factory=dict)
+    comments: tuple[str, ...] = ()
+
+
+SCENARIO_STIMULI: dict[str, ScenarioStimulus] = {
+    "nominal_startup": ScenarioStimulus(
+        note="2 ms VIN ramp, EN released by the input divider, loads at their nominal "
+        "currents once their rails are up",
+    ),
+    "nominal_shutdown": ScenarioStimulus(
+        vin=((0.0, 0.0), (2e-3, 12.0), (6e-3, 12.0), (7e-3, 0.0), (12e-3, 0.0)),
+        loads={},
+        note="VIN falls from 12 V to 0 V between 6 ms and 7 ms, so both converters stop and "
+        "the outputs discharge through the declared discharge path; the loads are omitted "
+        "because the rails collapse",
+    ),
+    "slow_rail": ScenarioStimulus(
+        vin=_vin_ramp(8e-3),
+        loads={},
+        note="VIN ramps over 8 ms, four times the nominal rise; the loads are omitted because "
+        "both rails are still ramping inside the 10 ms window",
+    ),
+    "fast_rail": ScenarioStimulus(
+        vin=_vin_ramp(0.4e-3),
+        note="VIN ramps over 0.4 ms, five times faster than nominal",
+    ),
+    "staggered_rails": ScenarioStimulus(
+        node_overrides={"U2": {"EN": "EN_U2_DLY"}},
+        extra_elements=("X_seq PG_3V3 EN_U2_DLY 3V3 0 BM_DELAY TD=1m TR=100n",),
+        loads={"I1": _load_step(0.25, 2.5e-3), "I2": _load_step(0.4, 4.5e-3)},
+        note="U2's EN is driven from PG_3V3 through a 1 ms BM_DELAY, so the 1V8 rail ramps "
+        "after the 3V3 rail with a declared 1 ms separation",
+    ),
+    "en_before_vin": ScenarioStimulus(
+        vin=_vin_ramp(8e-3),
+        extra_sources=(Source.dc("V_en_early", "EN_U1", "0", 3.3),),
+        note="EN is held above its threshold from t=0 by an ideal source while VIN ramps over "
+        "8 ms, so enable is present long before VIN reaches its UVLO threshold",
+    ),
+    "pg_delayed": ScenarioStimulus(
+        node_overrides={"U1": {"PG": "PG_3V3_RAW"}},
+        extra_elements=(
+            "R7r PG_3V3_RAW 3V3 20k",
+            "X_pgdelay PG_3V3_RAW PG_3V3 3V3 0 BM_DELAY TD=5m TR=100n",
+        ),
+        loads={"I1": _load_step(0.25, 2.5e-3), "I2": _load_step(0.4, 9e-3)},
+        note="U1's PG output is routed through a 5 ms BM_DELAY (R7r keeps the open-drain pin "
+        "pulled up while delayed) before it reaches the dependent logic, so PG_3V3 asserts "
+        "about 5 ms later than in the nominal deck",
+    ),
+    "pg_missing": ScenarioStimulus(
+        node_overrides={"U3": {"pg_in": "0"}},
+        note="the PG_3V3 net is removed from U3's input: the pin is tied to ground, so the "
+        "reset supervisor sees no PG at all and its output is released for the whole run",
+    ),
+    "pullup_missing": ScenarioStimulus(
+        drop=frozenset({"R17"}),
+        note="R17, the 3V3 pull-up that defines SMB_DAT's open-drain idle level, is removed "
+        "from the element list, so SMB_DAT has no pull-up and sits at 0 V",
+    ),
+    "pullup_wrong_domain": ScenarioStimulus(
+        node_overrides={"R17": {"B": "1V8"}},
+        note="R17 is moved from the 3V3 domain to the 1V8 rail, so SMB_DAT idles at 1.8 V "
+        "instead of its declared 3V3 level",
+    ),
+    "reset_early_release": ScenarioStimulus(
+        param_overrides={"U3": {"TD": "200u"}, "U4": {"TD": "200u"}},
+        note="U3's assertion delay, the reset hold after its PG input becomes valid, is "
+        "shortened from 2 ms to 200 us",
+    ),
+    "brownout_short_interrupt": ScenarioStimulus(
+        vin=(
+            (0.0, 0.0),
+            (2e-3, 12.0),
+            (3.5e-3, 12.0),
+            (3.6e-3, 6.0),
+            (4.1e-3, 6.0),
+            (4.2e-3, 12.0),
+            (12e-3, 12.0),
+        ),
+        loads={},
+        note="VIN dips from 12 V to 6 V for 0.5 ms (3.5 ms to 4.2 ms): the dip stays above "
+        "the buck's UVLO_FALL of 3.9 V, so the rails must ride through it. The loads are "
+        "omitted because the reduced behavioural models have no supply-validity gate: a "
+        "constant-current load on a sagging rail drags the output negative (measured "
+        "-0.33 V), which is a model artefact, not a board behaviour, and would be "
+        "reported as a rail violation",
+    ),
+    "prebiased_output": ScenarioStimulus(
+        initial_conditions={"V(3V3)": 1.0},
+        note="the 3V3 output starts pre-charged to 1.0 V while the input ramps and EN is "
+        "released by the divider; the pre-bias hold-off must keep the converter from sinking "
+        "the pre-charge",
+    ),
+    "load_step": ScenarioStimulus(
+        extra_elements=("X_load_step 3V3 GND BM_LOAD I_STATIC=0 I_STEP=0.5 T_STEP=6m",),
+        note="an additional 0.5 A load step is applied to the 3V3 rail at 6 ms on top of the "
+        "nominal 0.25 A load",
+    ),
+    "overload": ScenarioStimulus(
+        extra_elements=("X_overload 3V3 GND BM_LOAD I_STATIC=0 I_STEP=4 T_STEP=6m",),
+        note="an additional 4 A load, above the buck's 3 A ILIM, is applied to the 3V3 rail "
+        "at 6 ms; the declared protection mode is hiccup with an 8 ms retry, so the retry "
+        "falls outside the 10 ms window",
+    ),
+    "partial_power": ScenarioStimulus(
+        node_overrides={"U2": {"EN": "0"}},
+        extra_sources=(Source.dc("V_1v8_clamp", "1V8", "0", 0.0),),
+        loads={"I1": _load_step(0.25, 2.5e-3)},
+        note="the 1V8 domain is unpowered: U2's EN is tied to ground so the LDO stays off and "
+        "an ideal clamp holds the 1V8 rail at 0 V while the 3V3 domain runs normally",
+    ),
+    "externally_driven_unpowered_pin": ScenarioStimulus(
+        node_overrides={"U2": {"EN": "0"}},
+        extra_sources=(
+            Source.dc("V_1v8_clamp", "1V8", "0", 0.0),
+            Source.dc("V_ext_drive", "CONFIG0", "0", 3.3),
+        ),
+        loads={"I1": _load_step(0.25, 2.5e-3)},
+        note="the 1V8 domain is unpowered (U2 disabled, rail clamped to 0 V) while an external "
+        "3.3 V driver holds its CONFIG0 strap pin high: a drive on a dead domain. U5 has no "
+        "model, so the drive level, not a back-power current, is what the deck shows",
+    ),
+    "invalid_strap": ScenarioStimulus(
+        extra_sources=(Source.dc("V_strap_cfg1", "CONFIG1", "0", 1.8),),
+        note="CONFIG1 is driven high by an ideal source, making the sampled strap word 111, "
+        "outside the documented set (101)",
+    ),
+    "late_strap": ScenarioStimulus(
+        extra_sources=(
+            Source(
+                name="V_strap_cfg0",
+                terminals=("CONFIG0", "0"),
+                kind="pwl",
+                points=((0.0, 1.8), (6e-3, 1.8), (6.01e-3, 0.0), (12e-3, 0.0)),
+            ),
+        ),
+        note="CONFIG0 is held at its sampled 1.8 V level and then driven to 0 V at 6 ms, after "
+        "the documented sampling window (1-5 ms) has closed",
+    ),
+    "clock_missing": ScenarioStimulus(
+        clock=ClockStimulus(held_low=True),
+        note="the REFCLK_100M source is held at 0 V instead of the stand-in pulse, so no clock "
+        "edge exists anywhere in the window",
+    ),
+    "clock_late": ScenarioStimulus(
+        clock=ClockStimulus(delay_s=6e-3),
+        note="the REFCLK_100M stand-in pulse is delayed to 6 ms, after the start of the "
+        "declared clock-arrival budget",
+    ),
+    "repeat_power_cycles": ScenarioStimulus(
+        vin=(
+            (0.0, 0.0),
+            (1e-3, 12.0),
+            (3e-3, 12.0),
+            (4e-3, 0.0),
+            (5e-3, 0.0),
+            (6e-3, 12.0),
+            (8e-3, 12.0),
+            (9e-3, 0.0),
+            (12e-3, 0.0),
+        ),
+        loads={},
+        note="two complete 12 V power cycles inside the window (0-4 ms and 5-9 ms); the loads "
+        "are omitted because the rails collapse twice",
+    ),
+    "incomplete_discharge": ScenarioStimulus(
+        vin=(
+            (0.0, 0.0),
+            (2e-3, 12.0),
+            (3.2e-3, 12.0),
+            (3.3e-3, 0.0),
+            (3.9e-3, 0.0),
+            (4.2e-3, 12.0),
+            (12e-3, 12.0),
+        ),
+        loads={},
+        note="VIN is removed for 0.9 ms and re-applied at 4.2 ms while the 3V3 output capacitor "
+        "is still discharging, so the converter is re-enabled during discharge",
+    ),
+}
+
+
+def stimulus_for(scenario_id: str) -> ScenarioStimulus:
+    """The stimulus record for one scenario; an unknown id is an error."""
+    try:
+        return SCENARIO_STIMULI[scenario_id]
+    except KeyError as exc:
+        raise KeyError(f"no stimulus is defined for scenario {scenario_id!r}") from exc
+
+
+def _clock_source(clock: ClockStimulus) -> Source:
+    if clock.held_low:
+        return Source.dc("V2", "REFCLK_100M", "0", 0.0)
+    return Source.pulse(
+        "V2",
+        "REFCLK_100M",
+        "0",
+        v1=0.0,
+        v2=3.3,
+        delay_s=clock.delay_s,
+        rise_s=CLOCK_STANDIN_EDGE_S,
+        fall_s=CLOCK_STANDIN_EDGE_S,
+        width_s=CLOCK_STANDIN_WIDTH_S,
+        period_s=CLOCK_STANDIN_PERIOD_S,
+    )
+
+
+def _ic_card(initial_conditions: Mapping[str, float]) -> str:
+    pairs = " ".join(f"{node}={_spice_value(value)}" for node, value in initial_conditions.items())
+    return f".ic {pairs}"
+
+
+@dataclass(frozen=True)
+class DeckStimulus:
+    """The concrete cards one deck carries, plus the record of what they are."""
+
+    specification: ScenarioStimulus
+    sources: tuple[Source, ...]
+    cards: Mapping[str, str]
+    injection: str
+    comments: tuple[str, ...]
+
+
+def _stimulus_cards(
+    project: NeutralProject,
+    stimulus: ScenarioStimulus,
+    *,
+    include_loads: bool,
+) -> dict[str, str]:
+    """The element cards a deck built from ``stimulus`` contains."""
+    loads = (
+        _nominal_loads(project)
+        if stimulus.loads is None
+        else {refdes: dict(params) for refdes, params in stimulus.loads.items()}
+    )
+    param_overrides: dict[str, dict[str, object]] = {
+        refdes: dict(params) for refdes, params in stimulus.param_overrides.items()
+    }
+    for refdes, params in loads.items():
+        param_overrides.setdefault(refdes, {}).update(params)
+    drop = set(stimulus.drop)
+    if include_loads:
+        drop |= {"I1", "I2"} - set(loads)
+    else:
+        drop |= {"I1", "I2"}
+    return _element_cards(
+        project,
+        drop=drop,
+        node_overrides=stimulus.node_overrides,
+        param_overrides=param_overrides,
+    )
+
+
+def _stimulus_plan(
+    project: NeutralProject, scenario_id: str, *, include_loads: bool = True
+) -> DeckStimulus:
+    """Resolve one scenario's deck cards and the exact injection they carry."""
+    spec = scenario(scenario_id)
+    stimulus = stimulus_for(scenario_id)
+    active = stimulus if stimulus.applied else SCENARIO_STIMULI["nominal_startup"]
+    sources = (
+        Source(
+            name="V1",
+            terminals=("VIN_12V_SRC", "0"),
+            kind="pwl",
+            points=active.vin if active.vin is not None else _vin_ramp(VIN_RAMP),
+        ),
+        _clock_source(active.clock),
+        *active.extra_sources,
+    )
+    cards = _stimulus_cards(project, active, include_loads=include_loads)
+    nominal_cards = _stimulus_cards(
+        project, SCENARIO_STIMULI["nominal_startup"], include_loads=include_loads
+    )
+
+    injection: list[str] = []
+    if active.applied:
+        injection = [source.card() for source in sources]
+        injection.extend(active.extra_elements)
+        for refdes, card in sorted(nominal_cards.items()):
+            if refdes in ("V1", "V2"):
+                continue
+            if refdes not in cards:
+                injection.append(f"* removed: {card}")
+            elif cards[refdes] != card:
+                injection.append(f"* changed: {card} -> {cards[refdes]}")
+        if active.initial_conditions:
+            injection.append(_ic_card(active.initial_conditions))
+
+    comments = [
+        f"* scenario {scenario_id}: {spec.title} ({spec.kind}, intent {spec.intent})",
+        f"* declared stimulus: {', '.join(spec.stimulus) if spec.stimulus else 'none'}",
+    ]
+    for line in injection:
+        comments.append(f"* injection: {line}")
+    if stimulus.note:
+        comments.append(f"* note: {stimulus.note}")
+    comments.extend(f"* {line}" for line in active.comments)
+    comments.append(f"* {CLOCK_STANDIN_NOTE}")
+    comments.append(f"* {LOAD_NOTE}")
+    comments.append(f"* {LDO_NOTE}")
+
+    return DeckStimulus(
+        specification=stimulus,
+        sources=tuple(sources),
+        cards=cards,
+        injection="\n".join(injection) if injection else "none",
+        comments=tuple(comments),
+    )
+
+
 def deck_for_scenario(
     project: NeutralProject,
     scenario_id: str,
@@ -576,48 +1101,10 @@ def deck_for_scenario(
 ) -> DeckSpec:
     """Build the deck for one scenario from the neutral netlist."""
     spec = scenario(scenario_id)
-    elements: list[str] = []
-    sources: list[Source] = []
+    plan = _stimulus_plan(project, scenario_id, include_loads=include_loads)
 
-    if scenario_id == "fast_rail":
-        ramp = 0.4e-3
-    elif scenario_id == "slow_rail":
-        ramp = 8e-3
-    else:
-        ramp = VIN_RAMP
-
-    sources.append(
-        Source.ramp("V1", "VIN_12V_SRC", "0", v0=0.0, v1=12.0, rise_s=ramp, hold_s=SIM_STOP)
-    )
-    sources.append(
-        Source.pulse(
-            "V2",
-            "REFCLK_100M",
-            "0",
-            v1=0.0,
-            v2=3.3,
-            delay_s=0.0,
-            rise_s=1e-9,
-            fall_s=1e-9,
-            width_s=5e-9,
-            period_s=10e-9,
-        )
-    )
-
-    modelled = _model_instances(project, out)
-    passives = _passive_cards(project)
-
-    # U5 has no model: it is an abstraction boundary, not a hidden omission.
-    for refdes, card in sorted(passives.items()):
-        if refdes in ("V1", "V2"):
-            continue
-        if not include_loads and refdes in ("I1", "I2"):
-            continue
-        elements.append(card)
-    for refdes, card in sorted(modelled.items()):
-        if not include_loads and refdes in ("I1", "I2"):
-            continue
-        elements.append(card)
+    elements: list[str] = [card for _, card in sorted(plan.cards.items())]
+    elements.extend(plan.specification.extra_elements)
     elements.extend(extra_elements)
 
     # The diagnostic signal is computed, never a pin of the device.
@@ -627,16 +1114,20 @@ def deck_for_scenario(
 
     library = out / "models" / "board.lib"
     includes = (Include(path=str(library.resolve())),)
+    directives = [
+        "* U5 (SYNTH-PCIE-SW-0) has no model: its lanes and protocol are outside dynamic "
+        "coverage; its supplies, reset, straps and sideband pins are checked statically.",
+        *plan.comments,
+    ]
+    if plan.specification.initial_conditions:
+        directives.append(_ic_card(plan.specification.initial_conditions))
 
     return DeckSpec(
         title=f"demo board - {scenario_id} ({spec.title})",
         includes=includes,
-        sources=tuple(sources),
+        sources=plan.sources,
         elements=tuple(elements),
-        directives=(
-            "* U5 (SYNTH-PCIE-SW-0) has no model: its lanes and protocol are outside dynamic "
-            "coverage; its supplies, reset, straps and sideband pins are checked statically.",
-        ),
+        directives=tuple(directives),
         tran=TranSpec(tstep=SIM_STOP / 20000.0, tstop=SIM_STOP, tstart=0.0, tmax=SIM_TMAX),
         save=(
             "V(3V3)",
@@ -661,7 +1152,7 @@ def deck_for_scenario(
             MeasSpec(name="v1v8_9ms", signal="V(1V8)", at_s=9e-3),
             MeasSpec(name="vperst_9ms", signal="V(PERST_N)", at_s=9e-3),
         ),
-        options={"method": "gear", "trtol": 7},
+        options={"method": "gear", "trtol": DEMO_TRTOL},
     )
 
 
@@ -692,7 +1183,9 @@ def _combined_library(out: Path) -> Path:
                     "one library"
                 )
     parts = ["* demo board model library (generated by boardmodeler)"]
-    parts.append("* each subcircuit is defined once; the per-model files remain in models/generated/")
+    parts.append(
+        "* each subcircuit is defined once; the per-model files remain in models/generated/"
+    )
     parts.extend(blocks[name] for name in order)
     library = out / "models" / "board.lib"
     library.write_text("\n\n".join(part.rstrip() for part in parts) + "\n", encoding="utf-8")
@@ -834,6 +1327,14 @@ def build_demo_project(
     for index, scenario_id in enumerate(DEMO_SCENARIOS, start=1):
         deck = deck_for_scenario(neutral, scenario_id, out=out)
         write_deck(deck, decks_dir / f"{scenario_id}.cir")
+        bound = _requirements_for(scenario_id, requirements)
+        if not bound:
+            # A case with no requirement would be evaluated against nothing and
+            # report UNKNOWN forever; that is a build defect, not a result.
+            raise ValueError(
+                f"scenario {scenario_id!r} is bound to no requirement, so its case could "
+                "never produce a verdict"
+            )
         tests.append(
             TestCase(
                 test_id=f"T_{scenario_id}_{index:03d}",
@@ -863,6 +1364,32 @@ def build_demo_project(
         json.dumps({"tests": [json.loads(t.model_dump_json()) for t in tests]}, indent=2),
         encoding="utf-8",
     )
+
+    # Every scenario declares what its deck injects, or that it injects nothing.
+    # Written for all known scenario ids, not only the ones with a test case, so a
+    # reader can see which stimuli exist and which the demonstration actually runs.
+    scenario_record: dict[str, dict[str, object]] = {}
+    for scenario_id in all_scenario_ids():
+        try:
+            plan = _stimulus_plan(neutral, scenario_id)
+        except KeyError as exc:  # pragma: no cover - every id is in the table
+            scenario_record[scenario_id] = {
+                "applied": False,
+                "injection": "none",
+                "note": f"no stimulus is defined: {exc}",
+                "has_test_case": False,
+            }
+            continue
+        scenario_record[scenario_id] = {
+            "applied": plan.specification.applied,
+            "injection": plan.injection,
+            "note": plan.specification.note,
+            "has_test_case": scenario_id in DEMO_SCENARIOS,
+        }
+    (out / "tests" / "scenario_stimulus.json").write_text(
+        json.dumps(scenario_record, indent=2, sort_keys=True), encoding="utf-8"
+    )
+    unapplied = [sid for sid, entry in scenario_record.items() if not entry["applied"]]
 
     # static checks on the built netlist
     pins_by_refdes = _pins_by_refdes(pin_rows)
@@ -907,7 +1434,9 @@ def build_demo_project(
         ),
         detail=(
             f"{len(requirements)} requirements, {len(tests)} test cases, "
-            f"{len(static_findings)} static findings"
+            f"{len(static_findings)} static findings, "
+            f"{len(scenario_record) - len(unapplied)}/{len(scenario_record)} scenario stimuli applied"
+            + (f" (not applied: {', '.join(sorted(unapplied))})" if unapplied else "")
         ),
     )
     (out / "evidence" / "demo_build.json").write_text(
@@ -935,17 +1464,27 @@ def _requirements_for(scenario_id: str, requirements: Sequence[Requirement]) -> 
     fault scenarios target the specific requirement whose violation they inject,
     so a fault scenario that fails to trip anything is visible as such.
     """
-    by_suffix = {r.req_id.split("_")[-1]: r.req_id for r in requirements}
+    by_suffix = {"_".join(r.req_id.split("_")[-2:]): r.req_id for r in requirements}
     if scenario(scenario_id).intent == "violate_detected":
         mapping = {
             "reset_early_release": ["SEQ_003", "SEQ_004"],
             "pullup_missing": ["CONN_005"],
-            "pullup_wrong_domain": ["CONN_006"],
-            "invalid_strap": ["CONFIG_007"],
+            "pullup_wrong_domain": ["CONN_006", "CONN_005"],
+            "early_reset_release": ["RESET_012", "SEQ_003"],
+            "invalid_strap": ["CONFIG_007", "STRAP_011"],
+            "swap_straps": ["STRAP_011", "CONFIG_007"],
             "load_step": ["SEQ_001"],
             "brownout_short_interrupt": ["SEQ_001"],
         }.get(scenario_id, [])
         return [by_suffix[suffix] for suffix in mapping if suffix in by_suffix]
+    # A scenario may only be bound to a requirement it can actually exercise.
+    # `slow_rail` ramps its input over 8 ms, so the steady rail window (which
+    # opens at 4 ms) is not a claim that scenario can support: binding it there
+    # would report the stimulus itself as a rail violation.
+    if scenario_id == "slow_rail":
+        # An 8 ms input ramp reaches regulation after the strap window has closed,
+        # so the only claim this scenario can carry is the rail *order*.
+        return [by_suffix[suffix] for suffix in ("SEQ_002",) if suffix in by_suffix]
     operating = [
         "SEQ_001",
         "SEQ_002",
@@ -955,6 +1494,8 @@ def _requirements_for(scenario_id: str, requirements: Sequence[Requirement]) -> 
         "CONFIG_007",
         "CONFIG_008",
         "DIAG_010",
+        "STRAP_011",
+        "RESET_012",
     ]
     return [by_suffix[suffix] for suffix in operating if suffix in by_suffix]
 
@@ -1127,8 +1668,26 @@ def check_circuit(
     findings: list[Finding] = []
     circuit = _circuit_from_neutral(neutral)
     netmap = build_netmap(circuit)
+    # Symbols are part of what SC005/SC006 check; without them those checks can
+    # only answer NOT_APPLICABLE, which would understate what was verified.
+    symbol_orders = _symbol_orders(neutral)
+    symbol_dir = root / "models" / "symbols"
+    symbol_texts = {
+        refdes: symbol_dir / f"{BOARD_MODELS[model_id].subckt}.asy"
+        for refdes, model_id in sorted(neutral.model_assignments.items())
+        if model_id in BOARD_MODELS
+        and (symbol_dir / f"{BOARD_MODELS[model_id].subckt}.asy").is_file()
+    }
     findings.extend(
-        run_static_checks(circuit, netmap, project=neutral, pins=pins_by_refdes, project_root=root)
+        run_static_checks(
+            circuit,
+            netmap,
+            project=neutral,
+            pins=pins_by_refdes,
+            symbol_pins=symbol_orders,
+            symbol_texts=symbol_texts,
+            project_root=root,
+        )
     )
 
     if circuit_path is not None and install is not None:
@@ -1146,7 +1705,10 @@ def check_circuit(
             )
         )
 
-    requirements = list(project.requirements().values())
+    # The engine indexes requirements by id, while the report/coverage helpers
+    # take a sequence: keep both views of the same loaded set.
+    requirement_map = project.requirements()
+    requirements = list(requirement_map.values())
     tests = project.tests(scope=scope)
     capabilities = _load_capabilities(root)
     behaviour_map = _load_behaviour_map(root)
@@ -1162,11 +1724,22 @@ def check_circuit(
         for case in tests:
             if cancel is not None and cancel.is_set():
                 break
+            # The deck is rebuilt from the circuit that is on disk *now*, not
+            # copied from the artefacts of the last build: a mutated circuit
+            # (the fault matrix) would otherwise be simulated with the unmutated
+            # deck while its static checks saw the mutation, and the dynamic
+            # half of every fault verdict would be a claim about a different
+            # circuit than the one being reported on. The committed
+            # `tests/decks/<scenario>.cir` remains as the build's record and is
+            # the fallback for a project whose neutral files are absent (an
+            # exported copy).
             deck_path = root / case.deck_template
             artifacts = run_case(
                 ctx,
                 case,
-                build_deck=lambda run_dir, deck_path=deck_path: _copy_deck(deck_path, run_dir),
+                build_deck=lambda run_dir, deck_path=deck_path, case=case: _deck_for_case(
+                    neutral, case, deck_path, run_dir, root
+                ),
                 run_identifier=case.test_id,
                 cancel=cancel,
             )
@@ -1174,7 +1747,7 @@ def check_circuit(
                 evaluate_case(
                     case,
                     artifacts,
-                    requirements,
+                    requirement_map,
                     connectivity=netmap,
                     supply_domains=neutral.supply_domains,
                     capability_gate=capability_gate,
@@ -1263,6 +1836,26 @@ def _markers_table(markers: Mapping[str, Sequence[ViolationMarker]]) -> str:
         "<table><thead><tr><th>signal</th><th>requirement</th><th>time</th><th>detail</th>"
         f"</tr></thead><tbody>{rows}</tbody></table>"
     )
+
+
+def _deck_for_case(
+    neutral: NeutralProject, case: TestCase, committed: Path, run_dir: Path, root: Path
+) -> Path:
+    """Write the deck this case must actually run.
+
+    Rebuilt from ``neutral`` when the scenario is known, because that is what makes
+    a circuit mutation visible to the simulation; otherwise the committed deck is
+    copied (an export, or a circuit the demo does not assemble).
+    """
+    scenario_id = case.scenario_id or ""
+    if scenario_id and (root / "models" / "board.lib").is_file():
+        try:
+            deck = deck_for_scenario(neutral, scenario_id, out=root)
+        except KeyError, ValueError:
+            pass
+        else:
+            return write_deck(deck, run_dir / "deck.cir")
+    return _copy_deck(committed, run_dir)
 
 
 def _copy_deck(source: Path, run_dir: Path) -> Path:
@@ -1381,6 +1974,9 @@ def _detected(check: CheckResult, expected: str) -> bool:
         "open_drain_level",
         "strap_word_invalid",
         "reset_release_too_early",
+        "sideband_level",
+        "strap_connection",
+        "reset_pullup_domain",
     ):
         return any(
             result.status is Status.PASS and "violation detected" in result.detail

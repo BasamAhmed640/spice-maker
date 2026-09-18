@@ -115,9 +115,7 @@ def _acquire_lock(timeout_s: float) -> Path:
         try:
             handle = os.open(path, os.O_CREAT | os.O_RDWR)
         except OSError as exc:  # pragma: no cover - no temp dir write access
-            raise LtspiceLockTimeout(
-                f"cannot open the simulator lock file {path}: {exc}"
-            ) from exc
+            raise LtspiceLockTimeout(f"cannot open the simulator lock file {path}: {exc}") from exc
         try:
             _lock_file_exclusive(handle)
         except OSError:
@@ -170,6 +168,7 @@ def _release_lock(path: Path | None) -> None:
             msvcrt.locking(handle, msvcrt.LK_UNLCK, 1)
     with contextlib.suppress(OSError):  # pragma: no cover - closing releases it anyway
         os.close(handle)
+
 
 BATCH_RESOLUTION_NOTES = (
     "argv = [LTspice.exe, -b, (extra switches...), <absolute deck path>] with cwd=deck dir; "

@@ -275,9 +275,7 @@ class WaveformView(QWidget):
         painter.drawText(QPointF(4.0, plot.top() + 12.0), f"{y_high:.3g}")
         painter.drawText(QPointF(4.0, plot.bottom()), f"{y_low:.3g}")
         painter.drawText(QPointF(plot.left(), plot.bottom() + 18.0), f"{low:.4g} s")
-        painter.drawText(
-            QPointF(plot.right() - 60.0, plot.bottom() + 18.0), f"{high:.4g} s"
-        )
+        painter.drawText(QPointF(plot.right() - 60.0, plot.bottom() + 18.0), f"{high:.4g} s")
 
     def _draw_traces(
         self,

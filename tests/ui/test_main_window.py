@@ -58,9 +58,7 @@ class FakeWorker(QObject):
 
 
 def _make_project(tmp_path: Path, *, circuit: bool = True):
-    project = create_project(
-        tmp_path / "proj", project_id="P1", name="Demo board", mode="circuit"
-    )
+    project = create_project(tmp_path / "proj", project_id="P1", name="Demo board", mode="circuit")
     if circuit:
         (project.root / "circuit").mkdir(exist_ok=True)
         (project.root / "circuit" / "demo.asc").write_text("Version 4\n", encoding="utf-8")
@@ -141,12 +139,20 @@ def test_worker_events_populate_stage_list_and_results(qapp, tmp_path: Path) -> 
 
     fake.stage.emit(_stage("IDENTIFY", "PASS", "documents read"))
     fake.stage.emit(_stage("EVALUATE", "FAIL", "V(out)=1.5 V"))
-    fake.progress.emit({"event": "progress", "stage": "EVALUATE", "done": 2, "total": 10, "detail": ""})
+    fake.progress.emit(
+        {"event": "progress", "stage": "EVALUATE", "done": 2, "total": 10, "detail": ""}
+    )
     fake.findings.emit(
         {
             "event": "findings",
             "findings": [
-                {"code": "SC001_syntax", "status": "PASS", "refdes": "R1", "nets": [], "message": "fine"},
+                {
+                    "code": "SC001_syntax",
+                    "status": "PASS",
+                    "refdes": "R1",
+                    "nets": [],
+                    "message": "fine",
+                },
                 {
                     "code": "SC009_supply_domain_assignment",
                     "status": "FAIL",
@@ -158,14 +164,22 @@ def test_worker_events_populate_stage_list_and_results(qapp, tmp_path: Path) -> 
             ],
         }
     )
-    fake.review.emit({"event": "review", "items": [{"id": "R1", "kind": "conflict", "question": "?"}]})
+    fake.review.emit(
+        {"event": "review", "items": [{"id": "R1", "kind": "conflict", "question": "?"}]}
+    )
     fake.result.emit(
         {
             "event": "result",
             "status": "FAIL",
             "summary": {"PASS": 1, "FAIL": 1},
             "results": [
-                {"test_id": "T1", "status": "PASS", "measured": {"V(out)": 0.632}, "expected": "V(out)=0.632", "detail": "ok"},
+                {
+                    "test_id": "T1",
+                    "status": "PASS",
+                    "measured": {"V(out)": 0.632},
+                    "expected": "V(out)=0.632",
+                    "detail": "ok",
+                },
                 {
                     "test_id": "T2",
                     "status": "FAIL",

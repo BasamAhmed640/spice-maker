@@ -119,7 +119,9 @@ def build_parser() -> argparse.ArgumentParser:
         "mutations", help="inject every fault into its own copy and record detection"
     )
     run_mutations.add_argument("--project", type=Path, required=True, help="project directory")
-    run_mutations.add_argument("--report", type=Path, required=True, help="where to write the report")
+    run_mutations.add_argument(
+        "--report", type=Path, required=True, help="where to write the report"
+    )
     run_mutations.add_argument(
         "--fault", action="append", default=None, help="only these faults (repeatable)"
     )
@@ -140,9 +142,13 @@ def build_parser() -> argparse.ArgumentParser:
         "check", help="static checks plus the dynamic scenarios against a built project"
     )
     circuit_check.add_argument("--project", type=Path, required=True)
-    circuit_check.add_argument("--circuit", type=Path, default=None, help="schematic to netlist-check")
+    circuit_check.add_argument(
+        "--circuit", type=Path, default=None, help="schematic to netlist-check"
+    )
     circuit_check.add_argument("--scope", default=None, help="only cases in this scope")
-    circuit_check.add_argument("--fault-matrix", action="store_true", help="also run the fault matrix")
+    circuit_check.add_argument(
+        "--fault-matrix", action="store_true", help="also run the fault matrix"
+    )
     circuit_check.add_argument("--json", action="store_true")
     circuit_check.add_argument("--out", type=Path, default=None, help="results JSON path")
     circuit_check.add_argument("--report", type=Path, default=None, help="HTML report path")
@@ -154,14 +160,18 @@ def build_parser() -> argparse.ArgumentParser:
     export.add_argument("--project", type=Path, required=True)
     export.add_argument("--out", type=Path, required=True)
     export.add_argument("--json", action="store_true")
-    export.add_argument("--model", default=None, help="model id to export (default: first generated)")
+    export.add_argument(
+        "--model", default=None, help="model id to export (default: first generated)"
+    )
 
     extract = sub.add_parser(
         "extract", help="extract requirements from a document through a provider"
     )
     extract.add_argument("--project", type=Path, required=True)
     extract.add_argument("--doc", type=Path, default=None, help="document to ingest first")
-    extract.add_argument("--provider", default=None, help="provider name (fixture, http_inference, bob_direct)")
+    extract.add_argument(
+        "--provider", default=None, help="provider name (fixture, http_inference, bob_direct)"
+    )
     extract.add_argument("--allow-remote", action="store_true", help="permit remote inference")
     extract.add_argument("--json", action="store_true")
     return parser
@@ -554,7 +564,9 @@ def _cmd_circuit_check(args: argparse.Namespace) -> int:
             if finding.status is not Status.PASS:
                 print(f"  {finding.status.value:12} {finding.code:32} {finding.message[:90]}")
         for test_result in result.results:
-            print(f"  {test_result.status.value:12} {test_result.test_id:28} {test_result.detail[:80]}")
+            print(
+                f"  {test_result.status.value:12} {test_result.test_id:28} {test_result.detail[:80]}"
+            )
         print(f"results -> {out}")
         print(f"report  -> {report}")
         if fault_matrix:

@@ -91,24 +91,24 @@ CGA: dict[str, str] = {
 }
 
 RETRO_STYLESHEET = f"""
-QWizard, QWizardPage {{ background: {CGA['black']}; }}
-QLabel {{ color: {CGA['grey']}; font-family: Consolas; font-size: 10pt; }}
+QWizard, QWizardPage {{ background: {CGA["black"]}; }}
+QLabel {{ color: {CGA["grey"]}; font-family: Consolas; font-size: 10pt; }}
 QPushButton {{
-    background: {CGA['grey']}; color: {CGA['black']};
-    border: 2px solid {CGA['white']}; padding: 4px 10px;
+    background: {CGA["grey"]}; color: {CGA["black"]};
+    border: 2px solid {CGA["white"]}; padding: 4px 10px;
     font-family: Consolas; font-size: 10pt; font-weight: bold;
 }}
-QPushButton:disabled {{ background: {CGA['dark_grey']}; color: {CGA['grey']}; }}
-QPushButton:pressed {{ background: {CGA['dark_grey']}; }}
+QPushButton:disabled {{ background: {CGA["dark_grey"]}; color: {CGA["grey"]}; }}
+QPushButton:pressed {{ background: {CGA["dark_grey"]}; }}
 QLineEdit, QComboBox, QPlainTextEdit {{
-    background: {CGA['black']}; color: {CGA['bright_green']};
-    border: 2px solid {CGA['bright_blue']}; padding: 3px;
+    background: {CGA["black"]}; color: {CGA["bright_green"]};
+    border: 2px solid {CGA["bright_blue"]}; padding: 3px;
     font-family: Consolas; font-size: 10pt;
 }}
-QCheckBox {{ color: {CGA['grey']}; font-family: Consolas; font-size: 10pt; spacing: 6px; }}
-QCheckBox::indicator {{ width: 12px; height: 12px; border: 2px solid {CGA['bright_green']};
-                        background: {CGA['black']}; }}
-QCheckBox::indicator:checked {{ background: {CGA['bright_green']}; }}
+QCheckBox {{ color: {CGA["grey"]}; font-family: Consolas; font-size: 10pt; spacing: 6px; }}
+QCheckBox::indicator {{ width: 12px; height: 12px; border: 2px solid {CGA["bright_green"]};
+                        background: {CGA["black"]}; }}
+QCheckBox::indicator:checked {{ background: {CGA["bright_green"]}; }}
 """
 
 TITLE_H = 26
@@ -214,7 +214,11 @@ class RetroPage(QWizardPage):
             colour = QColor(CGA["grey"])
             if "NOT FOUND" in upper or "NOT STORED" in upper or "-> FAIL" in upper:
                 colour = QColor(CGA["bright_red"])
-            elif upper.startswith("SMOKE    PASS") or upper.startswith("PASS") or line.startswith("OK"):
+            elif (
+                upper.startswith("SMOKE    PASS")
+                or upper.startswith("PASS")
+                or line.startswith("OK")
+            ):
                 colour = QColor(CGA["bright_green"])
             elif line.startswith(">"):
                 colour = QColor(CGA["bright_cyan"])
@@ -614,7 +618,9 @@ class InstallerWizard(QWizard):
         workdir = Path(tempfile.mkdtemp(prefix="boardmodeler-installer-smoke-"))
         result = self._smoke_runner(install.path, workdir, timeout_s=timeout_s)
         measured = (
-            f"{result.measured_v:.6f} V" if getattr(result, "measured_v", None) is not None else "n/a"
+            f"{result.measured_v:.6f} V"
+            if getattr(result, "measured_v", None) is not None
+            else "n/a"
         )
         expected = getattr(result, "expected_v", None)
         expected_text = f"{expected:.6f} V" if expected is not None else "n/a"
