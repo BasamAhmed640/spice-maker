@@ -106,7 +106,7 @@ __all__ = [
 ]
 
 DEFAULT_TIMEOUT_S = 600.0
-"""One HTTP request may take this long; a turn is one request."""
+"""One authoring turn may take this long, retries included."""
 
 DEFAULT_RETRIES = 2
 """Extra attempts for transport failures and :data:`RETRYABLE_STATUSES`."""
@@ -329,9 +329,9 @@ class ApiKeyBackend:
     accept: :meth:`availability` refuses an id outside the catalog). ``model``
     overrides the provider's documented default and ``max_output_tokens`` its
     output budget (:data:`MAX_OUTPUT_TOKENS` when neither the caller nor the
-    settings name one). ``timeout_s`` bounds one HTTP request, ``retries`` counts
-    extra attempts, ``transport`` is injectable so tests never reach the network,
-    and ``credential_lookup`` is the key source (the repo
+    settings name one). ``timeout_s`` bounds one whole turn, retries included;
+    ``retries`` counts extra attempts; ``transport`` is injectable so tests never
+    reach the network; and ``credential_lookup`` is the key source (the repo
     keyring/``BOARDMODELER_*_API_KEY`` helpers plus the catalog's aliases by
     default).
     """

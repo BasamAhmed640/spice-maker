@@ -702,7 +702,7 @@ def query_agent_backend(
     turn could be made (``agent_backend_unavailable: ...``). ``cancel`` is the
     build's cancellation event, threaded to the backend so a CANCEL stops a hung
     agent; ``timeout_s`` bounds this one invocation when the search has a budget
-    (a default is used when the budget is unbounded, because one HTTP request
+    (a default is used when the budget is unbounded, because one agent turn
     still needs an upper bound). The credential is handled by the backend itself
     and never appears here. Never raises; a callable seam so tests can answer
     without any agent, network or credential.

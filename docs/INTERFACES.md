@@ -250,8 +250,9 @@ def fault_ids() -> tuple[str, ...]
   table and a datasheet-row table, with `SETUP` and `CHECK ENVIRONMENT` buttons. Fixed
   900×600; all control styling comes from `ui/theme.py`'s `RETRO_STYLESHEET`.
 * `ui/setup_dialog.py`: `class SetupDialog(QDialog)` — the one page of persistent
-  settings (LTspice path + smoke test, Bob API key, model folder, the read-only LTspice
-  user library, web reinforcement), sized to its content. `describe_settings(config)`
+  settings (LTspice path + smoke test, the agent provider and its API key, the model id when
+  the provider takes one, model folder, the read-only LTspice user library, web reinforcement),
+  sized to its content. `describe_settings(config)`
   returns those settings as data for `boardmodeler setup --json`, and `main(argv)` is
   the `boardmodeler setup` entry point. Reached from the SETUP button, `boardmodeler
   setup`, or `boardmodeler ui --installer`.

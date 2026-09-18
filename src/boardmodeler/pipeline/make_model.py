@@ -899,8 +899,8 @@ def build_backend(request: MakeModelRequest) -> AuthorBackend:
     """
     name = str(request.backend_name or "").strip().lower()
     if name in ("", "api"):
-        # ``turn_timeout_s`` bounds one agent invocation; on this wire one
-        # invocation is one HTTP request, so it becomes that request's timeout.
+        # ``turn_timeout_s`` bounds one agent invocation; the API backend applies
+        # it as that turn's total budget, retries included.
         limit = float(request.turn_timeout_s) if request.turn_timeout_s else DEFAULT_API_TIMEOUT_S
         return build_api_backend(
             provider_id=request.provider,

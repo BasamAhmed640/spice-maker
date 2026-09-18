@@ -23,8 +23,8 @@ the default provider and needs Bob Shell installed
 (`powershell -c "irm -Uri https://bob.ibm.com/download/bobshell.ps1 | iex"`, Node ≥ 24) plus a key from
 bob.ibm.com → API keys with **Scope = Inference** (an *Inference* key needs no team id; a
 *general* key does). The same row also takes a plain vendor key from OpenAI, Anthropic, Google,
-DeepSeek, OpenRouter, xAI, Groq or Mistral, and those run over HTTP with no CLI and no extra
-install. Every key goes to the Windows credential store — never to a config file, a project
+DeepSeek, OpenRouter, xAI, Groq, Mistral or OpenCode Zen / Go, and those run over HTTP with no
+CLI and no extra install. Every key goes to the Windows credential store — never to a config file, a project
 directory, a manifest or a log line. Setup is one page and holds only what persists: the LTspice
 path (with a smoke test), the agent provider and key, the model id when the provider takes one,
 the folder finished models go to, the read-only LTspice user library path, and the
