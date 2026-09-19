@@ -574,9 +574,11 @@ forbidden-label test in `tests/ui/test_setup_dialog.py`).
   offending line LTspice printed (`…BM_REG_BUCK.lib(95): Undefined model "rout_drv"`), and that reason
   is exactly what the next turn's prompt quotes as feedback. The API backends likewise re-ask **once**
   inside a turn when the reply is not the required JSON object, quoting the parse error back to the
-  model; the retry is a transcription repair, not a second opinion, a retry that also fails is reported
-  with both attempts named, and neither change can manufacture a PASS — the harness still judges the
-  file that is on disk.
+  model, and — when a reply comes back empty at the model's output limit, which the switch that made it
+  answer can still cause — with the entry's own fallback setting (`retry_body`: thinking off for
+  DeepSeek) instead of giving up the turn. Every one of these is a repair of the *request*, not a second
+  opinion: a retry that also fails is reported with both attempts named, and none of them can manufacture
+  a PASS — the harness still judges the file that is on disk.
 * **The installer is the application and nothing else.** A Velopack one-click setup with the animated
   pepper splash, Start Menu and desktop shortcuts, and `Update.exe --uninstall --silent`; it carries no
   LTspice, Bob Shell or Python payload (SHA-256 of all 16 606 files under the two raw LTspice trees is

@@ -80,10 +80,16 @@ class AgentProvider:
     reasoning: bool = False
     #: Extra fields merged into the request body for this entry, in the vendor's own
     #: documented spelling. This exists because a vendor knob can decide whether the
-    #: task is possible at all: DeepSeek's ``{"thinking": {"type": "disabled"}}`` is the
-    #: difference between V4.1 Flash answering in ~10 s and it spending the whole output
-    #: budget on ``reasoning_content`` and returning no text (measured, D-015).
+    #: task is possible at all: DeepSeek's ``{"thinking": {"type": "enabled"},
+    #: "reasoning_effort": "low"}`` is the setting measured to produce a model the
+    #: harness can judge (0 PASS with thinking off, 4 PASS / 0 FAIL at low effort), and
+    #: the same switch will occasionally spend the whole output budget reasoning.
     extra_body: Mapping[str, object] = field(default_factory=dict)
+    #: Used *instead of* :attr:`extra_body` for one re-ask inside the same turn when the
+    #: reply carries no text because the model stopped at its output budget: the entry's
+    #: own documented way of making it answer at all (DeepSeek: thinking off, ~10 s).
+    #: Empty means the entry has no such second setting and the turn fails honestly.
+    retry_body: Mapping[str, object] = field(default_factory=dict)
 
     @property
     def uses_cli(self) -> bool:
@@ -120,10 +126,13 @@ CATALOG: tuple[AgentProvider, ...] = (
         endpoint="https://api.deepseek.com",
         model="deepseek-flash",
         env_aliases=("DEEPSEEK_API_KEY",),
-        # DeepSeek's own "Invoke The Chat API" example documents this switch; with the
-        # default the V4.1 Flash model thinks until the output budget is gone and returns
-        # no text at all, and with the switch it answers in seconds (measured, D-015).
+        # DeepSeek's own "Invoke The Chat API" example documents this switch, and the
+        # measured settings differ: thinking off answers in ~10 s but the model it writes
+        # reaches 0 PASS, thinking on at low effort reaches 4 PASS / 0 FAIL in three
+        # turns — and once in a while spends the whole budget reasoning anyway, which is
+        # what ``retry_body`` is for (D-015).
         extra_body={"thinking": {"type": "enabled"}, "reasoning_effort": "low"},
+        retry_body={"thinking": {"type": "disabled"}},
     ),
     AgentProvider(
         id="openai",

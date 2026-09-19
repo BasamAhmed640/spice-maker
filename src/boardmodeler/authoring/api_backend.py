@@ -430,7 +430,40 @@ class ApiKeyBackend:
         except ProviderError as exc:
             if exc.code == "cancelled":
                 return self._failed("cancelled: the API request was stopped before it completed")
-            return self._failed(redact(f"api_request_failed: {exc.code}: {exc.detail}", [key]))
+            # A model whose own switch is what let it answer can still spend the whole
+            # budget reasoning and return nothing. The entry declares the setting that
+            # turns that off, so re-ask once with it rather than losing the turn.
+            if exc.code == "response_empty" and self.provider.retry_body:
+                retry_url, retry_headers, retry_body = self._shape(
+                    prompt, key=key, extra_body=self.provider.retry_body
+                )
+                try:
+                    text, usage, stop = self._exchange(
+                        url=retry_url,
+                        headers=retry_headers,
+                        body=retry_body,
+                        key=key,
+                        cancel=cancel,
+                        timeout_s=limit,
+                    )
+                except ProviderError as again:
+                    return self._failed(
+                        redact(
+                            f"api_request_failed: {exc.code}: {exc.detail}; the retry with "
+                            f"the provider's fallback setting failed: {again.code}: {again.detail}",
+                            [key],
+                        )
+                    )
+                except Exception as again:  # a transport that raises is still recorded
+                    return self._failed(
+                        redact(
+                            f"api_request_failed: {exc.code}: {exc.detail}; the retry with "
+                            f"the provider's fallback setting failed: {type(again).__name__}: {again}",
+                            [key],
+                        )
+                    )
+            else:
+                return self._failed(redact(f"api_request_failed: {exc.code}: {exc.detail}", [key]))
         except Exception as exc:  # a transport that raises is still a recorded failure
             return self._failed(redact(f"api_request_failed: {type(exc).__name__}: {exc}", [key]))
         if request.expect_text:
@@ -547,8 +580,14 @@ class ApiKeyBackend:
     def _max_tokens(self) -> int:
         return self.max_output_tokens or MAX_OUTPUT_TOKENS
 
-    def _shape(self, prompt: str, *, key: str) -> tuple[str, dict[str, str], dict[str, Any]]:
-        """``(url, headers, body)`` for one turn, in the provider's documented shape."""
+    def _shape(
+        self, prompt: str, *, key: str, extra_body: Mapping[str, object] | None = None
+    ) -> tuple[str, dict[str, str], dict[str, Any]]:
+        """``(url, headers, body)`` for one turn, in the provider's documented shape.
+
+        ``extra_body`` replaces the entry's own switches for this request only; the
+        fallback re-ask uses it to send the setting that makes a model answer at all.
+        """
         endpoint = self._endpoint()
         model = self._model()
         budget = self._max_tokens()
@@ -566,7 +605,7 @@ class ApiKeyBackend:
                 body["max_tokens"] = budget
             # The entry's own documented switches last, so a vendor knob can override a
             # default above (DeepSeek's ``thinking`` switch is the one that matters here).
-            body.update(dict(self.provider.extra_body))
+            body.update(dict(self.provider.extra_body if extra_body is None else extra_body))
             return (
                 f"{endpoint}/chat/completions",
                 {"Authorization": f"Bearer {key}"},

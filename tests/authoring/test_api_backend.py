@@ -63,6 +63,7 @@ WIRE_ENTRIES: tuple[AgentProvider, ...] = (
         model="deepseek-flash",
         env_aliases=("DEEPSEEK_API_KEY",),
         extra_body={"thinking": {"type": "enabled"}, "reasoning_effort": "low"},
+        retry_body={"thinking": {"type": "disabled"}},
     ),
     AgentProvider(
         id="openai",
@@ -294,6 +295,49 @@ def test_an_entry_without_a_switch_sends_none(tmp_path: Path) -> None:
     assert result.ok is True, result.detail
     body = json.loads(transport.requests[0].body)
     assert "thinking" not in body
+
+
+def test_an_empty_reply_at_the_budget_is_reasked_with_the_fallback_setting(
+    tmp_path: Path,
+) -> None:
+    """A model that thinks the whole budget away gets the entry's second setting.
+
+    This is the failure that actually ends a DeepSeek turn: the answer exists, but the
+    reply is empty at ``finish_reason='length'``. The entry declares the setting that
+    makes the model answer, so the turn is re-asked instead of lost.
+    """
+    deepseek = provider("deepseek")
+    assert deepseek.retry_body, "the DeepSeek entry declares its fallback setting"
+    reply = json.dumps({"files": {f"model/{SUBCKT}.lib": LIB_TEXT}})
+    transport = Sequenced(
+        (200, openai_reply("", finish_reason="length")), (200, openai_reply(reply))
+    )
+    request = request_for(tmp_path)
+
+    result = backend_for(deepseek, transport).author(request)
+
+    assert result.ok is True, result.detail
+    assert (request.model_dir / f"{SUBCKT}.lib").read_text(encoding="utf-8") == LIB_TEXT
+    first = json.loads(transport.requests[0].body)
+    second = json.loads(transport.requests[1].body)
+    assert first["thinking"] == deepseek.extra_body["thinking"]
+    assert first["reasoning_effort"] == "low"
+    assert second["thinking"] == deepseek.retry_body["thinking"]
+    assert "reasoning_effort" not in second, "the fallback body replaces the entry's own"
+
+
+def test_an_entry_without_a_fallback_reports_the_empty_reply(tmp_path: Path) -> None:
+    """No declared fallback means no invented one: the failure is reported as it happened."""
+    plain = provider("openai")
+    assert not plain.retry_body
+    transport = Recorder(openai_reply("", finish_reason="length"))
+
+    result = backend_for(plain, transport).author(request_for(tmp_path))
+
+    assert result.ok is False
+    assert "response_empty" in result.detail, result.detail
+    assert "length" in result.detail, "the stop reason is named"
+    assert len(transport.requests) == 1, "nothing else is sent"
 
 
 def test_a_malformed_reply_is_retried_once_with_the_parse_error(tmp_path: Path) -> None:
