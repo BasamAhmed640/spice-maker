@@ -378,11 +378,18 @@ def test_an_empty_raw_file_still_names_what_the_simulator_said(
     """A ``.raw`` that exists but holds no data is the same dead end — and says why too.
 
     LTspice writes the file before it fails, so the run reads as "no usable output";
-    the log is the only place the author can learn that a sub-model was undefined.
+    the log is the only place the author can learn what is wrong. This is the log of a
+    real installed-app run: two source-driven nodes, reported without any prefix of its
+    own, and unseen by the author until this line was kept.
     """
     lib = write_regulator_library(tmp_path / "buck.lib", [SUBCKT])
     log = tmp_path / "deck.log"
-    log.write_text("Fatal Error: u1: Unknown subckt: rout_drv\n", encoding="utf-8")
+    log.write_text(
+        "Voltage source V_en and voltage source B_enable are paralleled making an "
+        "over-defined circuit matrix.\n"
+        "You will need to correct the circuit or add some series resistance.\n",
+        encoding="utf-8",
+    )
     raw = tmp_path / "deck.raw"
     raw.write_bytes(b"")
 
@@ -412,8 +419,9 @@ def test_an_empty_raw_file_still_names_what_the_simulator_said(
     outcome = report.outcomes[0]
     assert outcome.status == Status.UNKNOWN.value
     reason = outcome.unknown_reason or ""
-    assert "Unknown subckt" in reason, reason
-    assert "Unknown subckt" in report.feedback(), report.feedback()
+    assert "over-defined circuit matrix" in reason, reason
+    assert "You will need to correct the circuit" in reason, reason
+    assert "over-defined circuit matrix" in report.feedback(), report.feedback()
 
 
 def test_cancelled_harness_reports_cancelled(spec: SpecSet, tmp_path: Path) -> None:

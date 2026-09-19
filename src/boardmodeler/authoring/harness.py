@@ -256,12 +256,18 @@ def _simulator_said(log) -> str:
     """The last lines the simulator printed to its own log, or an empty string.
 
     A reason that says only "no usable output" leaves the author blind: the deck's own
-    error line (an LTspice syntax error inside the ``.subckt``, an undefined sub-model, a
-    singular matrix) is what lets the next turn fix the model. ``log`` is the parsed
-    log summary, and its ``errors`` are already the lines LTspice flagged.
+    error line (an LTspice syntax error inside the ``.subckt``, an undefined sub-model, an
+    over-defined matrix) is what lets the next turn fix the model. ``log`` is the parsed
+    log summary; anything it kept as a diagnostic is worth repeating, in the order the
+    reasons themselves prefer (errors, then convergence, then warnings).
     """
-    said = [str(line) for line in (getattr(log, "errors", None) or [])]
-    return f"; LTspice said: {' | '.join(said[-2:])[:300]}" if said else ""
+    said: list[str] = []
+    for field in ("errors", "convergence_issues", "warnings"):
+        said.extend(str(line) for line in (getattr(log, field, None) or []))
+    if not said:
+        return ""
+    tail = list(dict.fromkeys(said))[-2:]
+    return f"; LTspice said: {' | '.join(tail)[:300]}"
 
 
 def _run_reason(result: BatchResult, log, *, tstop_s: float, tmax_s: float) -> str | None:
