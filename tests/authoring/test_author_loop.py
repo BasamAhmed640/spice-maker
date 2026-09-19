@@ -588,9 +588,7 @@ def test_no_hidden_cap_an_agent_that_improves_six_times_reaches_pass(
 
     def verdict(text: str) -> tuple[tuple[str, str], ...]:
         fixed = turn_of(text) - 1  # turn n has fixed the first n-1 probes
-        return tuple(
-            (name, "PASS" if index < fixed else "FAIL") for index, name in enumerate(FIVE)
-        )
+        return tuple((name, "PASS" if index < fixed else "FAIL") for index, name in enumerate(FIVE))
 
     double = RevisionHarness(verdict, spec)
     monkeypatch.setattr(loop, "run_harness", double)
@@ -709,9 +707,7 @@ def test_max_iterations_still_caps_an_agent_that_would_otherwise_continue(
     assert outcome.report is double.reports[-1]
 
 
-def test_cancellation_during_a_turn_ends_unknown_cancelled(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_cancellation_during_a_turn_ends_unknown_cancelled(monkeypatch, tmp_path: Path) -> None:
     """The caller's cancel still wins: no harness run, no verdict, ``cancelled``."""
     spec = build_spec(FIVE[0])
     workdir = tmp_path / "build"
@@ -1081,9 +1077,7 @@ def test_build_outcome_json_round_trips() -> None:
     assert restored.report.passed() is False
 
 
-def test_loop_request_bounds_are_validated_and_no_cap_is_the_default(
-    tmp_path: Path
-) -> None:
+def test_loop_request_bounds_are_validated_and_no_cap_is_the_default(tmp_path: Path) -> None:
     import pytest
 
     spec = build_spec()

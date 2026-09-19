@@ -2,6 +2,7 @@
 build/
 dist/
 runs/
+releases/
 *.raw
 *.log
 *.pyc

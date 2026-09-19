@@ -252,6 +252,24 @@ def _judge(char: Characteristic, key: str, value: float) -> tuple[str, str, str 
     )
 
 
+def _simulator_said(log) -> str:
+    """The last lines the simulator printed to its own log, or an empty string.
+
+    A reason that says only "no usable output" leaves the author blind: the deck's own
+    error line (an LTspice syntax error inside the ``.subckt``, an undefined sub-model, an
+    over-defined matrix) is what lets the next turn fix the model. ``log`` is the parsed
+    log summary; anything it kept as a diagnostic is worth repeating, in the order the
+    reasons themselves prefer (errors, then convergence, then warnings).
+    """
+    said: list[str] = []
+    for field in ("errors", "convergence_issues", "warnings"):
+        said.extend(str(line) for line in (getattr(log, field, None) or []))
+    if not said:
+        return ""
+    tail = list(dict.fromkeys(said))[-2:]
+    return f"; LTspice said: {' | '.join(tail)[:300]}"
+
+
 def _run_reason(result: BatchResult, log, *, tstop_s: float, tmax_s: float) -> str | None:
     """Why this run cannot produce a verdict, or ``None`` when it delivered data."""
     if result.cancelled:
@@ -264,9 +282,11 @@ def _run_reason(result: BatchResult, log, *, tstop_s: float, tmax_s: float) -> s
         try:
             raw = read_raw(result.raw_path)
         except (RawFormatError, OSError) as exc:
-            raw_error = str(exc)
+            # An empty or truncated .raw means the run ended before it produced data, and
+            # the simulator's log is the only place that says why.
+            raw_error = f"{exc}{_simulator_said(log)}"
     else:
-        raw_error = f"no .raw was written ({result.observed()})"
+        raw_error = f"no .raw was written ({result.observed()}){_simulator_said(log)}"
     diag = diagnose(
         log=log,
         raw=raw,

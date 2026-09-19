@@ -50,7 +50,7 @@ class SettingsDialog(QDialog):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("BoardModeler settings")
+        self.setWindowTitle("Spice Maker settings")
         self._config_path = Path(config_file) if config_file is not None else config_path()
         self._config = config if config is not None else load_config(self._config_path)
         self._last_smoke: dict[str, Any] | None = None

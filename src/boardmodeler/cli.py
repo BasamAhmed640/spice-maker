@@ -21,6 +21,8 @@ from pathlib import Path
 from typing import Any
 
 from boardmodeler import __version__
+from boardmodeler.agent_providers import CATALOG
+from boardmodeler.authoring.part_class import classify
 from boardmodeler.config import config_path, load_config
 from boardmodeler.simulation.backend import probe_backend
 from boardmodeler.simulation.ltspice import (
@@ -83,9 +85,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="print the resolved settings instead of a window",
     )
 
-    ui_cmd = sub.add_parser(
-        "ui", help="launch the model maker window (add --installer for setup)"
-    )
+    ui_cmd = sub.add_parser("ui", help="launch the model maker window (add --installer for setup)")
     ui_cmd.add_argument("--project", type=Path, default=None, help="project directory to open")
     ui_cmd.add_argument(
         "--installer", action="store_true", help="open the setup page instead of the model maker"
@@ -193,7 +193,12 @@ def build_parser() -> argparse.ArgumentParser:
         "build",
         help="let an agent author the model, then judge it against the datasheet rows",
     )
-    model_build.add_argument("--part", required=True, help="part number, e.g. TPS54320")
+    model_build.add_argument(
+        "--part",
+        required=True,
+        help="part number, e.g. TPS54320; microcontrollers and programmable-logic parts are "
+        "refused with BLOCKED and the reason (no probe can judge them)",
+    )
     model_build.add_argument(
         "--subckt",
         default=None,
@@ -214,16 +219,34 @@ def build_parser() -> argparse.ArgumentParser:
     model_build.add_argument(
         "--bindings", type=Path, default=None, help="requirement -> probe binding JSON"
     )
-    model_build.add_argument("--out", type=Path, required=True, help="output directory for the model")
+    model_build.add_argument(
+        "--out", type=Path, required=True, help="output directory for the model"
+    )
     model_build.add_argument(
         "--backend",
-        default="bob",
-        choices=["bob"],
-        help="which agent authors the model (bob = IBM Bob Shell, non-interactive)",
+        default="api",
+        choices=["api", "bob", "scripted", "fixture"],
+        help="which agent authors the model (api = an API key stored in SETUP, "
+        "bob = IBM Bob Shell, scripted/fixture = the bundled offline template)",
     )
     model_build.add_argument("--team-id", default=None, help="Bob team id for a general API key")
     model_build.add_argument(
-        "--provider", default=None, help="extraction provider for --datasheet (default: from config)"
+        "--provider",
+        default=None,
+        help="agent provider id for --backend api (default: the configured provider, "
+        "else this build's default)",
+    )
+    model_build.add_argument(
+        "--model",
+        default=None,
+        help="model id for --backend api (default: the provider's documented model)",
+    )
+    model_build.add_argument(
+        "--max-tokens",
+        type=int,
+        default=None,
+        help="output-token budget for one --backend api turn (default: the config file's "
+        "agent_max_tokens, else 32768 - reasoning models spend part of it before writing)",
     )
     model_build.add_argument(
         "--allow-remote", action="store_true", help="permit sending the datasheet to the provider"
@@ -350,14 +373,24 @@ def _ocr_section() -> dict[str, Any]:
     }
 
 
-def _credentials_section(
-    names: tuple[str, ...] = ("fixture", "http_inference", "bob_direct"),
-) -> dict:
+def _credentials_section() -> dict:
+    """One entry per provider this build accepts, and where its key resolves from.
+
+    The entry is the resolution's *source* only — never a value — and it walks the
+    same sources the backend does, the catalog's own environment aliases included,
+    so ``doctor`` cannot contradict a build that then succeeds.
+    """
     try:
-        creds = importlib.import_module("boardmodeler.security.credentials")
+        api = importlib.import_module("boardmodeler.authoring.api_backend")
     except ImportError as exc:  # pragma: no cover - only before the module lands
         return {"available": None, "reason": "credentials_module_unavailable", "detail": str(exc)}
-    return {name: creds.describe_credential(name) for name in names}
+    return {
+        provider.id: (
+            f"credential {provider.credential!r}: "
+            f"source={api.credential_for(provider).source.value.lower()}"
+        )
+        for provider in CATALOG
+    }
 
 
 def doctor_payload(*, run_smoke: bool = True, smoke_workdir: Path | None = None) -> dict[str, Any]:
@@ -819,6 +852,7 @@ def _publish_model_files(
 
 
 def _cmd_model_build(args: argparse.Namespace) -> int:
+    from boardmodeler.authoring.api_backend import build_api_backend
     from boardmodeler.authoring.backends import BobShellBackend
     from boardmodeler.authoring.card import write_deliverables
     from boardmodeler.authoring.loop import BuildRequest, build_model, prepare_workdir
@@ -841,14 +875,32 @@ def _cmd_model_build(args: argparse.Namespace) -> int:
                     f"{str(row['measured'])[:28]}"
                 )
             for probe in payload.get("probes", []):
-                print(
-                    f"  {probe['status']:8} {probe['probe_id']:20} {probe['detail'][:80]}"
-                )
+                print(f"  {probe['status']:8} {probe['probe_id']:20} {probe['detail'][:80]}")
             for path in payload.get("files", []):
                 print(f"  wrote {path}")
         return code
 
     subckt = args.subckt or _sanitize_subckt(args.part)
+    part_class = classify(args.part)
+    if not part_class.supported:
+        # The same refusal the pipeline raises, reported before it reads anything:
+        # the probes judge analogue rows, and a part this classifier names is one
+        # whose datasheet rows no probe can bind. No new flag -- it is a BLOCKED
+        # result like any other, and --strict turns that into exit 1.
+        return emit(
+            {
+                "tool": "boardmodeler",
+                "command": "model build",
+                "part": args.part,
+                "subckt": subckt,
+                "status": "BLOCKED",
+                "detail": part_class.detail,
+                "history": [],
+                "probes": [],
+                "files": [],
+            },
+            1 if args.strict else 0,
+        )
     if args.datasheet is not None:
         return _cmd_model_build_from_datasheet(args, subckt=subckt, emit=emit)
     if args.requirements is None or args.bindings is None:
@@ -865,9 +917,7 @@ def _cmd_model_build(args: argparse.Namespace) -> int:
             2,
         )
     try:
-        spec = load_tps54320_spec(
-            args.requirements, args.bindings, part=args.part, subckt=subckt
-        )
+        spec = load_tps54320_spec(args.requirements, args.bindings, part=args.part, subckt=subckt)
     except (OSError, ValueError) as exc:
         return emit(
             {
@@ -897,7 +947,29 @@ def _cmd_model_build(args: argparse.Namespace) -> int:
 
     workdir = out_dir / "build"
     prepare_workdir(spec=spec, subckt=subckt, workdir=workdir)
-    backend = BobShellBackend(team_id=args.team_id)
+    backend_name = str(args.backend or "api").strip().lower()
+    if backend_name == "api":
+        backend = build_api_backend(
+            provider_id=args.provider, model=args.model, max_tokens=args.max_tokens
+        )
+    elif backend_name == "bob":
+        backend = BobShellBackend(team_id=args.team_id)
+    else:
+        return emit(
+            {
+                "tool": "boardmodeler",
+                "command": "model build",
+                "status": "BLOCKED",
+                "detail": (
+                    f"{backend_name}_backend_unavailable: the offline author writes the bundled "
+                    "template only on the --datasheet path; use --backend api or --backend bob here"
+                ),
+                "history": [],
+                "probes": [],
+                "files": [],
+            },
+            1,
+        )
     request = BuildRequest(
         part=args.part,
         subckt=subckt,
@@ -977,6 +1049,22 @@ def _cmd_model_build_from_datasheet(args: argparse.Namespace, *, subckt: str, em
             },
             1,
         )
+    supplied = (args.requirements, args.bindings)
+    if any(supplied) and not all(supplied):
+        # A reviewed extraction result is a pair; half of it would silently fall
+        # back to asking a provider for the rows the user already has.
+        return emit(
+            {
+                "tool": "boardmodeler",
+                "command": "model build",
+                "status": "BLOCKED",
+                "detail": "give --datasheet, or both --requirements and --bindings",
+                "history": [],
+                "probes": [],
+                "files": [],
+            },
+            2,
+        )
     request = MakeModelRequest(
         part=args.part,
         subckt=subckt,
@@ -984,11 +1072,15 @@ def _cmd_model_build_from_datasheet(args: argparse.Namespace, *, subckt: str, em
         out_dir=args.out,
         backend_name=args.backend,
         provider=args.provider,
+        agent_model=args.model,
+        agent_max_tokens=args.max_tokens,
         team_id=args.team_id,
         max_iterations=args.iterations,
         timeout_s=args.timeout,
         allow_remote=args.allow_remote,
         reinforce=False if args.no_reinforce else None,
+        requirements_json=args.requirements,
+        bindings_json=args.bindings,
     )
     quiet = args.json
 

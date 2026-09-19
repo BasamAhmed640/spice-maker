@@ -52,6 +52,7 @@ _STATUS_COLOUR = {
     "skipped": "#aaaaaa",
 }
 
+
 class MakeModelWorker(QThread):
     """Runs ``make_model`` off the UI thread; cancellation reaches the agent process."""
 
@@ -82,12 +83,46 @@ class MakeModelWorker(QThread):
         self.finished_result.emit(result)
 
 
+def _window_title() -> str:
+    """The build's own name: a restricted catalog says whose build this is (D-015)."""
+    from boardmodeler import agent_providers
+
+    only = agent_providers.only_provider()
+    suffix = f" · {only.label} only" if only is not None else ""
+    return f"Spice Maker — IC model maker{suffix}"
+
+
+def _configured_provider() -> object:
+    """The accepted provider the persisted settings name, or ``None`` — never a substitute."""
+    try:
+        from boardmodeler.config import load_config
+        from boardmodeler.ui.setup_dialog import configured_provider
+
+        provider, _ = configured_provider(load_config())
+        return provider
+    except Exception:  # an unreadable config is reported by the availability check
+        return None
+
+
+def _configured_provider_id() -> str:
+    """The provider id exactly as the config names it: the request carries it unsubstituted.
+
+    ``build_api_backend`` refuses an id this build does not accept with
+    ``api_provider_unavailable: ...``, so passing the raw value is what makes the
+    engine's own refusal reachable instead of another provider running with the
+    wrong key.
+    """
+    from boardmodeler.config import load_config
+
+    return str(load_config().agent_provider or "").strip()
+
+
 def _agent_availability() -> tuple[bool, str]:
     """Can the agent run at all? Checked before a long run instead of after it fails."""
     try:
-        from boardmodeler.authoring.backends import BobShellBackend
+        from boardmodeler.authoring.api_backend import build_api_backend
 
-        return BobShellBackend().availability()
+        return build_api_backend(_configured_provider_id() or None).availability()
     except Exception as exc:  # pragma: no cover - import/config problems are reported
         return False, f"the agent backend could not be loaded: {exc}"
 
@@ -103,7 +138,7 @@ class ModelMakerWindow(QMainWindow):
 
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("BoardModeler — IC model maker")
+        self.setWindowTitle(_window_title())
         self.setFixedSize(900, 600)
         self._worker: MakeModelWorker | None = None
         self._result: object | None = None
@@ -298,15 +333,25 @@ class ModelMakerWindow(QMainWindow):
             )
             return
 
+        provider = _configured_provider()
         usable, reason = _agent_availability()
         if not usable:
             self.setup_hint.setText("no agent key — press SETUP")
+            if provider is None:
+                advice = (
+                    "Press SETUP and choose one of the providers this build accepts, or fix "
+                    "the provider name in the config file."
+                )
+            else:
+                advice = (
+                    f"Press SETUP and store your {provider.label} API key "
+                    f"({provider.key_hint}), or pick another provider there."
+                )
             QMessageBox.warning(
                 self,
                 "No agent available",
                 "Nothing was started, because the agent that writes the model is not usable "
-                f"yet:\n\n{reason}\n\nPress SETUP and store your Bob API key "
-                "(bob.ibm.com → API keys, Scope = Inference), or install Bob Shell.",
+                f"yet:\n\n{reason}\n\n{advice}",
             )
             return
         self.setup_hint.setText("")
@@ -318,7 +363,10 @@ class ModelMakerWindow(QMainWindow):
             subckt=subckt,
             datasheet=datasheet,
             out_dir=out_dir,
-            backend_name="bob",
+            backend_name="api",
+            # The configured id as written, so ``build_api_backend`` refuses a provider
+            # this build lacks instead of another provider answering with the wrong key.
+            provider=provider.id if provider is not None else _configured_provider_id(),
         )
         self._out_dir = out_dir
         self._start(request)
@@ -416,7 +464,9 @@ class ModelMakerWindow(QMainWindow):
         for row in range(self.stages.rowCount()):
             if self.stages.item(row, 0).text() == stage:
                 self.stages.item(row, 1).setText(status)
-                self.stages.item(row, 1).setForeground(_colour(_STATUS_COLOUR.get(status, "#ffffff")))
+                self.stages.item(row, 1).setForeground(
+                    _colour(_STATUS_COLOUR.get(status, "#ffffff"))
+                )
                 self.stages.item(row, 2).setText(detail)
                 break
         else:
@@ -491,7 +541,7 @@ def _default_model_dir() -> str:
         configured = load_config().default_model_dir
     except Exception:  # pragma: no cover - a broken config must not block the window
         configured = None
-    return configured or str(Path.home() / "BoardModeler")
+    return configured or str(Path.home() / "Spice Maker")
 
 
 def _window_stylesheet() -> str:

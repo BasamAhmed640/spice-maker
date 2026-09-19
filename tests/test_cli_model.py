@@ -56,12 +56,14 @@ class _Request:
     subckt: str
     datasheet: Path
     out_dir: Path
-    backend_name: str = "bob"
+    backend_name: str = "api"
     team_id: str | None = None
     max_iterations: int = 3
     timeout_s: float = 120.0
     allow_remote: bool = False
     provider: str | None = None
+    agent_model: str | None = None
+    agent_max_tokens: int | None = None
     requirements_json: Path | None = None
     bindings_json: Path | None = None
     reinforce: bool | None = None
@@ -130,7 +132,7 @@ def test_datasheet_mode_reports_rows_and_exits_zero(
     assert code == 0
     assert calls and calls[0].part == "TPS54320-Q1"
     assert calls[0].subckt == "TPS54320_Q1", "the subcircuit name must be SPICE-legal"
-    assert calls[0].backend_name == "bob"
+    assert calls[0].backend_name == "api", "the API-key provider is the default author"
     assert "extract" in output and "judge" in output
     assert "REQ_1" in output and "vin_uvlo_rise=4.21 V" in output
 
@@ -175,10 +177,17 @@ def test_the_reinforcement_switch_reaches_the_request(
 ) -> None:
     """--no-reinforce must reach the engine; the default follows the persisted setting."""
     calls: list[_Request] = []
-    _install_fake_engine(
-        monkeypatch, _Result("PASS", "", "TPS54320", tmp_path, (), {}), calls
-    )
-    base = ["model", "build", "--part", "TPS54320", "--datasheet", str(datasheet), "--out", str(tmp_path)]
+    _install_fake_engine(monkeypatch, _Result("PASS", "", "TPS54320", tmp_path, (), {}), calls)
+    base = [
+        "model",
+        "build",
+        "--part",
+        "TPS54320",
+        "--datasheet",
+        str(datasheet),
+        "--out",
+        str(tmp_path),
+    ]
 
     cli.main([*base, "--json"])
     capsys.readouterr()
@@ -242,3 +251,121 @@ def test_neither_datasheet_nor_fixtures_is_rejected(tmp_path: Path, capsys) -> N
     payload = json.loads(capsys.readouterr().out)
     assert code == 2
     assert "--datasheet" in payload["detail"] and "--bindings" in payload["detail"]
+
+
+def test_the_supplied_extraction_reaches_the_request(
+    tmp_path: Path, datasheet: Path, monkeypatch, capsys
+) -> None:
+    """--requirements/--bindings must skip extraction instead of asking a provider."""
+    calls: list[_Request] = []
+    _install_fake_engine(monkeypatch, _Result("PASS", "", "TPS54320", tmp_path, (), {}), calls)
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    requirements = fixtures / "requirements.json"
+    bindings = fixtures / "probes.json"
+    requirements.write_text("{}", encoding="utf-8")
+    bindings.write_text("{}", encoding="utf-8")
+
+    code = cli.main(
+        [
+            "model",
+            "build",
+            "--part",
+            "TPS54320",
+            "--datasheet",
+            str(datasheet),
+            "--requirements",
+            str(requirements),
+            "--bindings",
+            str(bindings),
+            "--out",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    capsys.readouterr()
+
+    assert code == 0
+    assert calls[-1].requirements_json == requirements
+    assert calls[-1].bindings_json == bindings
+
+
+@pytest.mark.parametrize("missing", ["--bindings", "--requirements"])
+def test_half_a_supplied_extraction_is_refused_before_any_engine_call(
+    missing: str, tmp_path: Path, datasheet: Path, monkeypatch, capsys
+) -> None:
+    """Half a reviewed extraction would silently fall back to provider extraction."""
+    calls: list[_Request] = []
+    _install_fake_engine(monkeypatch, _Result("PASS", "", "TPS54320", tmp_path, (), {}), calls)
+    half = tmp_path / "half.json"
+    half.write_text("{}", encoding="utf-8")
+    flag = "--requirements" if missing == "--bindings" else "--bindings"
+
+    code = cli.main(
+        [
+            "model",
+            "build",
+            "--part",
+            "TPS54320",
+            "--datasheet",
+            str(datasheet),
+            flag,
+            str(half),
+            "--out",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert code == 2
+    assert payload["status"] == "BLOCKED"
+    assert "--requirements" in payload["detail"] and "--bindings" in payload["detail"]
+    assert calls == []
+
+
+def test_the_agent_provider_model_and_budget_reach_the_request(
+    tmp_path: Path, datasheet: Path, monkeypatch, capsys
+) -> None:
+    from boardmodeler import agent_providers
+    from boardmodeler.authoring import api_backend
+
+    calls: list[_Request] = []
+    _install_fake_engine(monkeypatch, _Result("PASS", "", "TPS54320", tmp_path, (), {}), calls)
+
+    # A provider this build accepts (it can reach a backend instead of refusing the id)
+    # and a model id of the caller's own: both are forwarded, not validated or replaced.
+    entry = next(
+        (p for p in agent_providers.CATALOG if p.wire in api_backend.HTTP_WIRES),
+        agent_providers.default_provider(),
+    )
+    override = "cli-model-override"
+
+    code = cli.main(
+        [
+            "model",
+            "build",
+            "--part",
+            "TPS54320",
+            "--datasheet",
+            str(datasheet),
+            "--out",
+            str(tmp_path),
+            "--backend",
+            "api",
+            "--provider",
+            entry.id,
+            "--model",
+            override,
+            "--max-tokens",
+            "4096",
+            "--json",
+        ]
+    )
+    capsys.readouterr()
+
+    assert code == 0
+    assert calls[-1].backend_name == "api"
+    assert calls[-1].provider == entry.id
+    assert calls[-1].agent_model == override
+    assert calls[-1].agent_max_tokens == 4096

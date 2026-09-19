@@ -8,7 +8,10 @@ stages and never invents a result:
     ``<out_dir>/build`` (classification defaults to ``unknown``; the caller decides
     egress with ``allow_remote``) and the requirement rows come either from
     ``requirements_json`` (validated, never re-interpreted) or from the configured
-    extraction provider.
+    extraction provider. A part no probe can judge — a microcontroller or a
+    programmable-logic device, see :mod:`boardmodeler.authoring.part_class` —
+    stops here with ``BLOCKED(unsupported_part_class: ...)``, before any agent
+    turn or simulation is spent on it.
 
 ``extract``
     Provider-driven extraction to the D4 records, then the deterministic
@@ -40,8 +43,9 @@ stages and never invents a result:
     ``harness-report.json``, ``spec/`` and ``results.json`` land in ``out_dir``.
 
 Status ladder: ``PASS`` only when every bound row passed a real simulator run;
-``BLOCKED`` when the backend, the provider or LTspice was unavailable; ``FAIL``
-only when the harness measured a fully judged model wrong at the iteration cap;
+``BLOCKED`` when the backend, the provider or LTspice was unavailable, or when the
+part is one no probe can judge; ``FAIL`` only when the harness measured a fully
+judged model wrong at the iteration cap;
 ``UNKNOWN`` for everything else (a cancelled run, an abandoned model file, a
 tampered spec, an agent that stopped making progress, rows the harness could not
 judge). ``detail`` always names the concrete next action for a human.
@@ -74,11 +78,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from boardmodeler.authoring.api_backend import DEFAULT_TIMEOUT_S as DEFAULT_API_TIMEOUT_S
+from boardmodeler.authoring.api_backend import build_api_backend
 from boardmodeler.authoring.backends import (
     AuthorBackend,
-    AuthorRequest,
     BobShellBackend,
     ScriptedBackend,
+    UnavailableBackend,
 )
 from boardmodeler.authoring.card import write_deliverables, write_symbol_for
 from boardmodeler.authoring.harness import HarnessReport
@@ -89,6 +95,7 @@ from boardmodeler.authoring.loop import (
     model_file,
     prepare_workdir,
 )
+from boardmodeler.authoring.part_class import classify
 from boardmodeler.authoring.probes import PROBES
 from boardmodeler.authoring.reinforce import ReinforcementReport, reinforce
 from boardmodeler.authoring.spec import SpecSet, load_tps54320_spec, normalize_unit
@@ -188,14 +195,24 @@ class MakeModelRequest:
     ``stall_patience`` counts. ``turn_timeout_s`` is ``None`` by default — no time
     limit on the agent — and bounds one agent invocation when set. ``timeout_s``
     bounds a single simulation run. There is no build deadline.
+
+    ``backend_name`` names the author: ``"api"`` (the default) uses an API-key
+    provider — ``provider`` is a provider id from
+    :mod:`boardmodeler.agent_providers`, ``agent_model`` overrides its
+    documented model and ``agent_max_tokens`` its output budget, all falling back
+    to the persisted settings and then to the catalog's own defaults — ``"bob"``
+    runs the Bob CLI, and ``"scripted"``/``"fixture"`` write the bundled offline
+    template.
     """
 
     part: str
     subckt: str
     datasheet: Path
     out_dir: Path
-    backend_name: str = "bob"
+    backend_name: str = "api"
     provider: str | None = None
+    agent_model: str | None = None
+    agent_max_tokens: int | None = None
     max_iterations: int | None = None
     timeout_s: float = 120.0
     allow_remote: bool = False
@@ -320,8 +337,7 @@ class MakeModelResult:
                     status=str(event["status"]),
                     detail=str(event.get("detail", "")),
                     counts={
-                        str(key): int(value)
-                        for key, value in (event.get("counts") or {}).items()
+                        str(key): int(value) for key, value in (event.get("counts") or {}).items()
                     },
                 )
                 for event in payload.get("stages", ())
@@ -338,6 +354,10 @@ def _request_payload(request: MakeModelRequest) -> dict[str, Any]:
         "out_dir": str(request.out_dir),
         "backend_name": request.backend_name,
         "provider": request.provider,
+        "agent_model": request.agent_model,
+        "agent_max_tokens": (
+            None if request.agent_max_tokens is None else int(request.agent_max_tokens)
+        ),
         "max_iterations": None if request.max_iterations is None else int(request.max_iterations),
         "timeout_s": float(request.timeout_s),
         "allow_remote": bool(request.allow_remote),
@@ -363,8 +383,12 @@ def _request_from_payload(payload: Mapping[str, Any]) -> MakeModelRequest:
         subckt=str(payload["subckt"]),
         datasheet=Path(payload["datasheet"]),
         out_dir=Path(payload["out_dir"]),
-        backend_name=str(payload.get("backend_name", "bob")),
+        backend_name=str(payload.get("backend_name", "api")),
         provider=None if payload.get("provider") is None else str(payload["provider"]),
+        agent_model=None if payload.get("agent_model") is None else str(payload["agent_model"]),
+        agent_max_tokens=(
+            None if payload.get("agent_max_tokens") is None else int(payload["agent_max_tokens"])
+        ),
         max_iterations=(
             None if payload.get("max_iterations") is None else int(payload["max_iterations"])
         ),
@@ -622,7 +646,13 @@ _RULES: tuple[_Rule, ...] = (
     _Rule(
         name="current limit",
         probe="current_limit",
-        any_of=("current limit", "current-limit", "peak current", "overcurrent", "current limiting"),
+        any_of=(
+            "current limit",
+            "current-limit",
+            "peak current",
+            "overcurrent",
+            "current limiting",
+        ),
     ),
     _Rule(
         name="uvlo rising edge",
@@ -844,9 +874,7 @@ def bind_requirements(
                 "stays a declared gap rather than being stretched onto the nearest probe"
             )
         if decline is not None:
-            entries.append(
-                {"req_id": req_id, "probe": None, "not_testable_reason": decline}
-            )
+            entries.append({"req_id": req_id, "probe": None, "not_testable_reason": decline})
     return tuple(entries)
 
 
@@ -854,47 +882,40 @@ def bind_requirements(
 # backends
 
 
-class _UnavailableBackend:
-    """A backend name this process cannot build on its own (a scripted test double)."""
-
-    def __init__(self, name: str, reason: str) -> None:
-        self.name = name
-        self.reason = reason
-
-    def availability(self) -> tuple[bool, str]:
-        return False, self.reason
-
-    def author(self, request: AuthorRequest, cancel: threading.Event | None = None):
-        from boardmodeler.authoring.backends import AuthorResult
-
-        return AuthorResult(
-            ok=False,
-            detail=self.reason,
-            usage={},
-            stdout_tail="",
-            session_id=None,
-        )
-
-
 def build_backend(request: MakeModelRequest) -> AuthorBackend:
-    """The backend ``request.backend_name`` names.
+    """The backend ``request.backend_name`` names, or one that says why not.
 
-    ``bob`` is the real agent. ``scripted`` and ``fixture`` name the offline
+    ``api`` (the default) speaks the configured provider's documented HTTP shape
+    with an API key — ``request.provider`` picks the provider id and
+    ``request.agent_model`` its model, both falling back to the persisted
+    settings. ``bob`` is the Bob CLI. ``scripted``/``fixture`` name the offline
     author: it writes the bundled behavioural regulator template (and a symbol for
     it) when ``request.subckt`` names one, and writes nothing otherwise — the
     harness then reports the missing model with its own reason. It is what the
     GUI's integration runs and anyone without an agent key use; it never pretends
-    to have authored a model it did not write. The offline tests override this
-    function to inject their own scripted backend.
+    to have authored a model it did not write. An unknown name is refused by name
+    (never substituted). The offline tests override this function to inject their
+    own scripted backend.
     """
     name = str(request.backend_name or "").strip().lower()
+    if name in ("", "api"):
+        # ``turn_timeout_s`` bounds one agent invocation; the API backend applies
+        # it as that turn's total budget, retries included.
+        limit = float(request.turn_timeout_s) if request.turn_timeout_s else DEFAULT_API_TIMEOUT_S
+        return build_api_backend(
+            provider_id=request.provider,
+            model=request.agent_model,
+            max_tokens=request.agent_max_tokens,
+            team_id=request.team_id,
+            timeout_s=limit,
+        )
     if name == "bob":
         return BobShellBackend(team_id=request.team_id, timeout_s=request.turn_timeout_s)
     if name in ("scripted", "fixture"):
         return _bundled_author(request)
-    return _UnavailableBackend(
+    return UnavailableBackend(
         name or "unknown",
-        f"{name or 'unknown'}_backend_unavailable: unknown backend name; use 'bob', "
+        f"{name or 'unknown'}_backend_unavailable: unknown backend name; use 'api', 'bob', "
         "'scripted' or 'fixture'",
     )
 
@@ -1015,6 +1036,8 @@ def _checked(request: MakeModelRequest) -> MakeModelRequest:
         raise ValueError(f"timeout_s must be > 0, got {request.timeout_s}")
     if request.turn_timeout_s is not None and request.turn_timeout_s <= 0:
         raise ValueError(f"turn_timeout_s must be > 0 or None, got {request.turn_timeout_s}")
+    if request.agent_max_tokens is not None and request.agent_max_tokens < 1:
+        raise ValueError(f"agent_max_tokens must be >= 1 or None, got {request.agent_max_tokens}")
     return request
 
 
@@ -1073,7 +1096,7 @@ def _page_lookup(record: DocumentRecord, store: DocumentStore):
             return None
         try:
             path = store.original_path(doc_id)
-        except (KeyError, DocumentStoreError, OSError, ValueError):
+        except KeyError, DocumentStoreError, OSError, ValueError:
             return None
         if path.suffix.lower() in _TEXT_SUFFIXES:
             if pdf_page != 0:
@@ -1149,6 +1172,7 @@ class _Run:
         self.outcome: BuildOutcome | None = None
         self.report = HarnessReport(part=request.part, model_sha256="", spec_digest="", outcomes=())
         self.reinforcement: ReinforcementReport | None = None
+        self.backend: AuthorBackend | None = None
         self.backend_name = ""
         self.turns = 0
         self.status = Status.UNKNOWN.value
@@ -1192,6 +1216,15 @@ class _Run:
                 f"datasheet_unreadable: {datasheet} could not be registered as a document "
                 f"({type(exc).__name__}: {exc})",
             ) from exc
+        # The refusal sits here because this is the first point where both the part
+        # number and the document's own text are in hand, and it is long before the
+        # extraction, the agent and the simulator: a part the probes cannot judge is
+        # stopped without a turn being spent. The stage's own writes (the registered
+        # document) have already happened; the refusal adds none, and save() publishes
+        # nothing for a run that never reached the authoring stage.
+        refusal = classify(request.part, text=self.record.title)
+        if not refusal.supported:
+            raise _Stop("read", Status.BLOCKED.value, refusal.detail)
         self.store = store
         self.supplied = supplied
         self.declared = declared
@@ -1228,9 +1261,7 @@ class _Run:
     def extract(self, cancel: threading.Event | None) -> None:
         if self.request.requirements_json is not None:
             self.requirements = self.supplied
-            validation = validate_requirements(
-                self.requirements, documents=self._documents()
-            )
+            validation = validate_requirements(self.requirements, documents=self._documents())
             if validation.errors:
                 raise _Stop(
                     "extract",
@@ -1260,7 +1291,10 @@ class _Run:
         try:
             selection = select_provider(
                 config,
-                requested=self.request.provider,
+                # The extraction provider is the persisted configuration's own
+                # choice: ``request.provider`` names the *agent* provider now, and
+                # D-011's walk over ``provider_order`` is how extraction decides.
+                requested=None,
                 allow_bob_shell=False,
                 fixture_dir=self.cache_dir,
             )
@@ -1294,9 +1328,7 @@ class _Run:
                 cancel=cancel,
             )
         except ProviderError as exc:
-            raise _Stop(
-                "extract", Status.BLOCKED.value, f"{exc.code}: {exc.detail}"
-            ) from exc
+            raise _Stop("extract", Status.BLOCKED.value, f"{exc.code}: {exc.detail}") from exc
         except Exception as exc:
             raise _Stop(
                 "extract",
@@ -1433,9 +1465,7 @@ class _Run:
                 Status.BLOCKED.value,
                 f"spec_invalid: {exc}; fix requirements_json/bindings_json and re-run",
             ) from exc
-        self._write_json(
-            self.spec_dir / CHARACTERISTICS_NAME, json.loads(self.spec.to_json())
-        )
+        self._write_json(self.spec_dir / CHARACTERISTICS_NAME, json.loads(self.spec.to_json()))
         counts = {
             "testable": len(self.spec.covered()),
             "not_testable": len(self.spec.uncovered()),
@@ -1508,6 +1538,7 @@ class _Run:
     def author(self, cancel: threading.Event | None) -> None:
         self.log.emit("author", "running", f"checking the {self.request.backend_name!r} backend")
         backend = build_backend(self.request)
+        self.backend = backend
         self.backend_name = backend.name
         usable, reason = backend.availability()
         if not usable:
@@ -1590,6 +1621,7 @@ class _Run:
                 part=self.request.part,
                 spec_digest=digest,
                 out_dir=self.workdir,
+                backend=self.backend,
                 enabled=bool(enabled),
                 timeout_s=self.request.reinforce_timeout_s,
                 cancel=cancel,
@@ -1674,7 +1706,8 @@ class _Run:
             reinforcement=self.reinforcement,
         )
         self.card_path = next(
-            (path for path in written if path.name == "MODEL_CARD.md"), self.out_dir / "MODEL_CARD.md"
+            (path for path in written if path.name == "MODEL_CARD.md"),
+            self.out_dir / "MODEL_CARD.md",
         )
         example = self.out_dir / "example.cir"
         if example.is_file():
@@ -1696,7 +1729,9 @@ class _Run:
         source = self.workdir / "model" / f"{subckt}.asy"
         if source.is_file():
             text = source.read_text(encoding="utf-8", errors="replace")
-            findings = [finding.code for finding in validate_symbol(text, ports=ports, model_file=lib_name)]
+            findings = [
+                finding.code for finding in validate_symbol(text, ports=ports, model_file=lib_name)
+            ]
             if not findings and not _order_matches_ports(text, ports):
                 findings.append("SYM004_spice_order_is_not_the_subcircuit_port_order")
             if not findings:
@@ -1795,9 +1830,7 @@ class _Run:
                     "result whose citations verify, or supply the datasheet the rows came from, "
                     "and re-run",
                 )
-            judged = sum(
-                1 for row in rows if row.status in (Status.PASS.value, Status.FAIL.value)
-            )
+            judged = sum(1 for row in rows if row.status in (Status.PASS.value, Status.FAIL.value))
             return (
                 Status.PASS.value,
                 f"every one of the {len(rows)} datasheet row(s) is accounted for: {judged} bound "

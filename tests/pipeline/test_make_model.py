@@ -275,9 +275,7 @@ def test_scenario_b_one_failing_probe_is_unknown_and_keeps_every_row_status(
     row, so the model is not declared wrong — while every row keeps its own
     measured status.
     """
-    use_backend(
-        monkeypatch, ScriptedBackend(template_script(vref="0.5", drop_ports=("PG",)))
-    )
+    use_backend(monkeypatch, ScriptedBackend(template_script(vref="0.5", drop_ports=("PG",))))
     result, _events, _wall = run(tmp_path, max_iterations=1)
 
     assert result.status == "UNKNOWN", result.detail
@@ -361,9 +359,7 @@ def test_scenario_d_bob_without_a_credential_is_blocked_verbatim(
 ) -> None:
     from boardmodeler.authoring import backends
 
-    monkeypatch.setattr(
-        backends.shutil, "which", lambda name: "bob.exe" if name == "bob" else None
-    )
+    monkeypatch.setattr(backends.shutil, "which", lambda name: "bob.exe" if name == "bob" else None)
     monkeypatch.delenv("BOB_API_KEY", raising=False)
     monkeypatch.delenv("BOARDMODELER_BOB_SHELL_API_KEY", raising=False)
     monkeypatch.setattr(
@@ -463,9 +459,9 @@ def test_scenario_f_binder_is_byte_stable_and_reproduces_the_reviewed_fixture(
     first = bind_requirements(requirements)
     assert first == bind_requirements(requirements)
     assert len(first) == len(requirements)
-    assert all(
-        entry["not_testable_reason"].strip() for entry in first if entry["probe"] is None
-    ), "every unbound row must explain itself"
+    assert all(entry["not_testable_reason"].strip() for entry in first if entry["probe"] is None), (
+        "every unbound row must explain itself"
+    )
 
     # The reviewed fixture is the oracle for the keyword table: same nine probes.
     expected = reviewed_probes()
@@ -785,6 +781,111 @@ def test_the_bob_backend_receives_the_turn_timeout(tmp_path: Path) -> None:
     assert unlimited.timeout_s is None
 
 
+def test_the_default_api_backend_still_honours_a_bob_team_id(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """``--backend api`` (the default) must not silently drop ``--team-id`` for Bob."""
+    from boardmodeler.authoring import api_backend as api_module
+    from boardmodeler.authoring.backends import BobShellBackend
+    from boardmodeler.config import AppConfig
+
+    monkeypatch.setattr(api_module, "load_config", lambda path=None: AppConfig())
+
+    backend = engine.build_backend(
+        make_request(tmp_path, backend_name="api", provider="bob", team_id="team-api")
+    )
+
+    assert isinstance(backend, BobShellBackend)
+    assert backend.team_id == "team-api"
+
+
+def test_the_api_backend_is_built_from_the_catalog_entry_and_the_config(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from boardmodeler.agent_providers import CATALOG, ids
+    from boardmodeler.authoring import api_backend as api_module
+    from boardmodeler.authoring.api_backend import ApiKeyBackend
+    from boardmodeler.config import AppConfig
+
+    monkeypatch.setattr(api_module, "load_config", lambda path=None: AppConfig())
+    entry = next((provider for provider in CATALOG if provider.wire in api_module.HTTP_WIRES), None)
+    if entry is None:
+        # No entry in this build speaks an HTTP wire, so no request can build an
+        # ApiKeyBackend from one: the honest outcome is the refusal that names the catalog.
+        refused = engine.build_backend(
+            make_request(tmp_path, backend_name="api", provider="not-in-this-build")
+        )
+        usable, reason = refused.availability()
+        assert usable is False
+        assert reason.startswith("api_provider_unavailable:")
+        assert all(f"'{name}'" in reason for name in ids())
+        return
+
+    override = "make-model-override"
+    request = make_request(
+        tmp_path,
+        backend_name="api",
+        provider=entry.id,
+        agent_model=override,
+        agent_max_tokens=1024,
+    )
+
+    backend = engine.build_backend(request)
+
+    assert isinstance(backend, ApiKeyBackend)
+    assert backend.name == entry.id and backend.provider.id == entry.id
+    assert backend.model == override
+    assert backend.max_output_tokens == 1024
+
+
+def test_an_unknown_agent_provider_is_blocked_rather_than_substituted(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from boardmodeler.agent_providers import ids
+    from boardmodeler.authoring import api_backend as api_module
+    from boardmodeler.config import AppConfig
+
+    monkeypatch.setattr(api_module, "load_config", lambda path=None: AppConfig())
+
+    backend = engine.build_backend(make_request(tmp_path, backend_name="api", provider="magic"))
+
+    usable, reason = backend.availability()
+    assert usable is False
+    assert reason.startswith("api_provider_unavailable:") and "'magic'" in reason
+    assert all(f"'{name}'" in reason for name in ids())
+
+
+def test_the_reinforcement_stage_runs_on_the_backend_the_author_loop_uses(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """One agent for both stages: the search may not pick a provider of its own."""
+    from boardmodeler.authoring.reinforce import ReinforcementReport
+
+    seen: list[object] = []
+
+    def spy(**kwargs: object) -> ReinforcementReport:
+        seen.append(kwargs.get("backend"))
+        return ReinforcementReport(
+            part=PART,
+            enabled=True,
+            status="skipped",
+            detail="spy",
+            sources=(),
+            caveats=(),
+            suggested_probes=(),
+            spec_digest="",
+        )
+
+    backend = use_backend(monkeypatch, ScriptedBackend(lambda turn, workdir, prompt: None))
+    monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
+    monkeypatch.setattr(engine, "reinforce", spy)
+
+    result, _events, _wall = run(tmp_path, reinforce=True)
+
+    assert seen == [backend], "the author loop's backend must be the one reinforced with"
+    assert result.status == "UNKNOWN"
+
+
 def test_the_saved_result_round_trips_including_the_turn_bounds(tmp_path: Path) -> None:
     from boardmodeler.pipeline.make_model import MakeModelResult
 
@@ -840,9 +941,7 @@ def test_tampering_with_the_frozen_spec_is_unknown_not_raised(
         frozen = workdir / "spec" / "characteristics.json"
         text = frozen.read_text(encoding="utf-8")
         assert '"min_value": 4.0' in text
-        frozen.write_text(
-            text.replace('"min_value": 4.0', '"min_value": 3.0', 1), encoding="utf-8"
-        )
+        frozen.write_text(text.replace('"min_value": 4.0', '"min_value": 3.0', 1), encoding="utf-8")
 
     use_backend(monkeypatch, ScriptedBackend(script))
     monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
@@ -862,3 +961,14 @@ def test_an_unsanitized_subcircuit_name_is_a_programming_error(tmp_path: Path) -
         make_model(make_request(tmp_path, timeout_s=0.0))
     with pytest.raises(ValueError, match="turn_timeout_s"):
         make_model(make_request(tmp_path, turn_timeout_s=0.0))
+
+
+def test_an_invalid_token_budget_is_rejected_before_any_stage(tmp_path: Path) -> None:
+    from pydantic import ValidationError
+
+    from boardmodeler.config import AppConfig
+
+    with pytest.raises(ValidationError):
+        AppConfig(agent_max_tokens=0)
+    with pytest.raises(ValueError, match="agent_max_tokens"):
+        make_model(make_request(tmp_path, agent_max_tokens=0))

@@ -483,3 +483,110 @@ schematic layer (4.0 kloc), and the board demonstration were built against the e
 spec and are not part of this path. They are left in place, dormant, rather than
 deleted; nothing in the new path imports them.
 
+
+---
+
+## D-015 — Two builds from one catalog: API-key agents, and "Spice Maker"
+
+**Context.** The owner asked for three things at once: rename the repository to
+*Spice Maker*, ship it as a one-click installer like the Claude/ChatGPT/Slack downloaders,
+and make the agent take a **raw API key** — Bob's by default, plus the mainstream vendors —
+with no login flow anywhere. Then: two repositories, both carrying that work, one of which
+accepts only the IBM Bob API.
+
+**Decision — the agent catalog is the single knob.** `src/boardmodeler/agent_providers.py`
+holds an ordered tuple of `AgentProvider` entries. Everything else reads it: the setup
+page builds its provider row from it, the backend factory resolves a provider from it, and
+`doctor` reports one credential per entry. A build that must accept only Bob ships
+`CATALOG = (bob,)`, and then there is *no* provider row on the setup page and the key row
+keeps the label it always had (`BOB API KEY`) — the fork's divergence is that tuple plus
+README wording, not a fork of the code. `tests/ui/test_setup_dialog.py` proves the
+single-entry build behaves that way in-process, so the promise is tested, not asserted.
+
+**Decision — keys, not logins.** Every provider is reached with a raw API key stored in the
+OS keyring under `provider:<name>:api_key` (the repo's existing credential helper), with
+`BOARDMODELER_<NAME>_API_KEY` and the vendor's own variable (e.g. `OPENAI_API_KEY`) as
+environment fallbacks. Nothing in this path opens a browser, and no key is ever written to
+a config file, a project directory, a manifest or a log line.
+
+* **Bob** keeps its documented route: the Bob CLI (Bob Shell), whose own docs state that
+  `bob run`/`bob chat` authenticate from `BOB_API_KEY` alone (an Inference-scope key needs
+  no `--team-id`; a general key does). The key is passed to the child process through its
+  environment and never appears in argv.
+* *Bob over plain HTTP was probed and refused, and is therefore not shipped*: on
+  2026-09-18 every request to `https://api.us-east.bob.ibm.com/inference/v1/...` from this
+  machine answered Cloudflare `403` (bot-management HTML) for `urllib`, `curl` and Bun
+  `fetch`, with both `Authorization: Apikey` and `Bearer`. IBM publishes no inference path
+  in its docs, only the region host list. A guessed endpoint that the vendor's edge blocks
+  is exactly the kind of thing D-005 forbids, so Bob stays on the documented CLI path.
+* The HTTP vendors speak their own documented shapes (`openai` chat-completions,
+  `anthropic` messages, `google` generateContent). Endpoints and default model ids are the
+  vendors' own quickstart values, each entry carrying the doc URL it came from, and the
+  model id is editable per machine because those strings drift.
+
+**Decision — what the rename does and does not touch.** The repository is `spice-maker`,
+the window/app/installer identity is *Spice Maker* (with a space), and the frozen
+executable is `SpiceMaker.exe`. The Python distribution keeps the name `boardmodeler`, the
+console script stays `boardmodeler`, and the keyring service (`boardmodeler`), credential
+names (`provider:bob_shell:api_key`) and config directory (`%APPDATA%\BoardModeler`) are
+unchanged on purpose: renaming them would orphan the API key and settings an existing
+install already has, and that is a worse outcome than an internal name that lags the
+brand. `docs/STATUS.md` records the state of each surface.
+
+**Rejected.** (a) Deleting the non-Bob provider code in the restricted build — it doubles
+the maintenance of a fork whose whole difference is one tuple, and the tests covering the
+HTTP wires would not exist there to catch a regression in the shared code. (b) Shipping the
+reverse-engineered Bob inference endpoint as a default — unverifiable from this machine and
+undocumented by IBM. (c) Making the setup page a multi-page wizard to hold provider,
+model and key — the surface stays one content-sized page (`docs/DECISIONS.md` D-014, and the
+forbidden-label test in `tests/ui/test_setup_dialog.py`).
+
+**Addendum, same day (second pass).** Four things were settled after the decision above was written.
+
+* **OpenCode Zen / Go is a catalog entry, not a new wire.** `POST
+  https://opencode.ai/zen/v1/chat/completions` with `Authorization: Bearer <key>` — verified against
+  the live gateway: no key → `401 {"type":"error","error":{"type":"AuthError","message":"Missing API
+  key."}}`, a bogus Bearer key → `Invalid API key`, and the same bogus key in `x-api-key` → `Missing API
+  key`, so the scheme is Bearer. Only the models Zen serves from `/chat/completions` are reachable
+  through this wire; its `/responses` and `/messages` models are not, and the MODEL row in SETUP is
+  where that choice lives. This is the "OpenCode Go option" the owner asked the general build to carry;
+  the Bob-only build has one catalog entry and therefore no such option.
+* **`model build --provider` names the *agent* provider.** It named the extraction provider before.
+  Extraction keeps D-011's own walk over `ProviderConfig.provider_order`, and `--requirements` /
+  `--bindings` now reach the datasheet path's request too, so a supplied extraction is honoured there
+  instead of silently re-extracting with the fixture provider.
+* **A reasoning-first model needs its thinking switch named, and then it authors.** Against the real
+  23.8 kB prompt, DeepSeek's models spend the entire output budget on `reasoning_content` and return an
+  empty `content` when they are left at their default thinking settings (observed three times, at
+  12 288 and 32 768 tokens, 57–303 s). The backend reports `response_empty … finish_reason='length'`
+  with the truncation named, and the budget is settable (`--max-tokens`, `agent_max_tokens`, default
+  32 768). DeepSeek documents two request fields for this, so the catalog now carries them per entry —
+  a provider's own documented switch, not a guessed one, and MODEL/BUDGET stay editable per machine:
+  `{"thinking": {"type": "enabled"}, "reasoning_effort": "low"}` for the two DeepSeek models. Measured
+  on the TPS54320 fixture: thinking **disabled** answers in ~10 s with both files but reaches **0 PASS**
+  in three turns (the deck it writes references a sub-model it never defines), while thinking enabled
+  at low effort answers in ~1 min and reaches **4 PASS / 0 FAIL** after three turns, the remaining
+  UNKNOWNs naming the model's own convergence. The setting that produced the better model ships; Bob
+  and the other vendors are unaffected.
+* **The author is told what the simulator said, and one malformed reply is re-asked.** The harness
+  stops a run that cannot proceed honestly, but "no `.raw` appeared" does not tell an author whether it
+  wrote a syntax error or forgot a file. The `unknown_reason` for an unreadable run now carries the
+  offending line LTspice printed (`…BM_REG_BUCK.lib(95): Undefined model "rout_drv"`), and that reason
+  is exactly what the next turn's prompt quotes as feedback. The API backends likewise re-ask **once**
+  inside a turn when the reply is not the required JSON object, quoting the parse error back to the
+  model, and — when a reply comes back empty at the model's output limit, which the switch that made it
+  answer can still cause — with the entry's own fallback setting (`retry_body`: thinking off for
+  DeepSeek) instead of giving up the turn. Every one of these is a repair of the *request*, not a second
+  opinion: a retry that also fails is reported with both attempts named, and none of them can manufacture
+  a PASS — the harness still judges the file that is on disk.
+* **The installer is the application and nothing else.** A Velopack one-click setup with the animated
+  pepper splash, Start Menu and desktop shortcuts, and `Update.exe --uninstall --silent`; it carries no
+  LTspice, Bob Shell or Python payload (SHA-256 of all 16 606 files under the two raw LTspice trees is
+  unchanged across install and uninstall). The freeze excludes the venv's optional weight
+  (`spicelib` → scipy/matplotlib, `reportlab` → PIL) and the Qt modules a Widgets application never
+  loads: 122.6 MB → 63.1 MB of Setup.exe over a 254 MB → 124 MB payload. The cost is the optional
+  `spicelib` reader inside the frozen build, which reports its documented "not installed (optional 'sim'
+  extra); using the native reader" — the native reader is authoritative anyway (D-002).
+* **Bob stays native.** Bob Shell with `BOB_API_KEY` is the documented consumer of an Inference-scope
+  key; the application defaults to that provider, opens no browser, never logs in, and never substitutes
+  a vendor when Bob is unavailable. The Bob-only build is the same code with a one-entry catalog.

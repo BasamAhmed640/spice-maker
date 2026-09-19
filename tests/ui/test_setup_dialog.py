@@ -151,3 +151,101 @@ def test_the_ltspice_library_is_shown_read_only(dialog) -> None:
         if str(ltspice_user_lib()) in child.text()
     ]
     assert shown, "the LTspice user library path must be visible"
+
+
+def test_choosing_a_provider_points_the_key_row_at_its_own_credential(
+    dialog, isolated_config: Path, monkeypatch
+) -> None:
+    """The key row follows the provider row: label, model default and stored name."""
+    from boardmodeler import agent_providers
+
+    stored: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        "boardmodeler.security.credentials.set_credential",
+        lambda name, value: stored.append((name, value)),
+    )
+    entries = list(agent_providers.CATALOG)
+    combo = dialog.provider_combo
+    if combo is None:
+        # A one-entry build has no row to choose from: that page is the sole entry's own.
+        assert dialog.restricted_note is not None, "a single-provider build must say so"
+        chosen = entries[0]
+        assert dialog.key_label.text() == chosen.key_label
+        assert dialog.model_edit.isVisible() is chosen.model_editable
+    else:
+        assert dialog.restricted_note is None, "a build with a choice must not claim restriction"
+        ids = [combo.itemData(index) for index in range(combo.count())]
+        assert ids == [entry.id for entry in entries], "one row per provider this build accepts"
+        assert dialog.key_label.text() == entries[0].key_label
+        assert dialog.model_edit.isVisible() is entries[0].model_editable
+
+        chosen = entries[1]
+        combo.setCurrentIndex(ids.index(chosen.id))
+        assert dialog.key_label.text() == chosen.key_label
+        assert dialog.model_edit.isVisible() is chosen.model_editable
+        assert dialog.model_edit.text() == (chosen.model or ""), "the provider's own default"
+
+    dialog.key_edit.setText(SECRET)
+    dialog._save_key()
+    dialog._save()
+
+    assert stored == [(chosen.credential, SECRET)], "the key is stored under the chosen provider"
+    saved = json.loads(isolated_config.read_text(encoding="utf-8"))
+    assert saved["agent_provider"] == chosen.id
+    if chosen.model_editable:
+        assert saved["agent_model"] == dialog.model_edit.text()
+    assert SECRET not in isolated_config.read_text(encoding="utf-8")
+
+
+def test_a_single_provider_catalog_keeps_the_bob_only_page(
+    qtbot, isolated_config: Path, monkeypatch
+) -> None:
+    """The Bob-only build is one catalog entry away: no provider row, Bob's own label."""
+    from boardmodeler import agent_providers
+
+    bob = agent_providers.by_id("bob")
+    assert bob is not None
+    monkeypatch.setattr(agent_providers, "CATALOG", (bob,))
+
+    from boardmodeler.ui.setup_dialog import SetupDialog
+
+    page = SetupDialog()
+    qtbot.addWidget(page)
+    page.show()
+    qtbot.waitExposed(page)
+
+    assert page.provider_combo is None
+    assert page.key_label.text() == "BOB API KEY"
+    assert page.model_edit.isVisible() is False
+    assert page.restricted_note is not None
+    assert "IBM Bob API only" in page.restricted_note.text()
+    assert page.height() == page.sizeHint().height()
+    assert page.width() == page.sizeHint().width()
+
+    from boardmodeler.ui.model_maker import ModelMakerWindow
+
+    window = ModelMakerWindow()
+    qtbot.addWidget(window)
+    assert window.windowTitle().endswith("· IBM Bob only")
+
+
+def test_an_unknown_provider_in_the_config_is_reported_never_replaced(
+    isolated_config: Path,
+) -> None:
+    """A hand-edited config naming a provider this build lacks is refused, not laundered."""
+    from boardmodeler import agent_providers
+    from boardmodeler.config import load_config
+    from boardmodeler.ui.setup_dialog import configured_provider, describe_settings
+
+    config = load_config(isolated_config)
+    config.agent_provider = "not-a-provider"
+
+    provider, reason = configured_provider(config)
+
+    assert provider is None, "a provider this build lacks must never be swapped for another"
+    assert reason.startswith("api_provider_unavailable:") and "not-a-provider" in reason
+    assert all(f"'{name}'" in reason for name in agent_providers.ids())
+
+    described = describe_settings(config)
+    assert described["agent_provider"] == "not-a-provider", "the configured id is kept as written"
+    assert described["agent_provider_accepted"] is False

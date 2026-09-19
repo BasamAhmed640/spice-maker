@@ -16,23 +16,56 @@ from PySide6.QtWidgets import QApplication
 
 from boardmodeler import __version__
 
-__all__ = ["build_application", "main"]
+__all__ = ["APPLICATION_NAME", "build_application", "main", "window_icon"]
+
+APPLICATION_NAME = "Spice Maker"
+
+#: The pepper mark rendered by ``installer/render_assets.py``. It is looked up next to
+#: the frozen executable first (the installer ships it), then in the source tree.
+_ICON_NAMES = ("pepper.ico", "icon.ico")
+
+
+def window_icon() -> object | None:
+    """The application icon, or ``None`` when this build has no asset for it."""
+    from pathlib import Path
+
+    from PySide6.QtGui import QIcon
+
+    roots: list[Path] = []
+    executable = getattr(sys, "executable", "")
+    if executable:
+        roots.append(Path(executable).resolve().parent)
+    bundle = getattr(sys, "_MEIPASS", None)
+    if bundle:
+        roots.append(Path(str(bundle)))
+    roots.append(Path(__file__).resolve().parents[3] / "installer" / "assets")
+    for root in roots:
+        for name in _ICON_NAMES:
+            candidate = root / name
+            if candidate.is_file():
+                icon = QIcon(str(candidate))
+                if not icon.isNull():
+                    return icon
+    return None
 
 
 def build_application(argv: Sequence[str] | None = None) -> QApplication:
     """Return the running ``QApplication`` or create one (never two)."""
     existing = QApplication.instance()
     app = existing if existing is not None else QApplication(list(argv) if argv is not None else [])
-    app.setApplicationName("BoardModeler")
+    app.setApplicationName(APPLICATION_NAME)
     app.setApplicationVersion(__version__)
-    app.setOrganizationName("BoardModeler")
+    app.setOrganizationName(APPLICATION_NAME)
+    icon = window_icon()
+    if icon is not None:
+        app.setWindowIcon(icon)
     return app
 
 
 def main(argv: Sequence[str] | None = None, *, exec_app: bool = True) -> int:
     """Launch the desktop application (or the installer with ``--installer``)."""
     parser = argparse.ArgumentParser(
-        prog="boardmodeler ui", description="BoardModeler desktop application"
+        prog="boardmodeler ui", description="Spice Maker desktop application"
     )
     parser.add_argument("--project", type=Path, default=None, help="project directory to open")
     parser.add_argument(

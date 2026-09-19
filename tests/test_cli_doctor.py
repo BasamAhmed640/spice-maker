@@ -115,3 +115,37 @@ def test_doctor_human_output_is_printable(ltspice_exe: Path, tmp_path: Path) -> 
 def test_unknown_command_exits_nonzero() -> None:
     proc = _run_cli(["not-a-command"])
     assert proc.returncode != 0
+
+
+def test_doctor_credentials_report_the_source_the_backend_reads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A vendor variable the reason advertises must show up as a source, not 'missing'."""
+    from boardmodeler import cli
+    from boardmodeler.agent_providers import CATALOG, ids
+    from boardmodeler.authoring import api_backend
+    from boardmodeler.security import credentials
+
+    class EmptyKeyring:
+        def get_password(self, service: str, key: str) -> None:
+            return None
+
+    monkeypatch.setattr(credentials, "keyring", EmptyKeyring())
+    for provider in CATALOG:
+        for variable in api_backend.env_sources(provider):
+            monkeypatch.delenv(variable, raising=False)
+
+    # The section lists this build's providers and the source each key resolves from:
+    # one advertised variable is exported, so its provider must read 'env' and every
+    # other provider this build accepts must read 'missing'.
+    exported = next((p for p in CATALOG if p.env_aliases), None)
+    if exported is not None:
+        monkeypatch.setenv(api_backend.env_sources(exported)[1], "sk-doctor-secret")
+
+    section = cli._credentials_section()
+
+    assert set(section) == set(ids())
+    for provider in CATALOG:
+        source = "env" if provider.id == getattr(exported, "id", None) else "missing"
+        assert f"source={source}" in section[provider.id], section[provider.id]
+    assert "sk-doctor-secret" not in json.dumps(section)

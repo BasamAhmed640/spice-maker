@@ -1,4 +1,4 @@
-# BoardModeler
+# Spice Maker
 
 **Give it a datasheet and a part number; agents author an LTspice model; real simulator
 runs judge it against the datasheet's own rows; you get a `.lib`, a symbol and a card
@@ -17,16 +17,44 @@ uv run boardmodeler model test --out build/tps54320     # re-judge any time
 uv run boardmodeler model install --out build/tps54320 --user-lib --apply
 ```
 
-**Before the first run:** install Bob Shell (`powershell -c "irm -Uri https://bob.ibm.com/download/bobshell.ps1 | iex"`,
-Node ≥ 24), then open **SETUP** in the window and store an API key from bob.ibm.com → API keys with
-**Scope = Inference**. Setup is one page and holds only what persists: the LTspice path (with a smoke test), the agent key
-(in the Windows credential store — never in a file), the folder finished models go to, the read-only LTspice user library
-path, and the web-reinforcement switch. Installing a finished model is always the window's **Install into LTspice**
-action, which copies into the per-user library. The main window holds nothing but the part number, the
-datasheet, the save location, **GO** and the progress detail. Without an agent the run stops immediately with `BLOCKED`
-naming what is missing — it never substitutes another provider. A build costs a few agent turns plus about ten seconds of
-simulation: the TPS54320 fixtures judge 38 datasheet rows in **10.7 s** of real LTspice work once the model exists, and a
+**Before the first run:** open **SETUP** in the window and paste an agent API key — that is
+the whole authentication story; there is no login anywhere in this application. **IBM Bob** is
+the default provider and needs Bob Shell installed
+(`powershell -c "irm -Uri https://bob.ibm.com/download/bobshell.ps1 | iex"`, Node ≥ 24) plus a key from
+bob.ibm.com → API keys with **Scope = Inference** (an *Inference* key needs no team id; a
+*general* key does). The same row also takes a plain vendor key from OpenAI, Anthropic, Google,
+DeepSeek, OpenRouter, xAI, Groq, Mistral or OpenCode Zen / Go, and those run over HTTP with no
+CLI and no extra install. Every key goes to the Windows credential store — never to a config file, a project
+directory, a manifest or a log line. Setup is one page and holds only what persists: the LTspice
+path (with a smoke test), the agent provider and key, the model id when the provider takes one,
+the folder finished models go to, the read-only LTspice user library path, and the
+web-reinforcement switch. Installing a finished model is always the window's **Install into
+LTspice** action, which copies into the per-user library. The main window holds nothing but the
+part number, the datasheet, the save location, **GO** and the progress detail. Without an agent
+the run stops immediately with `BLOCKED` naming what is missing — it never substitutes another
+provider. A build costs a few agent turns plus about ten seconds of simulation: the TPS54320
+fixtures judge 38 datasheet rows in **10.7 s** of real LTspice work once the model exists, and a
 repeated run makes **zero** further extraction calls.
+
+## Install
+
+`releases\SpiceMaker-win-Setup.exe` is a one-click Velopack installer: it unpacks the frozen
+application under `%LocalAppData%\SpiceMaker`, adds a Start Menu entry, and starts it — with
+the pepper splash while it unpacks and no wizard pages to click through. It installs **only
+this application**: no LTspice, no Python, no agent CLI is downloaded or installed by it.
+LTspice is discovered by the app (or pointed at in SETUP) and smoke-tested there, and
+`doctor` says plainly when it is missing. Build the installer yourself with
+`installer\build.ps1 -Version <x.y.z>`; see `installer/README.md`.
+
+## Two builds of one product
+
+The agent provider list is data (`src/boardmodeler/agent_providers.py`), so a restricted
+build is one tuple, not a fork of the code (D-015):
+
+|Build|Accepts|Use it for|
+|---|---|---|
+|`spice-maker` (this repository)|Bob **and** every vendor key in the catalog|Trying providers, comparing models, day-to-day work|
+|`spice-maker-bob`|The IBM Bob API only|The Bob-native workflow: no provider row on SETUP, `BOB API KEY` only|
 
 What each piece guarantees:
 

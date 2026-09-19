@@ -250,8 +250,9 @@ def fault_ids() -> tuple[str, ...]
   table and a datasheet-row table, with `SETUP` and `CHECK ENVIRONMENT` buttons. Fixed
   900×600; all control styling comes from `ui/theme.py`'s `RETRO_STYLESHEET`.
 * `ui/setup_dialog.py`: `class SetupDialog(QDialog)` — the one page of persistent
-  settings (LTspice path + smoke test, Bob API key, model folder, the read-only LTspice
-  user library, web reinforcement), sized to its content. `describe_settings(config)`
+  settings (LTspice path + smoke test, the agent provider and its API key, the model id when
+  the provider takes one, model folder, the read-only LTspice user library, web reinforcement),
+  sized to its content. `describe_settings(config)`
   returns those settings as data for `boardmodeler setup --json`, and `main(argv)` is
   the `boardmodeler setup` entry point. Reached from the SETUP button, `boardmodeler
   setup`, or `boardmodeler ui --installer`.
@@ -268,6 +269,12 @@ boardmodeler version [--json]
 boardmodeler doctor [--json] [--no-smoke] [--smoke-workdir DIR]
 boardmodeler setup [--json]                      # one page of persistent settings
 boardmodeler ui [--project DIR] [--installer]    # model maker (--installer: setup page)
+boardmodeler model build --part PN --out DIR [--datasheet PDF | --requirements F --bindings F]
+    [--subckt NAME] [--backend api|bob|scripted|fixture] [--provider ID] [--model ID]
+    [--max-tokens N] [--team-id ID] [--allow-remote] [--no-reinforce] [--iterations N]
+    [--timeout S] [--json] [--strict]           # api: the SETUP key; bob: Bob Shell; no login
+boardmodeler model test --out DIR [--timeout S] [--json] [--strict]
+boardmodeler model install --out DIR [--into DIR | --user-lib] [--apply] [--json]
 boardmodeler run tests --project DIR [--scope S] [--test ID] [--list-tests] [--json] [--out F]
                                      [--timeout S] [--ltspice EXE] [--ascii-raw] [--strict]
 boardmodeler demo build --out DIR [--json] [--no-probe]

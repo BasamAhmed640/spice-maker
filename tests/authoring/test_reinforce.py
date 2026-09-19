@@ -380,38 +380,96 @@ def test_agent_backend_note_becomes_the_unavailable_detail(
     assert report.sources == ()
 
 
-def test_query_agent_backend_threads_the_cancel_event_and_the_budget(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_query_agent_backend_uses_the_injected_backend_for_a_text_turn(
+    tmp_path: Path,
 ) -> None:
-    from boardmodeler.authoring import backends as backends_module
     from boardmodeler.authoring.backends import AuthorRequest, AuthorResult
 
     seen: dict[str, object] = {}
 
     class _FakeBackend:
-        def __init__(self, *, timeout_s: float | None = None) -> None:
-            seen["timeout_s"] = timeout_s
+        name = "fake"
 
         def availability(self) -> tuple[bool, str]:
             return True, "ok"
 
         def author(
-            self, request: AuthorRequest, cancel: threading.Event | None = None
+            self,
+            request: AuthorRequest,
+            cancel: threading.Event | None = None,
+            *,
+            timeout_s: float | None = None,
         ) -> AuthorResult:
             seen["cancel"] = cancel
             seen["prompt"] = request.prompt
+            seen["expect_text"] = request.expect_text
+            seen["model_dir"] = request.model_dir
+            seen["author_timeout_s"] = timeout_s
             return AuthorResult(ok=True, detail="ok", usage={}, stdout_tail="{}", session_id=None)
 
-    monkeypatch.setattr(backends_module, "BobShellBackend", _FakeBackend)
     event = threading.Event()
 
     reply, note = reinforce_module.query_agent_backend(
-        "find sources", tmp_path, cancel=event, timeout_s=12.5
+        "find sources", tmp_path, backend=_FakeBackend(), cancel=event, timeout_s=12.5
     )
 
     assert note == "" and reply == "{}"
     assert seen["cancel"] is event, "the build's cancel event must reach the backend"
+    assert seen["expect_text"] is True, "a candidate turn must not write files"
+    assert seen["model_dir"] == tmp_path
+    assert seen["author_timeout_s"] == 12.5, "an injected backend still gets the budget"
+
+
+def test_query_agent_backend_defaults_to_the_configured_provider(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Without an injected backend the search runs on the configured provider."""
+    from boardmodeler.authoring import api_backend as api_module
+    from boardmodeler.authoring.backends import AuthorRequest, AuthorResult
+
+    seen: dict[str, object] = {}
+
+    class _FakeBackend:
+        name = "fake"
+
+        def availability(self) -> tuple[bool, str]:
+            return True, "ok"
+
+        def author(
+            self,
+            request: AuthorRequest,
+            cancel: threading.Event | None = None,
+            *,
+            timeout_s: float | None = None,
+        ) -> AuthorResult:
+            seen["author_timeout_s"] = timeout_s
+            seen["expect_text"] = request.expect_text
+            return AuthorResult(ok=True, detail="ok", usage={}, stdout_tail="{}", session_id=None)
+
+    def factory(*, timeout_s: float = 0.0, **kwargs: object) -> _FakeBackend:
+        seen["timeout_s"] = timeout_s
+        return _FakeBackend()
+
+    monkeypatch.setattr(api_module, "build_api_backend", factory)
+
+    reply, note = reinforce_module.query_agent_backend("find sources", tmp_path, timeout_s=12.5)
+
+    assert note == "" and reply == "{}"
     assert seen["timeout_s"] == 12.5
+    assert seen["expect_text"] is True
+
+
+def test_query_agent_backend_reports_an_unavailable_backend(
+    tmp_path: Path,
+) -> None:
+    from boardmodeler.authoring.backends import UnavailableBackend
+
+    reply, note = reinforce_module.query_agent_backend(
+        "find sources", tmp_path, backend=UnavailableBackend("api", "api_key_unavailable: none")
+    )
+
+    assert reply == ""
+    assert note == "agent_backend_unavailable: api_key_unavailable: none"
 
 
 def test_reinforce_threads_the_cancel_event_to_the_candidate_query(
@@ -657,9 +715,7 @@ class _FakeOpener:
         return self.response
 
 
-def _install_fake_opener(
-    monkeypatch: pytest.MonkeyPatch, response: _FakeResponse
-) -> _FakeOpener:
+def _install_fake_opener(monkeypatch: pytest.MonkeyPatch, response: _FakeResponse) -> _FakeOpener:
     opener = _FakeOpener(response)
     monkeypatch.setattr(reinforce_module, "build_opener", lambda handler: opener)
     return opener
@@ -668,9 +724,7 @@ def _install_fake_opener(
 def test_default_fetcher_sends_a_user_agent_and_honours_the_timeout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    opener = _install_fake_opener(
-        monkeypatch, _FakeResponse(b"hello", "text/plain; charset=utf-8")
-    )
+    opener = _install_fake_opener(monkeypatch, _FakeResponse(b"hello", "text/plain; charset=utf-8"))
     body, content_type = default_fetcher("https://93.184.216.34/a", timeout_s=7.5)
     assert body == b"hello"
     assert content_type == "text/plain"
@@ -834,9 +888,7 @@ def test_raising_candidate_provider_is_recorded(tmp_path: Path) -> None:
     def provider(part: str) -> list[tuple[str, str]]:
         raise RuntimeError("author backend exploded")
 
-    report = reinforce(
-        part=PART, spec_digest=DIGEST, out_dir=tmp_path, candidate_provider=provider
-    )
+    report = reinforce(part=PART, spec_digest=DIGEST, out_dir=tmp_path, candidate_provider=provider)
     assert report.status == "unavailable"
     assert report.detail == "candidate_provider_error: RuntimeError: author backend exploded"
     assert report.sources == ()
@@ -853,9 +905,7 @@ def test_raising_candidate_provider_is_recorded(tmp_path: Path) -> None:
 def test_unusable_candidate_provider_is_recorded(
     tmp_path: Path, provider: Any, prefix: str
 ) -> None:
-    report = reinforce(
-        part=PART, spec_digest=DIGEST, out_dir=tmp_path, candidate_provider=provider
-    )
+    report = reinforce(part=PART, spec_digest=DIGEST, out_dir=tmp_path, candidate_provider=provider)
     assert report.status == "unavailable"
     assert report.sources == ()
     assert report.detail.startswith(prefix)
