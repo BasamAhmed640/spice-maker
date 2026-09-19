@@ -252,6 +252,18 @@ def _judge(char: Characteristic, key: str, value: float) -> tuple[str, str, str 
     )
 
 
+def _simulator_said(log) -> str:
+    """The last lines the simulator printed to its own log, or an empty string.
+
+    A reason that says only "no usable output" leaves the author blind: the deck's own
+    error line (an LTspice syntax error inside the ``.subckt``, an undefined sub-model, a
+    singular matrix) is what lets the next turn fix the model. ``log`` is the parsed
+    log summary, and its ``errors`` are already the lines LTspice flagged.
+    """
+    said = [str(line) for line in (getattr(log, "errors", None) or [])]
+    return f"; LTspice said: {' | '.join(said[-2:])[:300]}" if said else ""
+
+
 def _run_reason(result: BatchResult, log, *, tstop_s: float, tmax_s: float) -> str | None:
     """Why this run cannot produce a verdict, or ``None`` when it delivered data."""
     if result.cancelled:
@@ -264,15 +276,11 @@ def _run_reason(result: BatchResult, log, *, tstop_s: float, tmax_s: float) -> s
         try:
             raw = read_raw(result.raw_path)
         except (RawFormatError, OSError) as exc:
-            raw_error = str(exc)
+            # An empty or truncated .raw means the run ended before it produced data, and
+            # the simulator's log is the only place that says why.
+            raw_error = f"{exc}{_simulator_said(log)}"
     else:
-        raw_error = f"no .raw was written ({result.observed()})"
-        # The simulator's own words are what lets the author fix a model it cannot run
-        # (an LTspice syntax error inside the .subckt, for instance). Without them the
-        # feedback says only that something went wrong, and the next turn is blind.
-        said = [str(line) for line in (getattr(log, "errors", None) or [])]
-        if said:
-            raw_error = f"{raw_error}; LTspice said: {' | '.join(said[-2:])[:300]}"
+        raw_error = f"no .raw was written ({result.observed()}){_simulator_said(log)}"
     diag = diagnose(
         log=log,
         raw=raw,

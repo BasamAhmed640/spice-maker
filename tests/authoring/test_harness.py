@@ -372,6 +372,50 @@ def test_a_deck_the_simulator_rejects_names_the_simulators_own_error(
     assert "Expected a sequence" in report.feedback(), report.feedback()
 
 
+def test_an_empty_raw_file_still_names_what_the_simulator_said(
+    monkeypatch: pytest.MonkeyPatch, spec: SpecSet, tmp_path: Path
+) -> None:
+    """A ``.raw`` that exists but holds no data is the same dead end — and says why too.
+
+    LTspice writes the file before it fails, so the run reads as "no usable output";
+    the log is the only place the author can learn that a sub-model was undefined.
+    """
+    lib = write_regulator_library(tmp_path / "buck.lib", [SUBCKT])
+    log = tmp_path / "deck.log"
+    log.write_text("Fatal Error: u1: Unknown subckt: rout_drv\n", encoding="utf-8")
+    raw = tmp_path / "deck.raw"
+    raw.write_bytes(b"")
+
+    def fake_run_batch(exe, deck, run_dir, *, timeout_s, **kwargs):
+        return BatchResult(
+            deck=Path(deck),
+            run_dir=Path(run_dir),
+            exit_code=1,
+            stdout="",
+            stderr="",
+            wall_s=0.01,
+            timed_out=False,
+            raw_path=raw,
+            log_path=log,
+        )
+
+    monkeypatch.setattr(harness_mod, "run_batch", fake_run_batch)
+    single = dataclasses.replace(spec, characteristics=(spec.by_id("REQ_TPS54320_ELEC_004"),))
+    report = run_harness(
+        model_lib=lib,
+        subckt=SUBCKT,
+        spec=single,
+        workdir=tmp_path / "work",
+        ltspice=tmp_path / "LTspice.exe",
+    )
+
+    outcome = report.outcomes[0]
+    assert outcome.status == Status.UNKNOWN.value
+    reason = outcome.unknown_reason or ""
+    assert "Unknown subckt" in reason, reason
+    assert "Unknown subckt" in report.feedback(), report.feedback()
+
+
 def test_cancelled_harness_reports_cancelled(spec: SpecSet, tmp_path: Path) -> None:
     import threading
 
