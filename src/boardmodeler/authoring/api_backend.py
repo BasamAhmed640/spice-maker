@@ -329,6 +329,53 @@ def credential_for(
     return credential
 
 
+def verify_http_key(provider, key, *, model=None, timeout_s=15.0, transport=None):
+    """One small authenticated inference request; no retries or document content."""
+    from boardmodeler.security.key_verification import CHECK_PROMPT, KeyVerification
+
+    backend = ApiKeyBackend(provider, model=model, max_output_tokens=256, retries=0)
+    url, headers, body = backend._shape(CHECK_PROMPT, key=key)
+    request = HttpRequest(
+        method="POST",
+        url=url,
+        headers={
+            **headers,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "SpiceMaker/1.1.9",
+            **({provider.session_header: backend.session_id} if provider.session_header else {}),
+        },
+        body=json.dumps(body).encode("utf-8"),
+        timeout_s=timeout_s,
+    )
+    try:
+        response = (transport or urllib_transport)(request)
+    except Exception:
+        return KeyVerification("unverified", "Connection check timed out or could not connect.")
+    if response.status in (401, 403):
+        return KeyVerification("rejected", "Provider rejected the key or its permissions.")
+    if response.status in (402, 429):
+        return KeyVerification("unverified", "Check provider balance, quota or rate limit.")
+    if not 200 <= response.status < 300:
+        return KeyVerification(
+            "unverified", f"Provider returned HTTP {response.status}; check model and service."
+        )
+    try:
+        payload = _decoded(response, secrets=[key])
+    except Exception:
+        return KeyVerification("unverified", "Provider response was incomplete; key not verified.")
+    # Authentication succeeded even if the deliberately small reasoning budget was exhausted.
+    if provider.wire == "openai":
+        valid = bool(payload.get("choices"))
+    elif provider.wire == "anthropic":
+        valid = payload.get("type") == "message" and isinstance(payload.get("content"), list)
+    else:
+        valid = bool(payload.get("candidates"))
+    if valid and not payload.get("error"):
+        return KeyVerification("verified", "Provider accepted the key and selected model.")
+    return KeyVerification("unverified", "Provider did not return a valid inference response.")
+
+
 class ApiKeyBackend:
     """One provider from :data:`boardmodeler.agent_providers.CATALOG`, spoken over HTTP.
 

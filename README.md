@@ -1,5 +1,7 @@
 # Spice Maker
 
+**SAVE & CHECK KEY** now verifies a newly saved key in the background, with a 15-second wait and clear verified/rejected/unverified results. [Credential safety and check details](docs/API_KEY_CHECK.md).
+
 Datasheet extraction and model verification now recover smaller requests, preserve failed-run feedback, and report untested numeric requirements honestly. See [coverage and reliability](docs/DATASHEET_ROBUSTNESS.md).
 
 IC symbols now use a consistent local layout with verified model pin order. See
@@ -15,7 +17,7 @@ final duration. See [what the agents and simulator do](docs/AGENT_WORKFLOW.md).
 selected. Extract the ZIP, open the extracted repository folder, and double-click
 **Install.exe** beside this README. The installer is included in the ZIP.
 
-The included v1.1.8 installer fixes the QtWidgets startup crash and keeps the animated
+The included v1.1.9 installer fixes the QtWidgets startup crash and keeps the animated
 pepper setup. Python is bundled; LTspice and, when using IBM Bob, Bob Shell are separate
 prerequisites. See INSTALL.txt for instructions and SHA256SUMS.txt for the installer hash.
 
@@ -85,7 +87,7 @@ setup. The same folder contains INSTALL.txt and SHA256SUMS.txt.
 Open SETUP once to select LTspice and save your API key. Python is bundled; LTspice and,
 when using Bob, Bob Shell must be installed separately. This installer is unsigned.
 
-To rebuild, run `installer\build.ps1 -Version 1.1.4`; see
+To rebuild, run `installer\build.ps1 -Version 1.1.9`; see
 [installer details](installer/README.md). The build refreshes the root installer,
 instructions and checksum so committing those files updates Code → Download ZIP.
 
