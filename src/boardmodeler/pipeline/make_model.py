@@ -94,6 +94,7 @@ from boardmodeler.authoring.loop import (
     build_model,
     model_file,
     prepare_workdir,
+    revalidate_candidate,
 )
 from boardmodeler.authoring.part_class import classify
 from boardmodeler.authoring.probes import PROBES
@@ -815,6 +816,37 @@ def _has_limits(requirement: Requirement) -> bool:
     return limits.min is not None or limits.typ is not None or limits.max is not None
 
 
+_POLARITY_NONINVERTING = re.compile(
+    r"\bnon-?inverting\b|\bA\s+high\s+gives\s+Y\s+high\b|\bA\s+low\s+gives\s+Y\s+low\b",
+    re.IGNORECASE,
+)
+_POLARITY_INVERTING = re.compile(
+    r"(?<!non-)\binverting\b|\bA\s+high\s+gives\s+Y\s+low\b|\bA\s+low\s+gives\s+Y\s+high\b",
+    re.IGNORECASE,
+)
+
+
+def _cited_polarity(requirements: Sequence[Requirement]) -> float | None:
+    """The one output polarity the cited text establishes, or ``None`` when it does not.
+
+    A row that needs ``io_inverting`` may cite the polarity on a neighbouring functional
+    row (``Output is noninverting: A high gives Y high``) instead of its own conditions.
+    Only an unambiguous signal is compiled: text stating both behaviours, or neither,
+    leaves the question open, and the row stays a declared gap rather than guessing.
+    """
+    hints: set[float] = set()
+    for requirement in requirements:
+        parts = [requirement.statement]
+        for ref in requirement.evidence:
+            parts.extend(part for part in (ref.excerpt, ref.section, ref.table, ref.figure) if part)
+        text = _normalized(" ".join(parts))
+        if _POLARITY_NONINVERTING.search(text):
+            hints.add(0.0)
+        if _POLARITY_INVERTING.search(text):
+            hints.add(1.0)
+    return hints.pop() if len(hints) == 1 else None
+
+
 def _unit_decline(requirement: Requirement, probe: str) -> str | None:
     """Why this row's unit cannot be judged by ``probe``, or ``None`` when it can."""
     limits = requirement.limits
@@ -853,13 +885,9 @@ def bind_requirements(
     """
     blocked = dict(unverified or {})
     entries: list[dict[str, Any]] = []
+    polarity = _cited_polarity(requirements)
     io_context = any(
-        re.search(
-            r"\b(?:voh|vol|tplh|tphl|ioz|ioff|logic buffer|level shifter)\b",
-            _search_text(row),
-            re.IGNORECASE,
-        )
-        for row in requirements
+        _rule_matches(rule, _search_text(row)) for row in requirements for rule in _IO_RULES
     )
     for requirement in requirements:
         req_id = requirement.req_id
@@ -886,7 +914,7 @@ def bind_requirements(
             continue
         text = _search_text(requirement)
         decline: str | None = None
-        for rule in (*_IO_RULES, *_RULES) if io_context else _RULES:
+        for rule in (*_RULES, *_IO_RULES) if io_context else _RULES:
             if not _rule_matches(rule, text):
                 continue
             if rule.probe is None:
@@ -898,7 +926,12 @@ def bind_requirements(
                 break
             from boardmodeler.authoring.conditions import operating_params
 
-            params, problem = operating_params(requirement, PROBES[rule.probe])
+            seed = (
+                {"io_inverting": polarity}
+                if polarity is not None and rule.probe.startswith("io_")
+                else None
+            )
+            params, problem = operating_params(requirement, PROBES[rule.probe], seed=seed)
             if problem:
                 decline = problem
                 break
@@ -1586,23 +1619,16 @@ class _Run:
             self.status, self.detail = Status.UNKNOWN.value, "spec_missing: no specification"
             return
         prepare_workdir(spec=self.spec, subckt=self.request.subckt, workdir=self.workdir)
+        if not self.spec.covered():
+            detail = (
+                f"no_covered_characteristics: none of {len(self.spec.uncovered())} row(s) is "
+                "reachable by a probe; no model was authored or simulated"
+            )
+            self.log.emit("author", "skipped", detail)
+            self.status, self.detail = Status.UNKNOWN.value, detail
+            return
         from boardmodeler.authoring.validation_cache import read_report, validation_key
 
-        path = model_file(self.workdir, self.request.subckt)
-        key = validation_key(path, self.spec, install.path, self.request.timeout_s)
-        cached = read_report(self.workdir / "validation-cache", key, self.spec, path)
-        if cached is None or not cached.passed():
-            usable, reason = backend.availability()
-            if not usable:
-                self.log.emit("author", "failed", reason)
-                self.status, self.detail = Status.BLOCKED.value, reason
-                return
-            self._gather_supporting_material(cancel)
-        self.log.emit(
-            "judge",
-            "running",
-            "the harness runs after every agent turn; no turn has finished yet",
-        )
         request = BuildRequest(
             part=self.request.part,
             subckt=self.request.subckt,
@@ -1614,11 +1640,44 @@ class _Run:
             stall_patience=self.request.stall_patience,
             turn_timeout_s=self.request.turn_timeout_s,
             timeout_s=self.request.timeout_s,
-            supporting_context="\n".join(
-                f"{source.url} (SHA256 {source.sha256}): {source.excerpt}"
-                for source in (self.reinforcement.sources if self.reinforcement else ())
-                if source.retrieved and source.sha256 and source.excerpt
-            ),
+        )
+        path = model_file(self.workdir, self.request.subckt)
+        key = validation_key(path, self.spec, install.path, self.request.timeout_s)
+        cached = read_report(self.workdir / "validation-cache", key, self.spec, path)
+        if cached is None and not (cancel and cancel.is_set()):
+            # A fresh process has no receipt for an existing candidate. Re-judge it with
+            # one LTspice run before any remote reinforcement or author turn is spent.
+            revalidated = revalidate_candidate(request, cancel)
+            if revalidated is not None:
+                self.outcome = revalidated
+                self.report = revalidated.report
+                self.log.emit(
+                    "author",
+                    "ok",
+                    "existing candidate revalidated by the simulator; zero author turns",
+                    {"turns": 0},
+                )
+                self.log.emit("judge", "ok", "reused revalidated simulator evidence")
+                return
+        if cached is None or not cached.passed():
+            usable, reason = backend.availability()
+            if not usable:
+                self.log.emit("author", "failed", reason)
+                self.status, self.detail = Status.BLOCKED.value, reason
+                return
+            self._gather_supporting_material(cancel)
+            request = dataclasses.replace(
+                request,
+                supporting_context="\n".join(
+                    f"{source.url} (SHA256 {source.sha256}): {source.excerpt}"
+                    for source in (self.reinforcement.sources if self.reinforcement else ())
+                    if source.retrieved and source.sha256 and source.excerpt
+                ),
+            )
+        self.log.emit(
+            "judge",
+            "running",
+            "the harness runs after every agent turn; no turn has finished yet",
         )
         if not _BUILD_LOCK.acquire(blocking=False):
             reason = (

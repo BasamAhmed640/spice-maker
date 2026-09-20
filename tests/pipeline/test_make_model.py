@@ -25,7 +25,7 @@ from boardmodeler.authoring.backends import (
 )
 from boardmodeler.authoring.spec import load_tps54320_spec
 from boardmodeler.domain.enums import ProviderKind
-from boardmodeler.domain.records import ProviderIdentity, Requirement
+from boardmodeler.domain.records import Condition, ProviderIdentity, Requirement
 from boardmodeler.models.library import subckt_ports
 from boardmodeler.models.regulator import write_regulator_library
 from boardmodeler.models.symbolism import symbol_pin_orders, symbol_text, validate_symbol
@@ -538,6 +538,90 @@ def test_a_row_no_probe_can_answer_gets_a_concrete_reason() -> None:
     assert "no deterministic probe" in entry["not_testable_reason"]
 
 
+def _io_row(
+    req_id: str,
+    statement: str,
+    unit: str,
+    *,
+    minimum: float | None = None,
+    maximum: float | None = None,
+    conditions: list[Condition] | None = None,
+) -> Requirement:
+    """One datasheet-shaped row copied from the fixture's first requirement."""
+    base = fixture_requirements()[0]
+    evidence = base.evidence[0].model_copy(update={"excerpt": statement})
+    return base.model_copy(
+        deep=True,
+        update={
+            "req_id": req_id,
+            "statement": statement,
+            "limits": base.limits.model_copy(
+                update={"min": minimum, "typ": None, "max": maximum, "unit": unit}
+            ),
+            "conditions": conditions or [],
+            "evidence": [evidence],
+        },
+    )
+
+
+def test_shutdown_ioff_binds_to_the_regulator_and_power_off_leakage_to_the_io_probe() -> None:
+    """``IOFF`` is ambiguous: ``shutdown`` disambiguates it to the regulator probe."""
+    shutdown = _io_row("REQ_SHUT", "Shutdown current IOFF is at most 1 uA", "A", maximum=1e-6)
+    leak = _io_row(
+        "REQ_LEAK",
+        "Power-off leakage current IOFF at VCC = 3.3 V",
+        "A",
+        maximum=5e-6,
+        conditions=[Condition(text="VCC = 3.3 V", parameter_overrides={"io_test_v": 3.3})],
+    )
+    bare = _io_row(
+        "REQ_BARE",
+        "Power-off leakage current at VCC = 3.3 V",
+        "A",
+        maximum=5e-6,
+        conditions=[Condition(text="VCC = 3.3 V", parameter_overrides={"io_test_v": 3.3})],
+    )
+
+    entries = {entry["req_id"]: entry for entry in bind_requirements([shutdown, leak, bare])}
+
+    assert entries["REQ_SHUT"]["probe"] == "shutdown_current"
+    assert entries["REQ_LEAK"]["probe"] == "io_power_off_leakage"
+    assert entries["REQ_BARE"]["probe"] == "io_power_off_leakage"
+
+
+def test_cited_polarity_binds_a_voh_row_and_ambiguity_stays_a_gap() -> None:
+    """Signed output current normalizes; cited polarity compiles, contradiction does not."""
+    voh = _io_row(
+        "REQ_VOH",
+        "High-level output voltage VOH is a minimum of 3.20 V",
+        "V",
+        minimum=3.2,
+        conditions=[
+            Condition(
+                text="VCC = 3.3 V, IOH = -2 mA",
+                parameter_overrides={"io_load_a": -0.002},
+            )
+        ],
+    )
+    noninverting = _io_row(
+        "REQ_POL",
+        "Output is noninverting: A high gives Y high; A low gives Y low.",
+        "V",
+    )
+    ambiguous = _io_row(
+        "REQ_AMB", "A high gives Y high and A low gives Y high, so the output is inverting.", "V"
+    )
+
+    bound = bind_requirements([voh, noninverting])[0]
+    assert bound["probe"] == "io_voh"
+    assert bound["params"]["io_load_a"] == 0.002
+    assert bound["params"]["io_inverting"] == 0.0
+
+    gap = bind_requirements([voh, ambiguous])[0]
+    assert gap["probe"] is None
+    assert "io_inverting" in gap["not_testable_reason"]
+
+
 # --------------------------------------------------------------------------- #
 # (g) one judge event per turn, in order, matching the final report
 
@@ -904,6 +988,49 @@ def test_the_reinforcement_stage_runs_on_the_backend_the_author_loop_uses(
 
     assert seen == [backend], "the author loop's backend must be the one reinforced with"
     assert result.status == "UNKNOWN"
+
+
+def test_a_run_author_revalidates_the_candidate_before_gathering_reinforcement(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A fresh process has no receipt: the existing pass is re-judged before any search."""
+    from boardmodeler.authoring.harness import HarnessReport
+    from boardmodeler.authoring.loop import BuildOutcome
+
+    spec = load_tps54320_spec(REQUIREMENTS, BINDINGS, part=PART, subckt=SUBCKT)
+    request = make_request(tmp_path)
+    run = engine._Run(request, engine._StageLog(None))
+    run.spec = spec
+    run.workdir = Path(request.out_dir) / engine.WORK_DIRNAME
+    run.backend = ScriptedBackend(template_script())
+    run.backend_name = "scripted"
+    monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
+
+    report = HarnessReport(part=PART, model_sha256="a" * 64, spec_digest=spec.digest(), outcomes=())
+    sentinel = BuildOutcome(
+        status="PASS",
+        iterations=0,
+        report=report,
+        history=(),
+        detail="existing candidate revalidated by the simulator; zero author turns",
+    )
+    calls: list[str] = []
+
+    def fake_revalidate(request: object, cancel: object = None) -> BuildOutcome:
+        calls.append("revalidate")
+        return sentinel
+
+    monkeypatch.setattr(engine, "revalidate_candidate", fake_revalidate)
+
+    def forbidden(**kwargs: object) -> object:
+        raise AssertionError("reinforcement must not run before revalidation")
+
+    monkeypatch.setattr(engine, "reinforce", forbidden)
+
+    run.author(None)
+
+    assert calls == ["revalidate"]
+    assert run.outcome is sentinel
 
 
 def test_the_saved_result_round_trips_including_the_turn_bounds(tmp_path: Path) -> None:

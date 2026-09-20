@@ -1077,6 +1077,61 @@ def test_build_outcome_json_round_trips() -> None:
     assert restored.report.passed() is False
 
 
+def test_a_spec_with_no_covered_row_never_asks_the_agent_or_the_harness(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Zero covered characteristics is an explicit UNKNOWN, not a wasted author turn."""
+    spec = SpecSet(
+        part=PART,
+        subckt=SUBCKT,
+        doc_id=DOC_ID,
+        characteristics=(characteristic(probe=None),),
+    )
+    workdir = tmp_path / "build"
+    loop.prepare_workdir(spec=spec, subckt=SUBCKT, workdir=workdir)
+
+    def double(**kwargs: object) -> object:
+        raise AssertionError("nothing is covered, so the harness must not run")
+
+    monkeypatch.setattr(loop, "run_harness", double)
+    authored: list[int] = []
+    backend = ScriptedBackend(lambda turn, path, prompt: authored.append(turn))
+
+    outcome = loop.build_model(make_request(tmp_path, spec, backend, workdir=workdir))
+
+    assert outcome.status == "UNKNOWN"
+    assert "no_covered_characteristics" in outcome.detail
+    assert authored == []
+    assert outcome.report.outcomes == ()
+
+
+def test_a_fresh_process_revalidates_a_passing_candidate_without_authoring(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """No process receipt for an existing pass: one simulator run, zero author turns."""
+    from boardmodeler.authoring import validation_cache
+
+    probe = probe_id()
+    spec = build_spec(probe)
+    workdir = tmp_path / "build"
+    loop.prepare_workdir(spec=spec, subckt=SUBCKT, workdir=workdir)
+    (tmp_path / "LTspice.exe").write_bytes(b"")
+    write_model(workdir, "CORRECTED MODEL\n")
+    double = HarnessDouble(probe)
+    monkeypatch.setattr(loop, "run_harness", double)
+    monkeypatch.setattr(validation_cache, "_OBSERVED", {})
+
+    authored: list[int] = []
+    backend = ScriptedBackend(lambda turn, path, prompt: authored.append(turn))
+
+    outcome = loop.build_model(make_request(tmp_path, spec, backend, workdir=workdir))
+
+    assert outcome.status == "PASS", outcome.detail
+    assert outcome.iterations == 0
+    assert authored == []
+    assert len(double.calls) == 1
+
+
 def test_loop_request_bounds_are_validated_and_no_cap_is_the_default(tmp_path: Path) -> None:
     import pytest
 
