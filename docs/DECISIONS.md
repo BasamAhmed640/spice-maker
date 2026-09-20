@@ -687,3 +687,13 @@ Use a hash-bound reviewed extraction profile for the exact supplied LM358 datash
 The observed Go response spent all 32,768 tokens on reasoning and ended with finish_reason=length. Maximum effort is preserved; the DeepSeek maximum-effort default is now 131,072 total output tokens, per https://api-docs.deepseek.com/api/create-chat-completion/. Explicit caller/config caps remain honored. Length-truncated text is never accepted as extraction, and is not retried unchanged as malformed JSON.
 
 Truncation recovery uses one larger request only for a documented model ceiling and automatic budgets. It preserves reasoning and provider, aggregates usage, and shares the original turn deadline. Explicit token/cost caps are never increased. The transport regression covers none/low/high/max and rejects truncated repair responses even when they parse as JSON.
+
+
+## 2026-09-20 — application-owned symbol layout
+
+Every authored model is published with the deterministic rectangle renderer, including
+cache hits and command-line publication. Agent drawings are not used for the final
+symbol. Datasheet pin directions guide placement; physical package pin numbers never
+replace `.subckt` positions. Validation checks each pin's actual order, as well as the
+set and bijection. The agent is asked to write only the electrical model, saving the
+symbol output tokens. See STANDARD_SYMBOLS.md.

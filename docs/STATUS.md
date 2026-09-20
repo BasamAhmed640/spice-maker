@@ -474,3 +474,18 @@ Added the exact-datasheet reviewed profile, dual-op-amp DC/AC/transient probes, 
 Final local checks: `pytest -q -m "not ltspice and not network"`: 1106 passed, 4 skipped (git-ignored vendor originals). `ruff check .` and `ruff format --check .`: passed. Frozen GUI launch and animated package checks: passed; release ZIP and root Install.exe are identical. Shared simulator suite: 151 passed; the subsequently added exported-op-amp-example test also passed. Instrument-only tests use a labeled synthetic fixture, not claimed device data.
 
 Live selected-key LM358 source run at maximum thinking: 221.9 seconds, 32 nominal comparisons passed in real LTspice, 10 explicit coverage gaps. The initial 32,768-token failure was reproduced from the provider finish reason and usage. Offline key-route tests cover all ten HTTP provider entries, including authorization failures; these are not live certification of other accounts. Reasoning preservation/recovery covers none/low/high/max.
+
+
+## 2026-09-20 — standardized IC symbols (1.1.6)
+
+- `python -m ruff check .` and `python -m ruff format --check .`: passed.
+- `python -m pytest -q -m "not ltspice and not network"`: 1112 passed,
+  4 skipped (unavailable vendor originals), 154 deselected.
+- Shared renderer integration, run in the general checkout:
+  `python -m pytest -q tests/reporting/test_symbol_layout.py tests/pipeline/test_make_model.py::test_scenario_a_scripted_template_passes_and_publishes_the_deliverables`:
+  8 passed, including actual LTspice schematic-to-netlist pin-order verification and
+  a complete simulated publication. The renderer and new test are identical in both editions.
+- Opened the saved LM358 model with the new symbol in LTspice 26.0.0.3: visible leads,
+  separated labels, all pins within the body height, reference and value outside.
+- No paid inference requests were needed for this change. This does not add electrical
+  coverage or establish a new live IBM Bob result.
