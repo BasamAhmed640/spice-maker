@@ -19,11 +19,11 @@
 
   One-time setup:
     uv sync --all-extras          # pyinstaller + pillow + velopack into .venv
-    dotnet tool install -g vpk    # needs the .NET SDK; keep vpk on the same version
-                                  # as the velopack Python package
+    dotnet tool install -g vpk --version 1.2.0   # needs the .NET SDK; keep vpk on the
+                                                 # same version as the velopack Python package
 
   Run from the project root (the repo root, where pyproject.toml lives):
-    .\installer\build.ps1 -Version 1.0.0
+    .\installer\build.ps1 -Version 1.1.0
 #>
 param(
     [Parameter(Mandatory = $true)][string] $Version,

@@ -195,7 +195,7 @@ requirement with no dynamic test in `coverage.json`.
 |`src/boardmodeler/security/`|Credentials, path guards, subprocess guard, data policy|
 |`src/boardmodeler/ui/`|PySide6 desktop application (thin client over the same pipeline)|
 |`fixtures/`|Committed test fixtures (synthetic switch contract, demo board)|
-|`docs/`|`PLAN.md`, `STATUS.md`, `DECISIONS.md`, `INTERFACES.md`|
+|`docs/`|`PLAN.md`, `STATUS.md`, `DECISIONS.md`, `INTERFACES.md`, `FAST_ACCURATE_MODELS.md`|
 
 ## Rules
 
