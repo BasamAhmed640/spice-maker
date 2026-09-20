@@ -336,3 +336,20 @@ uv run boardmodeler export --project build/demo --out build/demo-export
 
 1. Keep `docs/DECISIONS.md` current; every decision that constrains later work is
    recorded there with its rationale and rejected alternatives.
+
+## 2026-09-20 — shared row-verdict follow-up
+
+Supply-current exclusions now normalize ASCII and Unicode dash separators in the
+statement only. Output-leakage rows under a supply-current heading remain testable.
+Rows sharing one simulation are judged against their own limits; result and card
+totals count those rows, while harness/progress counts remain simulator-case counts.
+Unavailable simulator outcomes retain UNKNOWN/BLOCKED even with partial measurements.
+
+Observed checks: `python -m ruff check .` passed; `python -m pytest -q -m
+"not ltspice and not network"` passed 1048 tests, with 4 skipped and 128 deselected
+(25.41 s, ambient DeepSeek key removed from the child process). A real CLI/LTspice
+synthetic split-limit check produced one observed waveform/log pair, one passing row,
+one failing row, and matching card totals with zero API calls. No real device accuracy
+is inferred from this artificial threshold fixture. The cancellation-only unit test
+now provides a fake simulator installation, fixing the failure on GitHub runners
+without changing production missing-simulator behavior.

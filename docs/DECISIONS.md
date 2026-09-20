@@ -617,3 +617,10 @@ The two repositories share implementation and tests; build_flavor.BOB_ONLY filte
 accepted catalog. Separate Velopack IDs keep installs distinct. Easy-download ZIPs wrap
 the unmodified animated installer as Install.exe; LTspice and Bob Shell remain external
 prerequisites. Publishing to each repository's main branch is explicitly user-authorized.
+
+Per-row verdicts are derived from each frozen characteristic and the existing observed
+measurement; they require no new persisted report field or additional simulation.
+The model card and MakeModelResult count rows, including an explicit UNKNOWN for a
+missing outcome and separate not-testable rows. HarnessReport and author-loop progress
+continue to count simulator cases. The aggregate model verdict and all numeric limits
+remain unchanged. A partial measurement cannot promote an unavailable run to PASS.

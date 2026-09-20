@@ -35,7 +35,7 @@ from boardmodeler.simulation.ltspice import BatchResult, run_batch
 from boardmodeler.simulation.measures import diagnose
 from boardmodeler.simulation.raw import RawFile, RawFormatError, read_raw
 
-__all__ = ["HarnessReport", "ProbeOutcome", "run_harness"]
+__all__ = ["HarnessReport", "ProbeOutcome", "judge_characteristic", "run_harness"]
 
 #: Relative slack applied to a declared limit before it is called a violation:
 #: one part per million of the limit magnitude absorbs ``.raw`` float rounding.
@@ -45,6 +45,11 @@ _LIMIT_SLACK = 1e-6
 
 #: Fraction of a typical value that counts as "matching the datasheet typical".
 _TYPICAL_TOLERANCE = 0.10
+
+
+#: Outcome reason for a case where some rows declare no numeric limit: the measurement
+#: is valid and still judges the rows that do.
+_NO_NUMERIC_LIMIT_REASON = "characteristic_without_numeric_limit"
 
 
 @dataclass(frozen=True)
@@ -258,6 +263,28 @@ def _judge(char: Characteristic, key: str, value: float) -> tuple[str, str, str 
     )
 
 
+def judge_characteristic(characteristic: Characteristic, outcome: ProbeOutcome) -> tuple[str, str]:
+    """``(status, detail)`` for one characteristic judged from its probe's measurement.
+
+    One probe case can carry several characteristics at the same operating point, and the
+    outcome's aggregate status is the worst of them; re-judging from the same measured
+    number keeps every row's verdict its own. An unavailable or invalid run stays UNKNOWN
+    (or BLOCKED) even if a partial measurement is present, so it is never upgraded to
+    PASS; only a valid shared measurement that a sibling row could not use (no numeric
+    limit) is re-judged for the rows that can.
+    """
+    if outcome.status in (Status.UNKNOWN.value, Status.BLOCKED.value) and (
+        outcome.unknown_reason != _NO_NUMERIC_LIMIT_REASON
+    ):
+        return outcome.status, outcome.detail
+    try:
+        key, value = judge_value(outcome.probe_id, outcome.measured)
+    except ProbeError, ValueError:
+        return outcome.status, outcome.detail
+    status, detail, _cause = _judge(characteristic, key, value)
+    return status, detail
+
+
 def _simulator_said(log) -> str:
     """The last lines the simulator printed to its own log, or an empty string.
 
@@ -396,9 +423,7 @@ def run_harness(
                 measured={name: float(value) for name, value in measured.items()},
                 detail="; ".join(verdicts),
                 unknown_reason=(
-                    "characteristic_without_numeric_limit"
-                    if status == Status.UNKNOWN.value
-                    else None
+                    _NO_NUMERIC_LIMIT_REASON if status == Status.UNKNOWN.value else None
                 ),
                 run_dir=str(run_dir),
                 char_ids=tuple(char.char_id for char in chars),

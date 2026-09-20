@@ -88,3 +88,8 @@ is byte-identical to the normal Setup.exe, so the existing pepper animation is p
 Python is bundled; LTspice and Bob Shell remain separate prerequisites. The two editions
 use separate package IDs/install directories. GitHub's Windows download workflow can
 rebuild the ZIP from source. Builds are unsigned unless a signing step is configured.
+
+Several limits can share a simulation at the same operating point. Each row is judged
+individually from that measured value, and the model card and results.json totals count
+rows. Harness and authoring-progress counts refer to simulator cases. A missing outcome
+is UNKNOWN; a partial measurement does not make an unavailable run pass.

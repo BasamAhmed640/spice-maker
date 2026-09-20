@@ -88,8 +88,8 @@ from boardmodeler.authoring.backends import (
     ScriptedBackend,
     UnavailableBackend,
 )
-from boardmodeler.authoring.card import write_deliverables, write_symbol_for
-from boardmodeler.authoring.harness import HarnessReport
+from boardmodeler.authoring.card import status_tally, write_deliverables, write_symbol_for
+from boardmodeler.authoring.harness import HarnessReport, judge_characteristic
 from boardmodeler.authoring.loop import (
     BuildOutcome,
     BuildRequest,
@@ -853,6 +853,12 @@ def _polarity_text(text: str) -> str:
     return _NON_INVERTING_SEPARATOR.sub("non-inverting", folded)
 
 
+def _negative_text(text: str) -> str:
+    """Fold dash variants and separator whitespace so ``supply-current`` reads as two words."""
+    folded = "".join(" " if char in _DASH_VARIANTS or char == "-" else char for char in text)
+    return " ".join(folded.split())
+
+
 def _signal_names(signals: Sequence[str]) -> set[str]:
     """Bare node identities for single-node ``V(...)``/``I(...)`` references.
 
@@ -985,7 +991,7 @@ def bind_requirements(
             )
             continue
         text = _search_text(requirement)
-        statement = _normalized(requirement.statement)
+        statement = _negative_text(_normalized(requirement.statement))
         decline: str | None = None
         for rule in (*_RULES, *_IO_RULES) if io_context else _RULES:
             if not _rule_matches(rule, text):
@@ -1998,9 +2004,11 @@ class _Run:
                 continue
             outcome = outcomes.get(req_id)
             measured = "-"
+            status = Status.UNKNOWN.value
             if outcome is not None:
+                status, _detail = judge_characteristic(characteristic, outcome)
                 measured = outcome.judged or "-"
-                if outcome.status == Status.UNKNOWN.value and outcome.unknown_reason:
+                if status == Status.UNKNOWN.value and outcome.unknown_reason:
                     measured = f"- ({outcome.unknown_reason})"
             rows.append(
                 RowOutcome(
@@ -2008,7 +2016,7 @@ class _Run:
                     statement=characteristic.statement,
                     required=required,
                     measured=measured,
-                    status=Status.UNKNOWN.value if outcome is None else outcome.status,
+                    status=status,
                     page=characteristic.source_page,
                 )
             )
@@ -2119,7 +2127,7 @@ def make_model(
         lib_path=run.lib_path,
         asy_path=run.asy_path,
         rows=rows,
-        counts=dict(run.report.counts()),
+        counts=status_tally(row.status for row in rows),
         stages=tuple(log.events),
         request=request,
     )

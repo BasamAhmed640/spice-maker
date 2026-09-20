@@ -340,7 +340,13 @@ def test_scenario_c_missing_ltspice_is_blocked_and_never_runs_the_agent(
     assert len(result.rows) == 38
     assert sum(row.status == "UNKNOWN" for row in result.rows) == 9
     assert sum(row.status == "NOT_APPLICABLE" for row in result.rows) == 29
-    assert sum(result.counts.values()) == 0
+    assert result.counts == {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 9,
+        "BLOCKED": 0,
+        "NOT_APPLICABLE": 29,
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -444,6 +450,7 @@ def test_the_scripted_backend_writes_nothing_for_a_subcircuit_it_cannot_author(
 def test_scenario_e_cancellation_before_the_first_turn_is_unknown_with_the_stage_list(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
     backend = use_backend(monkeypatch, ScriptedBackend(template_script()))
     cancel = threading.Event()
     cancel.set()
@@ -604,12 +611,18 @@ def test_a_powered_condition_is_not_a_power_off_leakage_row() -> None:
     assert "condition_invalid" in entry["not_testable_reason"]
 
 
-def test_a_supply_current_ioff_row_is_not_measured_by_the_output_leakage_probe() -> None:
+@pytest.mark.parametrize(
+    "separator",
+    [" ", "-", " - ", "\u2010", "\u2011", "\u2012", "\u2013", "\u2014", " \u2014 ", "\u2212"],
+)
+def test_a_supply_current_ioff_row_is_not_measured_by_the_output_leakage_probe(
+    separator: str,
+) -> None:
     """A supply-current row is not broadened to a different terminal's current."""
     for supply in (0.0, 3.3):
         supply_current = _io_row(
             f"REQ_SUPPLY_{supply}",
-            f"Off-state supply current IOFF is at most 1 uA at VCC = {supply} V",
+            f"Off-state supply{separator}current IOFF is at most 1 uA at VCC = {supply} V",
             "A",
             maximum=1e-6,
             conditions=[
@@ -914,6 +927,138 @@ def test_each_operating_point_keeps_its_own_row_status(
     assert by_id["REQ_VOH_33"].measured != by_id["REQ_VOH_18"].measured
 
 
+def _split_voh_inputs(tmp_path: Path) -> tuple[Path, Path]:
+    """Split VOH rows plus a missing-outcome row, all at one operating point each."""
+
+    def row(req_id: str, class_: str, limits: dict) -> dict:
+        return {
+            "req_id": req_id,
+            "applies_to": "SYNTH_IO",
+            "kind": "ELECTRICAL",
+            "class": class_,
+            "criticality": "IMPORTANT",
+            "origin": "TEST_FIXTURE",
+            "statement": "High-level output voltage VOH at VCC = 3.3 V.",
+            "limits": limits,
+            "conditions": [
+                {
+                    "text": "VCC = 3.3 V, IOH = -2 mA",
+                    "parameter_overrides": {"io_vcc": 3.3, "io_load_a": -0.002},
+                }
+            ],
+            "signal_refs": ["Y"],
+            "evidence": [
+                {
+                    "doc_id": "DOC_SYNTH_IO",
+                    "excerpt": "VOH at VCC = 3.3 V",
+                    "extraction": "synthetic_fixture",
+                }
+            ],
+        }
+
+    requirements = {
+        "document": {"doc_id": "DOC_SYNTH_IO"},
+        "pin_map": [],
+        "requirements": [
+            row("REQ_VOH_MIN", "DOCUMENTED_LIMIT", {"min": 2.4, "unit": "V"}),
+            row("REQ_VOH_TYP", "TYPICAL_VALUE", {"typ": 3.2, "unit": "V"}),
+            row("REQ_VOL_MISSING", "DOCUMENTED_LIMIT", {"max": 0.4, "unit": "V"}),
+        ],
+    }
+    params = {"io_vcc": 3.3, "io_load_a": 0.002, "io_inverting": 0, "io_input_high": 3.3}
+    bindings = {
+        "part": "SYNTH_IO",
+        "subckt": "SYNTH_IO",
+        "doc_id": "DOC_SYNTH_IO",
+        "bindings": [
+            {"req_id": "REQ_VOH_MIN", "probe": "io_voh", "params": dict(params)},
+            {"req_id": "REQ_VOH_TYP", "probe": "io_voh", "params": dict(params)},
+            {"req_id": "REQ_VOL_MISSING", "probe": "io_vol", "params": dict(params)},
+        ],
+    }
+    requirements_path = tmp_path / "split-req.json"
+    bindings_path = tmp_path / "split-bind.json"
+    requirements_path.write_text(json.dumps(requirements), encoding="utf-8")
+    bindings_path.write_text(json.dumps(bindings), encoding="utf-8")
+    return requirements_path, bindings_path
+
+
+def test_rows_sharing_one_case_get_their_own_verdicts(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Rows sharing one probe case are judged separately, from one simulation."""
+    from boardmodeler.authoring import loop as loop_module
+    from boardmodeler.authoring.harness import HarnessReport, ProbeOutcome
+
+    requirements_path, bindings_path = _split_voh_inputs(tmp_path)
+    calls: list[str] = []
+
+    def canned_harness(*, model_lib, subckt, spec, workdir, ltspice, timeout_s=120.0, cancel=None):
+        del model_lib, subckt, workdir, ltspice, timeout_s, cancel
+        calls.append("harness")
+        outcome = ProbeOutcome(
+            probe_id="io_voh",
+            status="FAIL",
+            measured={"io_voltage_v": 2.7},
+            detail="REQ_VOH_MIN: pass; REQ_VOH_TYP: fail",
+            unknown_reason=None,
+            run_dir="canned",
+            char_ids=("REQ_VOH_MIN", "REQ_VOH_TYP"),
+            judged="io_voltage_v = 2.7 V",
+        )
+        return HarnessReport(
+            part=spec.part, model_sha256="a" * 64, spec_digest=spec.digest(), outcomes=(outcome,)
+        )
+
+    monkeypatch.setattr(loop_module, "run_harness", canned_harness)
+    monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
+
+    def script(turn: int, workdir: Path, prompt: str) -> None:
+        del turn, prompt
+        model_dir = workdir / "model"
+        model_dir.mkdir(parents=True, exist_ok=True)
+        (model_dir / "SYNTH_IO.lib").write_text(
+            ".subckt SYNTH_IO VCC A Y GND\nR1 Y 0 1k\n.ends SYNTH_IO\n", encoding="utf-8"
+        )
+
+    use_backend(monkeypatch, ScriptedBackend(script))
+    result, _events, _wall = run(
+        tmp_path,
+        subckt="SYNTH_IO",
+        requirements_json=requirements_path,
+        bindings_json=bindings_path,
+        max_iterations=1,
+        reinforce=False,
+    )
+
+    by_id = {row.req_id: row for row in result.rows}
+    assert by_id["REQ_VOH_MIN"].status == "PASS", result.detail
+    assert by_id["REQ_VOH_TYP"].status == "FAIL"
+    assert by_id["REQ_VOL_MISSING"].status == "UNKNOWN"
+    assert calls == ["harness"], "one shared operating point means one simulation"
+    assert result.counts == {
+        "PASS": 1,
+        "FAIL": 1,
+        "UNKNOWN": 1,
+        "BLOCKED": 0,
+        "NOT_APPLICABLE": 0,
+    }
+
+    card = (tmp_path / "out" / "MODEL_CARD.md").read_text(encoding="utf-8")
+    statuses = {
+        line.split("|")[1].strip().strip("`"): line.split("|")[5].strip()
+        for line in card.splitlines()
+        if line.startswith("| `REQ_VOH") or line.startswith("| `REQ_VOL")
+    }
+    assert statuses == {
+        "REQ_VOH_MIN": "PASS",
+        "REQ_VOH_TYP": "FAIL",
+        "REQ_VOL_MISSING": "UNKNOWN",
+    }
+    totals = next(line for line in card.splitlines() if line.startswith("**Totals:**"))
+    assert "1 pass" in totals and "1 fail" in totals and "1 unknown" in totals, totals
+
+
 # --------------------------------------------------------------------------- #
 # (g) one judge event per turn, in order, matching the final report
 
@@ -929,7 +1074,13 @@ def test_scenario_g_every_turn_reports_its_own_counts_and_the_last_matches(
     assert [event.counts["turn"] for event in turns] == [1, 2]
     assert turns[0].counts["FAIL"] >= 1 and "failing: vref" in turns[0].detail
     assert turns[1].counts["FAIL"] == 0
-    assert turns[1].counts == {**result.counts, "turn": 2}
+    from boardmodeler.authoring.harness import HarnessReport
+
+    final_report = HarnessReport.from_json(
+        (tmp_path / "out" / "harness-report.json").read_text(encoding="utf-8")
+    )
+    assert turns[1].counts == {**final_report.counts(), "turn": 2}
+    assert result.counts["PASS"] == sum(row.status == "PASS" for row in result.rows)
     assert result.status == "PASS", result.detail
 
 
@@ -1157,7 +1308,8 @@ def test_a_capped_run_with_every_row_measured_wrong_is_fail(
 
     assert result.status == "FAIL", result.detail
     assert "outside the datasheet limits" in result.detail and "vref" in result.detail
-    assert result.counts["FAIL"] == 1 and result.counts["UNKNOWN"] == 0
+    assert result.counts["FAIL"] == 1
+    assert result.counts["UNKNOWN"] == 8, "the rows the canned harness did not report are gaps"
     failed = next(row for row in result.rows if row.req_id == VREF_ID)
     assert failed.status == "FAIL" and failed.measured == "v_fb = 0.5 V"
 
