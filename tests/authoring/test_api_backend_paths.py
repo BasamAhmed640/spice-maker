@@ -64,7 +64,7 @@ def accepts_the_wire(monkeypatch: pytest.MonkeyPatch) -> None:
 def with_key():
     def lookup(name: str) -> Credential:
         return Credential(
-            name=name, value=SECRET, source=SecretSource.KEYRING, detail="test keyring"
+            name=name, value=SECRET, source=SecretSource.LOCAL_FILE, detail="test keyring"
         )
 
     return lookup

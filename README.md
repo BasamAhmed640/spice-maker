@@ -1,6 +1,6 @@
 # Spice Maker
 
-**Installer update pending:** Windows Application Control blocked the new 1.1.9 installer on the verification machine. The source includes the new key check, but Code → Download ZIP retains the last verified **1.1.8 installer**, which does not include that feature. No security policy was changed.
+**Installer update pending:** Windows Application Control blocked the new 1.1.10 application on the verification machine. Source now uses an encrypted local key file and a quick key check. Code → Download ZIP retains the last verified **1.1.8 installer**, which does not include these changes. No security policy was changed.
 
 **SAVE & CHECK KEY** now verifies a newly saved key in the background, with a 15-second wait and clear verified/rejected/unverified results. [Credential safety and check details](docs/API_KEY_CHECK.md).
 
@@ -47,7 +47,7 @@ the default provider and needs Bob Shell installed
 bob.ibm.com → API keys with **Scope = Inference** (an *Inference* key needs no team id; a
 *general* key does). The same row also takes a plain vendor key from OpenAI, Anthropic, Google,
 DeepSeek, OpenRouter, xAI, Groq, Mistral or OpenCode Zen or OpenCode Go, and those run over HTTP with no
-CLI and no extra install. Every key goes to the Windows credential store — never to a config file, a project
+CLI and no extra install. Only the selected key is kept in a local file encrypted for your Windows user — never to a config file, a project
 directory, a manifest or a log line. Setup is one page and holds only what persists: the LTspice
 path (with a smoke test), the agent provider and key, the model id when the provider takes one,
 the folder finished models go to, the read-only LTspice user library path, and the
@@ -89,7 +89,7 @@ setup. The same folder contains INSTALL.txt and SHA256SUMS.txt.
 Open SETUP once to select LTspice and save your API key. Python is bundled; LTspice and,
 when using Bob, Bob Shell must be installed separately. This installer is unsigned.
 
-To rebuild, run `installer\build.ps1 -Version 1.1.9`; see
+To rebuild, run `installer\build.ps1 -Version 1.1.10`; see
 [installer details](installer/README.md). The build refreshes the root installer,
 instructions and checksum so committing those files updates Code → Download ZIP.
 

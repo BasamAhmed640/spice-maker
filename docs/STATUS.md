@@ -581,3 +581,21 @@ verified 1.1.8 release. General 1.1.9 source is pushed; a new general binary rel
 is not published. The installed general application remains 1.1.8. An approved
 signing certificate/service is needed for a dependable solution; no trust settings
 or Windows security policy were changed.
+
+
+## 2026-09-20 — minimal local credential storage (1.1.10 source)
+
+- Replaced the credential-vault dependency with current-user DPAPI ciphertext in
+  an edition-specific LocalAppData data folder. One selected key is retained.
+- Atomic ciphertext-only writes, validation, tampering rejection, environment
+  fallback and redacted diagnostics are covered. Settings omit default values.
+- `.venv/Scripts/python.exe -m pytest -q -m "not ltspice"`: **1,182 passed, 5 skipped, 158 deselected**.
+- After moving data outside installer-owned directories, focused security and
+  setup tests: **62 passed** in each edition. Ruff lint and format checks passed.
+- Real Windows encryption round trip and a fresh-process read passed. The general
+  live key check accepted the encrypted-file credential. Bob's key decrypted, but
+  its live check remains blocked by the user's pending IBM license acceptance.
+- The 1.1.10 frozen application was blocked at launch with WinError 4551
+  (Application Control). No policy was bypassed or changed. The repository keeps
+  its last verified 1.1.8 installer; the privacy changes currently require source
+  or a future approved binary release. The existing desktop app is still 1.1.8.

@@ -3,7 +3,7 @@
 This backend is a *proposal source* exactly like Bob Shell: it may write files
 inside its sandbox and nothing it reports is evidence — the harness re-runs the
 real simulator on whatever the files actually contain. What differs is the
-transport: a raw API key from the OS keyring (or ``BOARDMODELER_<NAME>_API_KEY``)
+transport: a raw API key from the encrypted local credential file (or ``BOARDMODELER_<NAME>_API_KEY``)
 speaks the provider's documented HTTP shape directly, with no login flow and no
 local CLI.
 
@@ -87,7 +87,6 @@ from boardmodeler.providers.http_inference import (
 from boardmodeler.security.credentials import (
     Credential,
     SecretSource,
-    credential_key,
     env_var_name,
     get_credential,
     redact,
@@ -305,7 +304,7 @@ def env_sources(provider: AgentProvider) -> tuple[str, ...]:
 def credential_for(
     provider: AgentProvider, lookup: Callable[[str], Credential] | None = None
 ) -> Credential:
-    """The key for ``provider``: keyring, ``BOARDMODELER_<NAME>_API_KEY``, then aliases.
+    """The key for ``provider``: encrypted file, ``BOARDMODELER_<NAME>_API_KEY``, then aliases.
 
     ``lookup`` is the repo helper (:func:`boardmodeler.security.credentials.get_credential`
     by default, and the injectable seam tests use); the catalog's own environment
@@ -386,7 +385,7 @@ class ApiKeyBackend:
     settings name one). ``timeout_s`` bounds one whole turn, retries included;
     ``retries`` counts extra attempts; ``transport`` is injectable so tests never
     reach the network; and ``credential_lookup`` is the key source (the repo
-    keyring/``BOARDMODELER_*_API_KEY`` helpers plus the catalog's aliases by
+    encrypted file/``BOARDMODELER_*_API_KEY`` helpers plus the catalog's aliases by
     default).
     """
 
@@ -625,8 +624,7 @@ class ApiKeyBackend:
         sources = env_sources(self.provider)
         return (
             f"api_key_unavailable: credential {self.provider.credential!r} has no value; store "
-            f"it in the OS keyring (service 'boardmodeler', key "
-            f"{credential_key(self.provider.credential)!r}) or set {' or '.join(sources)}"
+            f"it in SETUP's encrypted local file or set {' or '.join(sources)}"
         )
 
     def _endpoint(self) -> str:

@@ -58,7 +58,7 @@ WIRE_ENTRIES: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="deepseek",
         key_label="DEEPSEEK API KEY",
-        key_hint="platform.deepseek.com → API keys  ·  stored in the Windows credential store",
+        key_hint="platform.deepseek.com → API keys  ·  stored in the encrypted local credential file",
         docs="https://api-docs.deepseek.com/",
         endpoint="https://api.deepseek.com",
         model="deepseek-flash",
@@ -71,7 +71,7 @@ WIRE_ENTRIES: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="openai",
         key_label="OPENAI API KEY",
-        key_hint="platform.openai.com → API keys  ·  stored in the Windows credential store",
+        key_hint="platform.openai.com → API keys  ·  stored in the encrypted local credential file",
         docs="https://developers.openai.com/api/docs/guides/text",
         endpoint="https://api.openai.com/v1",
         model="gpt-6-astra",
@@ -85,7 +85,7 @@ WIRE_ENTRIES: tuple[AgentProvider, ...] = (
         wire="anthropic",
         credential="anthropic",
         key_label="ANTHROPIC API KEY",
-        key_hint="console.anthropic.com → API keys  ·  stored in the Windows credential store",
+        key_hint="console.anthropic.com → API keys  ·  stored in the encrypted local credential file",
         docs="https://platform.claude.com/docs/en/get-started",
         endpoint="https://api.anthropic.com/v1",
         model="claude-opus-5",
@@ -98,7 +98,7 @@ WIRE_ENTRIES: tuple[AgentProvider, ...] = (
         wire="google",
         credential="google",
         key_label="GEMINI API KEY",
-        key_hint="aistudio.google.com → API keys  ·  stored in the Windows credential store",
+        key_hint="aistudio.google.com → API keys  ·  stored in the encrypted local credential file",
         docs="https://ai.google.dev/gemini-api/docs/text-generation",
         endpoint="https://generativelanguage.googleapis.com/v1beta",
         model="gemini-3.8-flash",
@@ -178,7 +178,7 @@ class Sequenced(Recorder):
 def with_key(value: str = SECRET):
     def lookup(name: str) -> Credential:
         return Credential(
-            name=name, value=value, source=SecretSource.KEYRING, detail="keyring service='x'"
+            name=name, value=value, source=SecretSource.LOCAL_FILE, detail="encrypted local file"
         )
 
     return lookup
@@ -758,7 +758,7 @@ def test_a_missing_key_names_every_source_and_no_value() -> None:
     assert usable is False
     assert reason.startswith("api_key_unavailable:")
     assert "deepseek" in reason
-    assert "boardmodeler" in reason and "keyring" in reason
+    assert "SETUP" in reason and "encrypted local file" in reason
     assert "BOARDMODELER_DEEPSEEK_API_KEY" in reason and "DEEPSEEK_API_KEY" in reason
     assert SECRET not in reason
 
@@ -799,7 +799,7 @@ def test_the_boardmodeler_variable_is_read_before_the_vendor_alias(
 ) -> None:
     from boardmodeler.security import credentials
 
-    monkeypatch.setattr(credentials, "keyring", EmptyKeyring())
+    monkeypatch.setattr(credentials, "_read_saved", lambda: None)
     monkeypatch.setenv("BOARDMODELER_DEEPSEEK_API_KEY", "boardmodeler-value")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "vendor-value")
     transport = Recorder(openai_reply("{}"))
@@ -889,7 +889,7 @@ def test_availability_is_true_with_a_key_and_names_the_source() -> None:
     usable, reason = backend.availability()
 
     assert usable is True
-    assert "openai" in reason.lower() and "keyring" in reason
+    assert "openai" in reason.lower() and "encrypted local file" in reason
     assert SECRET not in reason
 
 
@@ -992,7 +992,7 @@ def test_credential_for_walks_the_catalog_sources_in_order(
 ) -> None:
     from boardmodeler.security import credentials
 
-    monkeypatch.setattr(credentials, "keyring", EmptyKeyring())
+    monkeypatch.setattr(credentials, "_read_saved", lambda: None)
     monkeypatch.delenv("BOARDMODELER_DEEPSEEK_API_KEY", raising=False)
     entry = provider("deepseek")
     assert api_backend.env_sources(entry)[0] == "BOARDMODELER_DEEPSEEK_API_KEY"

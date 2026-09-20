@@ -103,7 +103,7 @@ def test_go_uses_subscription_endpoint_max_reasoning_and_stable_session(tmp_path
     backend = ApiKeyBackend(
         by_id("opencode_go"),
         transport=transport,
-        credential_lookup=lambda name: Credential(name, "test-secret", SecretSource.KEYRING, ""),
+        credential_lookup=lambda name: Credential(name, "test-secret", SecretSource.LOCAL_FILE, ""),
     )
     result = backend.author(AuthorRequest("write a SPICE netlist", tmp_path, tmp_path, 1))
     assert result.ok, result.detail
@@ -130,7 +130,7 @@ def test_go_credit_error_never_falls_back_to_zen(tmp_path: Path):
     backend = ApiKeyBackend(
         by_id("opencode_go"),
         transport=transport,
-        credential_lookup=lambda name: Credential(name, "test-secret", SecretSource.KEYRING, ""),
+        credential_lookup=lambda name: Credential(name, "test-secret", SecretSource.LOCAL_FILE, ""),
     )
     result = backend.author(
         AuthorRequest("extract PDF requirements", tmp_path, tmp_path, 1, expect_text=True)

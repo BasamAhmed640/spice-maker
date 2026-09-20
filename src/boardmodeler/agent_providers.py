@@ -57,7 +57,7 @@ class AgentProvider:
     """One accepted way to reach an agent, and how its key is stored.
 
     ``credential`` is the name used with :mod:`boardmodeler.security.credentials`
-    (keyring entry ``provider:<credential>:api_key``, environment fallback
+    (encrypted local entry ``provider:<credential>:api_key``, environment fallback
     ``BOARDMODELER_<CREDENTIAL>_API_KEY``); ``env_aliases`` are additional plain
     environment variables the same key is read from, for people who already export
     the vendor's own variable. ``key_label`` and ``key_hint`` are the setup page's
@@ -123,7 +123,7 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="deepseek",
         key_label="DEEPSEEK API KEY",
-        key_hint="platform.deepseek.com → API keys  ·  stored in the Windows credential store",
+        key_hint="platform.deepseek.com → API keys  ·  stored in the encrypted local credential file",
         docs="https://api-docs.deepseek.com/",
         endpoint="https://api.deepseek.com",
         model="deepseek-flash",
@@ -138,7 +138,7 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="openai",
         key_label="OPENAI API KEY",
-        key_hint="platform.openai.com → API keys  ·  stored in the Windows credential store",
+        key_hint="platform.openai.com → API keys  ·  stored in the encrypted local credential file",
         docs="https://developers.openai.com/api/docs/guides/text",
         endpoint="https://api.openai.com/v1",
         model="gpt-6-astra",
@@ -152,7 +152,7 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="anthropic",
         credential="anthropic",
         key_label="ANTHROPIC API KEY",
-        key_hint="console.anthropic.com → API keys  ·  stored in the Windows credential store",
+        key_hint="console.anthropic.com → API keys  ·  stored in the encrypted local credential file",
         docs="https://platform.claude.com/docs/en/get-started",
         endpoint="https://api.anthropic.com/v1",
         model="claude-opus-5",
@@ -165,7 +165,7 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="google",
         credential="google",
         key_label="GEMINI API KEY",
-        key_hint="aistudio.google.com → API keys  ·  stored in the Windows credential store",
+        key_hint="aistudio.google.com → API keys  ·  stored in the encrypted local credential file",
         docs="https://ai.google.dev/gemini-api/docs/text-generation",
         endpoint="https://generativelanguage.googleapis.com/v1beta",
         model="gemini-3.8-flash",
@@ -178,7 +178,7 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="openrouter",
         key_label="OPENROUTER API KEY",
-        key_hint="openrouter.ai → keys  ·  stored in the Windows credential store",
+        key_hint="openrouter.ai → keys  ·  stored in the encrypted local credential file",
         docs="https://openrouter.ai/docs/quickstart",
         endpoint="https://openrouter.ai/api/v1",
         model="~openai/gpt-sol-latest",
@@ -191,7 +191,7 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="xai",
         key_label="XAI API KEY",
-        key_hint="console.x.ai → API keys  ·  stored in the Windows credential store",
+        key_hint="console.x.ai → API keys  ·  stored in the encrypted local credential file",
         docs="https://docs.x.ai/developers/models",
         endpoint="https://api.x.ai/v1",
         model="grok-4.6",
@@ -204,7 +204,7 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="groq",
         key_label="GROQ API KEY",
-        key_hint="console.groq.com → API keys  ·  stored in the Windows credential store",
+        key_hint="console.groq.com → API keys  ·  stored in the encrypted local credential file",
         docs="https://console.groq.com/docs/api-reference",
         endpoint="https://api.groq.com/openai/v1",
         model="llama-3.3-70b-versatile",
@@ -254,7 +254,7 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="mistral",
         key_label="MISTRAL API KEY",
-        key_hint="console.mistral.ai → API keys  ·  stored in the Windows credential store",
+        key_hint="console.mistral.ai → API keys  ·  stored in the encrypted local credential file",
         docs="https://docs.mistral.ai/getting-started/quickstarts/developer/first-api-request",
         endpoint="https://api.mistral.ai/v1",
         model="mistral-large-latest",
