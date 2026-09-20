@@ -2,10 +2,10 @@
 
 The list is **data, not code**. A build ships the catalog it sells, and every consumer
 (the setup page's provider row, the backend factory, ``doctor``) reads the catalog
-instead of naming a provider itself. That is what makes the Bob-only build a one-entry
-edit to :data:`CATALOG` rather than a fork of the code: with a single entry the setup
-page shows no provider row and keeps the ``BOB API KEY`` label, and the backend factory
-can only ever return Bob.
+instead of naming a provider itself. The Bob-only build sets ``build_flavor.BOB_ONLY``,
+which filters :data:`CATALOG` down to the Bob entry rather than forking the code: with a
+single entry the setup page shows no provider row and keeps the ``BOB API KEY`` label,
+and the backend factory can only ever return Bob.
 
 Every entry declares the transport it needs (``wire``), so an unsupported shape is
 refused with a reason instead of being coerced:
@@ -33,6 +33,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+
+from boardmodeler.build_flavor import BOB_ONLY
 
 __all__ = [
     "CATALOG",
@@ -102,8 +104,8 @@ class AgentProvider:
         return not self.uses_cli
 
 
-#: The providers a build accepts, default first. Trim this tuple for a restricted
-#: build; nothing else in the code names a provider.
+#: The providers a build accepts, default first. ``build_flavor.BOB_ONLY`` filters
+#: this tuple for a restricted build; nothing else in the code names a provider.
 CATALOG: tuple[AgentProvider, ...] = (
     AgentProvider(
         id="bob",
@@ -232,6 +234,10 @@ CATALOG: tuple[AgentProvider, ...] = (
         env_aliases=("MISTRAL_API_KEY",),
     ),
 )
+
+if BOB_ONLY:
+    CATALOG = tuple(entry for entry in CATALOG if entry.id == "bob")
+
 
 #: The provider a build expects when the user has not chosen one. Bob, always.
 DEFAULT_PROVIDER_ID = "bob"

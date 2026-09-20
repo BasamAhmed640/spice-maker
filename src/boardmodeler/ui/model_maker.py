@@ -208,6 +208,9 @@ class ModelMakerWindow(QMainWindow):
     def _build_actions(self) -> QHBoxLayout:
         row = QHBoxLayout()
         self.go_button = QPushButton("GO")
+        self.go_button.setToolTip(
+            "Send this datasheet and model text to the provider selected in SETUP"
+        )
         self.go_button.clicked.connect(self._make_model)
         self.cancel_button = QPushButton("CANCEL")
         self.cancel_button.clicked.connect(self._cancel)
@@ -233,7 +236,9 @@ class ModelMakerWindow(QMainWindow):
         holder = QWidget()
         row = QHBoxLayout(holder)
         row.setContentsMargins(0, 0, 0, 0)
-        self.status_label = QLabel("fill in the part and the datasheet, then press GO")
+        self.status_label = QLabel(
+            "GO sends this datasheet and model text to the provider selected in SETUP"
+        )
         self.status_label.setStyleSheet("color: #ffffff; font-family: Consolas; font-size: 10pt;")
         row.addWidget(self.status_label, 1)
         self.progress = QProgressBar()
@@ -364,6 +369,7 @@ class ModelMakerWindow(QMainWindow):
             datasheet=datasheet,
             out_dir=out_dir,
             backend_name="api",
+            allow_remote=True,
             # The configured id as written, so ``build_api_backend`` refuses a provider
             # this build lacks instead of another provider answering with the wrong key.
             provider=provider.id if provider is not None else _configured_provider_id(),

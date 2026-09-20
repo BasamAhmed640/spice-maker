@@ -25,7 +25,7 @@ from boardmodeler.authoring.backends import (
 )
 from boardmodeler.authoring.spec import load_tps54320_spec
 from boardmodeler.domain.enums import ProviderKind
-from boardmodeler.domain.records import ProviderIdentity, Requirement
+from boardmodeler.domain.records import Condition, ProviderIdentity, Requirement
 from boardmodeler.models.library import subckt_ports
 from boardmodeler.models.regulator import write_regulator_library
 from boardmodeler.models.symbolism import symbol_pin_orders, symbol_text, validate_symbol
@@ -87,8 +87,19 @@ def datasheet_for(tmp_path: Path) -> Path:
 
     path = tmp_path / "stand_in_datasheet.pdf"
     sheet = canvas.Canvas(str(path))
-    sheet.drawString(72, 720, "Stand-in datasheet: the real original is not checked out.")
-    sheet.showPage()
+    import textwrap
+
+    raw = json.loads(REQUIREMENTS.read_text(encoding="utf-8"))
+    for page in range(raw["document"]["page_count"]):
+        sheet.drawString(30, 810, "TEST_FIXTURE: synthetic evidence for pipeline contract tests")
+        y = 790
+        for requirement in raw["requirements"]:
+            for evidence in requirement["evidence"]:
+                if evidence["page"]["pdf_page"] == page:
+                    for line in textwrap.wrap(evidence["excerpt"], width=100):
+                        sheet.drawString(30, y, line)
+                        y -= 10
+        sheet.showPage()
     sheet.save()
     return path
 
@@ -159,12 +170,21 @@ def fake_ltspice(tmp_path: Path) -> LtspiceInstall:
 
 
 def make_request(tmp_path: Path, **overrides: object) -> MakeModelRequest:
+    requirements = REQUIREMENTS
+    if not DATASHEET.is_file():
+        raw = json.loads(REQUIREMENTS.read_text(encoding="utf-8"))
+        for row in raw["requirements"]:
+            row["origin"] = "TEST_FIXTURE"
+            for evidence in row["evidence"]:
+                evidence["extraction"] = "synthetic_fixture"
+        requirements = tmp_path / "synthetic-requirements.json"
+        requirements.write_text(json.dumps(raw), encoding="utf-8")
     values: dict[str, object] = {
         "part": PART,
         "subckt": SUBCKT,
         "datasheet": datasheet_for(tmp_path),
         "out_dir": tmp_path / "out",
-        "requirements_json": REQUIREMENTS,
+        "requirements_json": requirements,
         "bindings_json": BINDINGS,
     }
     values.update(overrides)
@@ -320,7 +340,13 @@ def test_scenario_c_missing_ltspice_is_blocked_and_never_runs_the_agent(
     assert len(result.rows) == 38
     assert sum(row.status == "UNKNOWN" for row in result.rows) == 9
     assert sum(row.status == "NOT_APPLICABLE" for row in result.rows) == 29
-    assert sum(result.counts.values()) == 0
+    assert result.counts == {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 9,
+        "BLOCKED": 0,
+        "NOT_APPLICABLE": 29,
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -424,6 +450,7 @@ def test_the_scripted_backend_writes_nothing_for_a_subcircuit_it_cannot_author(
 def test_scenario_e_cancellation_before_the_first_turn_is_unknown_with_the_stage_list(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
     backend = use_backend(monkeypatch, ScriptedBackend(template_script()))
     cancel = threading.Event()
     cancel.set()
@@ -518,6 +545,520 @@ def test_a_row_no_probe_can_answer_gets_a_concrete_reason() -> None:
     assert "no deterministic probe" in entry["not_testable_reason"]
 
 
+def _io_row(
+    req_id: str,
+    statement: str,
+    unit: str,
+    *,
+    minimum: float | None = None,
+    maximum: float | None = None,
+    conditions: list[Condition] | None = None,
+) -> Requirement:
+    """One datasheet-shaped row copied from the fixture's first requirement."""
+    base = fixture_requirements()[0]
+    evidence = base.evidence[0].model_copy(update={"excerpt": statement})
+    return base.model_copy(
+        deep=True,
+        update={
+            "req_id": req_id,
+            "statement": statement,
+            "limits": base.limits.model_copy(
+                update={"min": minimum, "typ": None, "max": maximum, "unit": unit}
+            ),
+            "conditions": conditions or [],
+            "evidence": [evidence],
+        },
+    )
+
+
+def test_shutdown_ioff_binds_to_the_regulator_and_power_off_leakage_to_the_io_probe() -> None:
+    """``IOFF`` is ambiguous: ``shutdown`` disambiguates it to the regulator probe."""
+    shutdown = _io_row("REQ_SHUT", "Shutdown current IOFF is at most 1 uA", "A", maximum=1e-6)
+    leak = _io_row(
+        "REQ_LEAK",
+        "Power-off leakage current IOFF at VCC = 0 V",
+        "A",
+        maximum=5e-6,
+        conditions=[Condition(text="VCC = 0 V", parameter_overrides={"io_test_v": 3.3})],
+    )
+    bare = _io_row(
+        "REQ_BARE",
+        "Power-off leakage current at VCC = 0 V",
+        "A",
+        maximum=5e-6,
+        conditions=[Condition(text="VCC = 0 V", parameter_overrides={"io_test_v": 3.3})],
+    )
+
+    entries = {entry["req_id"]: entry for entry in bind_requirements([shutdown, leak, bare])}
+
+    assert entries["REQ_SHUT"]["probe"] == "shutdown_current"
+    assert entries["REQ_LEAK"]["probe"] == "io_power_off_leakage"
+    assert entries["REQ_LEAK"]["params"]["io_vcc"] == 0.0
+    assert entries["REQ_BARE"]["probe"] == "io_power_off_leakage"
+
+
+def test_a_powered_condition_is_not_a_power_off_leakage_row() -> None:
+    """A real leakage row at a powered rail is a different measurement, not a PASS."""
+    powered = _io_row(
+        "REQ_OFF_33",
+        "Output power-off leakage current IOFF is at most 1 uA at VCC = 3.3 V",
+        "A",
+        maximum=1e-6,
+        conditions=[Condition(text="VCC = 3.3 V", parameter_overrides={"io_test_v": 3.3})],
+    )
+    entry = bind_requirements([powered])[0]
+    assert entry["probe"] is None
+    assert "condition_invalid" in entry["not_testable_reason"]
+
+
+@pytest.mark.parametrize(
+    "separator",
+    [" ", "-", " - ", "\u2010", "\u2011", "\u2012", "\u2013", "\u2014", " \u2014 ", "\u2212"],
+)
+def test_a_supply_current_ioff_row_is_not_measured_by_the_output_leakage_probe(
+    separator: str,
+) -> None:
+    """A supply-current row is not broadened to a different terminal's current."""
+    for supply in (0.0, 3.3):
+        supply_current = _io_row(
+            f"REQ_SUPPLY_{supply}",
+            f"Off-state supply{separator}current IOFF is at most 1 uA at VCC = {supply} V",
+            "A",
+            maximum=1e-6,
+            conditions=[
+                Condition(text=f"VCC = {supply} V", parameter_overrides={"io_test_v": 3.3})
+            ],
+        )
+        entry = bind_requirements([supply_current])[0]
+        assert entry["probe"] is None, supply
+        assert "no deterministic probe" in entry["not_testable_reason"]
+
+
+def _synthetic_io_rows(**overrides: object) -> list[Requirement]:
+    """A VOH row plus a cited polarity row, for the scoped-citation tests."""
+    doc = str(overrides.get("doc_id", "DOC_SYNTH_IO"))
+    part = str(overrides.get("applies_to", "SYNTH_IO"))
+    polarity_excerpt = str(
+        overrides.get(
+            "polarity_excerpt",
+            "Output is noninverting: A high gives Y high; A low gives Y low.",
+        )
+    )
+    rows = [
+        {
+            "req_id": "REQ-VOH",
+            "applies_to": str(overrides.get("voh_part", part)),
+            "kind": "ELECTRICAL",
+            "class": "DOCUMENTED_LIMIT",
+            "criticality": "IMPORTANT",
+            "origin": "DOCUMENT",
+            "statement": (
+                "High-level output voltage VOH is a minimum of 3.20 V at VCC = 3.3 V, "
+                "IOH = -2 mA, TA = 25 C."
+            ),
+            "limits": {"min": 3.2, "unit": "V"},
+            "conditions": [
+                {
+                    "text": "VCC = 3.3 V, IOH = -2 mA, TA = 25 C",
+                    "parameter_overrides": {"io_vcc": 3.3, "io_load_a": -0.002},
+                }
+            ],
+            "signal_refs": overrides.get("voh_signals", ["Y"]),
+            "evidence": [
+                {
+                    "doc_id": str(overrides.get("voh_doc", doc)),
+                    "excerpt": (
+                        "High-level output voltage VOH: minimum 3.20 V at VCC = 3.3 V, "
+                        "IOH = -2 mA, TA = 25 C."
+                    ),
+                    "extraction": "embedded_text",
+                }
+            ],
+            "citation_verified": True,
+        },
+        {
+            "req_id": "REQ-POL",
+            "applies_to": str(overrides.get("polarity_part", part)),
+            "kind": "FUNCTIONAL",
+            "class": "UNKNOWN",
+            "criticality": "IMPORTANT",
+            "origin": "DOCUMENT",
+            "statement": "Output is noninverting: A high gives Y high; A low gives Y low.",
+            "limits": None,
+            "conditions": [],
+            "signal_refs": overrides.get("polarity_signals", ["A", "Y"]),
+            "evidence": [
+                {
+                    "doc_id": str(overrides.get("polarity_doc", doc)),
+                    "excerpt": polarity_excerpt,
+                    "extraction": "embedded_text",
+                }
+            ],
+            "citation_verified": True,
+        },
+    ]
+    return [Requirement.model_validate(row) for row in rows]
+
+
+def _voh_entry(rows: list[Requirement], **kwargs: object) -> dict:
+    return next(
+        entry for entry in bind_requirements(rows, **kwargs) if entry["req_id"] == "REQ-VOH"
+    )
+
+
+def test_cited_polarity_binds_a_same_part_verified_voh_row() -> None:
+    entry = _voh_entry(_synthetic_io_rows())
+    assert entry["probe"] == "io_voh"
+    assert entry["params"]["io_inverting"] == 0.0
+    assert entry["params"]["io_load_a"] == pytest.approx(0.002)
+    assert entry["params"]["io_vcc"] == pytest.approx(3.3)
+    provenance = entry["derived_conditions"]["io_inverting"]
+    assert provenance["source_req"] == "REQ-POL"
+    assert "noninverting" in provenance["excerpt"]
+
+
+def test_a_rejected_polarity_citation_leaves_the_row_a_gap() -> None:
+    entry = _voh_entry(_synthetic_io_rows(), unverified={"REQ-POL": "excerpt absent"})
+    assert entry["probe"] is None
+    assert "condition_missing" in entry["not_testable_reason"]
+    assert "io_inverting" in entry["not_testable_reason"]
+
+
+def test_polarity_needs_a_verbatim_excerpt_not_a_statement() -> None:
+    assert _voh_entry(_synthetic_io_rows(polarity_excerpt=""))["probe"] is None
+
+
+def test_polarity_from_another_part_or_document_does_not_seed() -> None:
+    assert _voh_entry(_synthetic_io_rows(polarity_part="OTHER_PART"))["probe"] is None
+    assert _voh_entry(_synthetic_io_rows(polarity_doc="DOC_OTHER"))["probe"] is None
+
+
+def test_polarity_for_an_unrelated_signal_does_not_seed() -> None:
+    assert _voh_entry(_synthetic_io_rows(polarity_signals=["A", "B"]))["probe"] is None
+
+
+def test_polarity_requires_an_output_assertion_not_an_input_pin_description() -> None:
+    entry = _voh_entry(
+        _synthetic_io_rows(polarity_excerpt="Y is the output. A is the noninverting input.")
+    )
+    assert entry["probe"] is None
+
+
+def test_a_non_logic_mention_of_noninverting_does_not_seed_polarity() -> None:
+    entry = _voh_entry(
+        _synthetic_io_rows(
+            polarity_excerpt="The noninverting amplifier drives Y but states no truth table."
+        )
+    )
+    assert entry["probe"] is None
+
+
+def test_a_unicode_dash_does_not_invert_a_noninverting_output() -> None:
+    entry = _voh_entry(_synthetic_io_rows(polarity_excerpt="Y is a non\u2013inverting output."))
+    assert entry["probe"] == "io_voh"
+    assert entry["params"]["io_inverting"] == 0.0
+
+
+def test_a_lost_hyphen_does_not_invert_a_noninverting_output() -> None:
+    for excerpt in (
+        "Y is a non inverting output.",
+        "Y is a non\ninverting output.",
+        "Y is a non - inverting output.",
+    ):
+        entry = _voh_entry(_synthetic_io_rows(polarity_excerpt=excerpt))
+        assert entry["probe"] == "io_voh", excerpt
+        assert entry["params"]["io_inverting"] == 0.0, excerpt
+
+
+def test_polarity_matches_a_node_syntax_signal_reference() -> None:
+    """The extractor stores ``V(Y)``; datasheet prose writes ``Y`` for the same node."""
+    entry = _voh_entry(_synthetic_io_rows(voh_signals=["V(Y)"], polarity_signals=["V(A)", "V(Y)"]))
+    assert entry["probe"] == "io_voh"
+    assert entry["params"]["io_inverting"] == 0.0
+    assert entry["derived_conditions"]["io_inverting"]["source_req"] == "REQ-POL"
+
+
+def test_a_differential_signal_reference_does_not_seed_polarity() -> None:
+    entry = _voh_entry(_synthetic_io_rows(voh_signals=["V(A)-V(B)"]))
+    assert entry["probe"] is None
+
+
+def test_conflicting_polarity_evidence_leaves_the_row_a_gap() -> None:
+    rows = _synthetic_io_rows()
+    polarity = rows[1]
+    conflict = polarity.model_copy(
+        update={
+            "req_id": "REQ-POL2",
+            "statement": "Output is inverting: A high gives Y low.",
+            "evidence": [
+                polarity.evidence[0].model_copy(
+                    update={
+                        "excerpt": "Output is inverting: A high gives Y low; A low gives Y high."
+                    }
+                )
+            ],
+        }
+    )
+    rows.append(conflict)
+    assert _voh_entry(rows)["probe"] is None
+
+
+def _two_corner_voh_inputs(tmp_path: Path) -> tuple[Path, Path]:
+    """Two VOH rows that share one probe at different supply corners."""
+
+    def row(req_id: str, vcc: float) -> dict:
+        return {
+            "req_id": req_id,
+            "applies_to": "SYNTH_IO",
+            "kind": "ELECTRICAL",
+            "class": "DOCUMENTED_LIMIT",
+            "criticality": "IMPORTANT",
+            "origin": "TEST_FIXTURE",
+            "statement": f"High-level output voltage VOH at VCC = {vcc} V is a minimum of 1.5 V.",
+            "limits": {"min": 1.5, "unit": "V"},
+            "conditions": [
+                {
+                    "text": f"VCC = {vcc} V, IOH = -2 mA",
+                    "parameter_overrides": {"io_vcc": vcc, "io_load_a": -0.002},
+                }
+            ],
+            "signal_refs": ["Y"],
+            "evidence": [
+                {
+                    "doc_id": "DOC_SYNTH_IO",
+                    "excerpt": f"VOH at VCC = {vcc} V",
+                    "extraction": "synthetic_fixture",
+                }
+            ],
+        }
+
+    requirements = {
+        "document": {"doc_id": "DOC_SYNTH_IO"},
+        "pin_map": [],
+        "requirements": [row("REQ_VOH_33", 3.3), row("REQ_VOH_18", 1.8)],
+    }
+    bindings = {
+        "part": "SYNTH_IO",
+        "subckt": "SYNTH_IO",
+        "doc_id": "DOC_SYNTH_IO",
+        "bindings": [
+            {
+                "req_id": "REQ_VOH_33",
+                "probe": "io_voh",
+                "params": {
+                    "io_vcc": 3.3,
+                    "io_load_a": 0.002,
+                    "io_inverting": 0,
+                    "io_input_high": 3.3,
+                },
+            },
+            {
+                "req_id": "REQ_VOH_18",
+                "probe": "io_voh",
+                "params": {
+                    "io_vcc": 1.8,
+                    "io_load_a": 0.002,
+                    "io_inverting": 0,
+                    "io_input_high": 1.8,
+                },
+            },
+        ],
+    }
+    requirements_path = tmp_path / "two-corner-req.json"
+    bindings_path = tmp_path / "two-corner-bind.json"
+    requirements_path.write_text(json.dumps(requirements), encoding="utf-8")
+    bindings_path.write_text(json.dumps(bindings), encoding="utf-8")
+    return requirements_path, bindings_path
+
+
+def test_each_operating_point_keeps_its_own_row_status(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """One probe, two corners: each row shows the outcome that judged it, not its twin's."""
+    from boardmodeler.authoring import loop as loop_module
+    from boardmodeler.authoring.harness import HarnessReport, ProbeOutcome
+
+    requirements_path, bindings_path = _two_corner_voh_inputs(tmp_path)
+
+    def canned_harness(*, model_lib, subckt, spec, workdir, ltspice, timeout_s=120.0, cancel=None):
+        del model_lib, subckt, workdir, ltspice, timeout_s, cancel
+        verdicts = (("REQ_VOH_33", "FAIL", 1.2), ("REQ_VOH_18", "PASS", 1.7))
+        outcomes = tuple(
+            ProbeOutcome(
+                probe_id="io_voh",
+                status=status,
+                measured={"io_voltage_v": value},
+                detail=f"{char_id}: io_voltage_v = {value:.6g} V",
+                unknown_reason=None,
+                run_dir="canned",
+                char_ids=(char_id,),
+                judged=f"io_voltage_v = {value:.6g} V",
+            )
+            for char_id, status, value in verdicts
+        )
+        return HarnessReport(
+            part=spec.part, model_sha256="a" * 64, spec_digest=spec.digest(), outcomes=outcomes
+        )
+
+    monkeypatch.setattr(loop_module, "run_harness", canned_harness)
+    monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
+
+    def script(turn: int, workdir: Path, prompt: str) -> None:
+        del turn, prompt
+        model_dir = workdir / "model"
+        model_dir.mkdir(parents=True, exist_ok=True)
+        (model_dir / "SYNTH_IO.lib").write_text(
+            ".subckt SYNTH_IO VCC A Y GND\nR1 Y 0 1k\n.ends SYNTH_IO\n", encoding="utf-8"
+        )
+
+    use_backend(monkeypatch, ScriptedBackend(script))
+    result, _events, _wall = run(
+        tmp_path,
+        subckt="SYNTH_IO",
+        requirements_json=requirements_path,
+        bindings_json=bindings_path,
+        max_iterations=1,
+        reinforce=False,
+    )
+
+    by_id = {row.req_id: row for row in result.rows}
+    assert by_id["REQ_VOH_33"].status == "FAIL"
+    assert by_id["REQ_VOH_18"].status == "PASS"
+    assert by_id["REQ_VOH_33"].measured != by_id["REQ_VOH_18"].measured
+
+
+def _split_voh_inputs(tmp_path: Path) -> tuple[Path, Path]:
+    """Split VOH rows plus a missing-outcome row, all at one operating point each."""
+
+    def row(req_id: str, class_: str, limits: dict) -> dict:
+        return {
+            "req_id": req_id,
+            "applies_to": "SYNTH_IO",
+            "kind": "ELECTRICAL",
+            "class": class_,
+            "criticality": "IMPORTANT",
+            "origin": "TEST_FIXTURE",
+            "statement": "High-level output voltage VOH at VCC = 3.3 V.",
+            "limits": limits,
+            "conditions": [
+                {
+                    "text": "VCC = 3.3 V, IOH = -2 mA",
+                    "parameter_overrides": {"io_vcc": 3.3, "io_load_a": -0.002},
+                }
+            ],
+            "signal_refs": ["Y"],
+            "evidence": [
+                {
+                    "doc_id": "DOC_SYNTH_IO",
+                    "excerpt": "VOH at VCC = 3.3 V",
+                    "extraction": "synthetic_fixture",
+                }
+            ],
+        }
+
+    requirements = {
+        "document": {"doc_id": "DOC_SYNTH_IO"},
+        "pin_map": [],
+        "requirements": [
+            row("REQ_VOH_MIN", "DOCUMENTED_LIMIT", {"min": 2.4, "unit": "V"}),
+            row("REQ_VOH_TYP", "TYPICAL_VALUE", {"typ": 3.2, "unit": "V"}),
+            row("REQ_VOL_MISSING", "DOCUMENTED_LIMIT", {"max": 0.4, "unit": "V"}),
+        ],
+    }
+    params = {"io_vcc": 3.3, "io_load_a": 0.002, "io_inverting": 0, "io_input_high": 3.3}
+    bindings = {
+        "part": "SYNTH_IO",
+        "subckt": "SYNTH_IO",
+        "doc_id": "DOC_SYNTH_IO",
+        "bindings": [
+            {"req_id": "REQ_VOH_MIN", "probe": "io_voh", "params": dict(params)},
+            {"req_id": "REQ_VOH_TYP", "probe": "io_voh", "params": dict(params)},
+            {"req_id": "REQ_VOL_MISSING", "probe": "io_vol", "params": dict(params)},
+        ],
+    }
+    requirements_path = tmp_path / "split-req.json"
+    bindings_path = tmp_path / "split-bind.json"
+    requirements_path.write_text(json.dumps(requirements), encoding="utf-8")
+    bindings_path.write_text(json.dumps(bindings), encoding="utf-8")
+    return requirements_path, bindings_path
+
+
+def test_rows_sharing_one_case_get_their_own_verdicts(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Rows sharing one probe case are judged separately, from one simulation."""
+    from boardmodeler.authoring import loop as loop_module
+    from boardmodeler.authoring.harness import HarnessReport, ProbeOutcome
+
+    requirements_path, bindings_path = _split_voh_inputs(tmp_path)
+    calls: list[str] = []
+
+    def canned_harness(*, model_lib, subckt, spec, workdir, ltspice, timeout_s=120.0, cancel=None):
+        del model_lib, subckt, workdir, ltspice, timeout_s, cancel
+        calls.append("harness")
+        outcome = ProbeOutcome(
+            probe_id="io_voh",
+            status="FAIL",
+            measured={"io_voltage_v": 2.7},
+            detail="REQ_VOH_MIN: pass; REQ_VOH_TYP: fail",
+            unknown_reason=None,
+            run_dir="canned",
+            char_ids=("REQ_VOH_MIN", "REQ_VOH_TYP"),
+            judged="io_voltage_v = 2.7 V",
+        )
+        return HarnessReport(
+            part=spec.part, model_sha256="a" * 64, spec_digest=spec.digest(), outcomes=(outcome,)
+        )
+
+    monkeypatch.setattr(loop_module, "run_harness", canned_harness)
+    monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
+
+    def script(turn: int, workdir: Path, prompt: str) -> None:
+        del turn, prompt
+        model_dir = workdir / "model"
+        model_dir.mkdir(parents=True, exist_ok=True)
+        (model_dir / "SYNTH_IO.lib").write_text(
+            ".subckt SYNTH_IO VCC A Y GND\nR1 Y 0 1k\n.ends SYNTH_IO\n", encoding="utf-8"
+        )
+
+    use_backend(monkeypatch, ScriptedBackend(script))
+    result, _events, _wall = run(
+        tmp_path,
+        subckt="SYNTH_IO",
+        requirements_json=requirements_path,
+        bindings_json=bindings_path,
+        max_iterations=1,
+        reinforce=False,
+    )
+
+    by_id = {row.req_id: row for row in result.rows}
+    assert by_id["REQ_VOH_MIN"].status == "PASS", result.detail
+    assert by_id["REQ_VOH_TYP"].status == "FAIL"
+    assert by_id["REQ_VOL_MISSING"].status == "UNKNOWN"
+    assert calls == ["harness"], "one shared operating point means one simulation"
+    assert result.counts == {
+        "PASS": 1,
+        "FAIL": 1,
+        "UNKNOWN": 1,
+        "BLOCKED": 0,
+        "NOT_APPLICABLE": 0,
+    }
+
+    card = (tmp_path / "out" / "MODEL_CARD.md").read_text(encoding="utf-8")
+    statuses = {
+        line.split("|")[1].strip().strip("`"): line.split("|")[5].strip()
+        for line in card.splitlines()
+        if line.startswith("| `REQ_VOH") or line.startswith("| `REQ_VOL")
+    }
+    assert statuses == {
+        "REQ_VOH_MIN": "PASS",
+        "REQ_VOH_TYP": "FAIL",
+        "REQ_VOL_MISSING": "UNKNOWN",
+    }
+    totals = next(line for line in card.splitlines() if line.startswith("**Totals:**"))
+    assert "1 pass" in totals and "1 fail" in totals and "1 unknown" in totals, totals
+
+
 # --------------------------------------------------------------------------- #
 # (g) one judge event per turn, in order, matching the final report
 
@@ -533,7 +1074,13 @@ def test_scenario_g_every_turn_reports_its_own_counts_and_the_last_matches(
     assert [event.counts["turn"] for event in turns] == [1, 2]
     assert turns[0].counts["FAIL"] >= 1 and "failing: vref" in turns[0].detail
     assert turns[1].counts["FAIL"] == 0
-    assert turns[1].counts == {**result.counts, "turn": 2}
+    from boardmodeler.authoring.harness import HarnessReport
+
+    final_report = HarnessReport.from_json(
+        (tmp_path / "out" / "harness-report.json").read_text(encoding="utf-8")
+    )
+    assert turns[1].counts == {**final_report.counts(), "turn": 2}
+    assert result.counts["PASS"] == sum(row.status == "PASS" for row in result.rows)
     assert result.status == "PASS", result.detail
 
 
@@ -761,7 +1308,8 @@ def test_a_capped_run_with_every_row_measured_wrong_is_fail(
 
     assert result.status == "FAIL", result.detail
     assert "outside the datasheet limits" in result.detail and "vref" in result.detail
-    assert result.counts["FAIL"] == 1 and result.counts["UNKNOWN"] == 0
+    assert result.counts["FAIL"] == 1
+    assert result.counts["UNKNOWN"] == 8, "the rows the canned harness did not report are gaps"
     failed = next(row for row in result.rows if row.req_id == VREF_ID)
     assert failed.status == "FAIL" and failed.measured == "v_fb = 0.5 V"
 
@@ -775,10 +1323,45 @@ def test_the_bob_backend_receives_the_turn_timeout(tmp_path: Path) -> None:
     assert backend.timeout_s == 42.5
     assert backend.team_id == "team-9"
 
-    # The default is no per-turn limit at all: the agent runs until it is done.
+    # The direct Bob CLI path stays unbounded: the caller's value is what it gets.
     unlimited = engine.build_backend(make_request(tmp_path, backend_name="bob"))
     assert isinstance(unlimited, BobShellBackend)
     assert unlimited.timeout_s is None
+
+
+def test_the_default_api_backend_bounds_a_turn_even_for_the_bob_cli(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from boardmodeler.authoring import api_backend as api_module
+    from boardmodeler.authoring.api_backend import DEFAULT_TIMEOUT_S
+    from boardmodeler.authoring.backends import BobShellBackend
+    from boardmodeler.config import AppConfig
+
+    monkeypatch.setattr(
+        api_module, "load_config", lambda path=None: AppConfig(agent_provider="bob")
+    )
+
+    backend = engine.build_backend(make_request(tmp_path, backend_name="api"))
+
+    assert isinstance(backend, BobShellBackend)
+    assert backend.timeout_s == DEFAULT_TIMEOUT_S
+
+
+def test_an_explicit_turn_timeout_overrides_the_api_default(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from boardmodeler.authoring import api_backend as api_module
+    from boardmodeler.authoring.backends import BobShellBackend
+    from boardmodeler.config import AppConfig
+
+    monkeypatch.setattr(
+        api_module, "load_config", lambda path=None: AppConfig(agent_provider="bob")
+    )
+
+    backend = engine.build_backend(make_request(tmp_path, backend_name="api", turn_timeout_s=42.0))
+
+    assert isinstance(backend, BobShellBackend)
+    assert backend.timeout_s == 42.0
 
 
 def test_the_default_api_backend_still_honours_a_bob_team_id(
@@ -884,6 +1467,98 @@ def test_the_reinforcement_stage_runs_on_the_backend_the_author_loop_uses(
 
     assert seen == [backend], "the author loop's backend must be the one reinforced with"
     assert result.status == "UNKNOWN"
+
+
+def test_a_run_author_revalidates_the_candidate_before_gathering_reinforcement(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A fresh process has no receipt: the existing pass is re-judged before any search."""
+    from boardmodeler.authoring.harness import HarnessReport
+    from boardmodeler.authoring.loop import BuildOutcome
+
+    spec = load_tps54320_spec(REQUIREMENTS, BINDINGS, part=PART, subckt=SUBCKT)
+    request = make_request(tmp_path)
+    run = engine._Run(request, engine._StageLog(None))
+    run.spec = spec
+    run.workdir = Path(request.out_dir) / engine.WORK_DIRNAME
+    run.backend = ScriptedBackend(template_script())
+    run.backend_name = "scripted"
+    monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
+
+    report = HarnessReport(part=PART, model_sha256="a" * 64, spec_digest=spec.digest(), outcomes=())
+    sentinel = BuildOutcome(
+        status="PASS",
+        iterations=0,
+        report=report,
+        history=(),
+        detail="existing candidate revalidated by the simulator; zero author turns",
+    )
+    calls: list[str] = []
+
+    def fake_revalidate(request: object, cancel: object = None) -> BuildOutcome:
+        calls.append("revalidate")
+        return sentinel
+
+    monkeypatch.setattr(engine, "revalidate_candidate", fake_revalidate)
+
+    def forbidden(**kwargs: object) -> object:
+        raise AssertionError("reinforcement must not run before revalidation")
+
+    monkeypatch.setattr(engine, "reinforce", forbidden)
+
+    run.author(None)
+
+    assert calls == ["revalidate"]
+    assert run.outcome is sentinel
+
+
+def test_a_broken_candidate_is_prechecked_once_without_a_spurious_judge_turn(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """An uncacheable UNKNOWN precheck must not make build_model simulate it again."""
+    from boardmodeler.authoring import loop as loop_module
+    from boardmodeler.authoring.harness import HarnessReport, ProbeOutcome
+
+    calls: list[str] = []
+
+    def canned_harness(*, model_lib, subckt, spec, workdir, ltspice, timeout_s=120.0, cancel=None):
+        del subckt, workdir, ltspice, timeout_s, cancel
+        calls.append(str(model_lib))
+        outcome = ProbeOutcome(
+            probe_id="vref",
+            status="UNKNOWN",
+            measured={},
+            detail="",
+            unknown_reason="model_lib_unreadable: no usable .subckt",
+            run_dir="canned",
+            char_ids=(VREF_ID,),
+        )
+        return HarnessReport(
+            part=spec.part, model_sha256="a" * 64, spec_digest=spec.digest(), outcomes=(outcome,)
+        )
+
+    monkeypatch.setattr(loop_module, "run_harness", canned_harness)
+    install = fake_ltspice(tmp_path)
+    install.path.write_bytes(b"")
+    monkeypatch.setattr(engine, "locate", lambda explicit=None: install)
+
+    stub = f".subckt {SUBCKT} VIN EN FB VOUT GND SW\nR1 VOUT FB 1k\n.ends {SUBCKT}\n"
+    model_dir = tmp_path / "out" / engine.WORK_DIRNAME / "model"
+    model_dir.mkdir(parents=True)
+    (model_dir / f"{SUBCKT}.lib").write_text(stub, encoding="utf-8")
+
+    def script(turn: int, workdir: Path, prompt: str) -> None:
+        del turn, prompt
+        target = workdir / "model"
+        target.mkdir(parents=True, exist_ok=True)
+        (target / f"{SUBCKT}.lib").write_text(stub, encoding="utf-8")
+
+    use_backend(monkeypatch, ScriptedBackend(script))
+    result, events, _wall = run(tmp_path, max_iterations=1, reinforce=False)
+
+    assert len(calls) == 2, "one precheck plus one authoring turn, never a second precheck"
+    assert [event.counts["turn"] for event in judge_events(events)] == [1]
+    assert result.rows
 
 
 def test_the_saved_result_round_trips_including_the_turn_bounds(tmp_path: Path) -> None:

@@ -459,10 +459,13 @@ satisfaction or on the agent stalling, and nothing else:
 * `UNKNOWN` — a caller-set `max_iterations` was reached. `None` is the default: no cap;
 * `UNKNOWN(cancelled)`.
 
-`turn_timeout_s` defaults to `None` (an agent invocation is unbounded); setting it is the
-caller's choice, not the tool's policy. The probe set, the per-probe timeout and the number
-of judged rows are never reduced for speed — that is the half of the old rule that stands:
-bound the agent's repetitions, never the harness's diligence.
+`turn_timeout_s` defaults to `None` at the loop API (an agent invocation is unbounded
+there); the product `api` path (including a Bob API key) applies a finite 600 s per-turn
+budget when the caller leaves it unset, and an explicit value overrides that, while a
+direct `--backend bob` CLI turn stays unbounded absent an override. This is the tool's own
+policy for the product path, not a harness reduction. The probe set, the per-probe timeout
+and the number of judged rows are never reduced for speed — that is the half of the old
+rule that stands: bound the agent's repetitions, never the harness's diligence.
 
 **Internet reinforcement (same day):** the owner asked that the internet be searched for
 supporting material while a model is made. The stage records errata, application notes and
@@ -471,7 +474,7 @@ URL and hash; an agent's claim we could not fetch is kept as `retrieved=false` w
 reason. Nothing in it can change a status — the datasheet rows stay the only oracle — so it
 can inform a reader without ever upgrading a model's claims. The search is cancel-aware
 (the build's cancellation event reaches the agent turn) and carries its own budget
-(`reinforce_timeout_s`, default 300 s, `None` unbounded); when that budget expires the stage
+(`reinforce_timeout_s`, default 45 s, `None` unbounded); when that budget expires the stage
 records `unavailable` with the reason and the build continues. This budget applies to the
 search only: the author loop stays unbounded. The fetcher refuses any
 destination that is not a public internet host (loopback, private, link-local, multicast
@@ -497,11 +500,11 @@ accepts only the IBM Bob API.
 **Decision — the agent catalog is the single knob.** `src/boardmodeler/agent_providers.py`
 holds an ordered tuple of `AgentProvider` entries. Everything else reads it: the setup
 page builds its provider row from it, the backend factory resolves a provider from it, and
-`doctor` reports one credential per entry. A build that must accept only Bob ships
-`CATALOG = (bob,)`, and then there is *no* provider row on the setup page and the key row
-keeps the label it always had (`BOB API KEY`) — the fork's divergence is that tuple plus
-README wording, not a fork of the code. `tests/ui/test_setup_dialog.py` proves the
-single-entry build behaves that way in-process, so the promise is tested, not asserted.
+`doctor` reports one credential per entry. A build that must accept only Bob sets the
+`BOB_ONLY` flavor (D-016), which filters `CATALOG` to the one entry; then there is *no*
+provider row on the setup page and the key row keeps the label it always had
+(`BOB API KEY`). `tests/ui/test_setup_dialog.py` proves the single-entry build behaves that
+way in-process, so the promise is tested, not asserted.
 
 **Decision — keys, not logins.** Every provider is reached with a raw API key stored in the
 OS keyring under `provider:<name>:api_key` (the repo's existing credential helper), with
@@ -590,3 +593,34 @@ forbidden-label test in `tests/ui/test_setup_dialog.py`).
 * **Bob stays native.** Bob Shell with `BOB_API_KEY` is the documented consumer of an Inference-scope
   key; the application defaults to that provider, opens no browser, never logs in, and never substitutes
   a vendor when Bob is unavailable. The Bob-only build is the same code with a one-entry catalog.
+
+
+## D-016 — Shared, measured model iteration and explicit I/O scope (2026-09-19)
+
+The selected author backend also extracts the supplied datasheet. Four tasks share one
+schema/document context, with one correction attempt for invalid structure or semantic
+classification. Adapter prompt versions participate in extraction-cache keys. The user's
+GO action explicitly authorizes sending the selected document; its unknown classification
+is not relabeled public. Internal/confidential policy restrictions remain authoritative.
+
+Keep the best measured model and immutable attempt snapshots. Compare unknown rows,
+failed rows, then normalized numeric residual; cycling failures is not improvement.
+Reuse only matching validation inputs with intact raw/log evidence, remeasurement and
+limit comparison. No UNKNOWN cache reuse, no tolerance relaxation, no false PASS.
+
+Operating conditions and pin maps are part of the frozen spec. I/O coverage is electrical
+and conditional; separate operating points get separate decks. Temperature-dependent and
+high-speed channel/protocol claims need separate data and engines. Imported vendor files
+are byte-preserved, caller-attributed sources, with validation explicitly UNKNOWN.
+
+The two repositories share implementation and tests; build_flavor.BOB_ONLY filters the
+accepted catalog. Separate Velopack IDs keep installs distinct. Easy-download ZIPs wrap
+the unmodified animated installer as Install.exe; LTspice and Bob Shell remain external
+prerequisites. Publishing to each repository's main branch is explicitly user-authorized.
+
+Per-row verdicts are derived from each frozen characteristic and the existing observed
+measurement; they require no new persisted report field or additional simulation.
+The model card and MakeModelResult count rows, including an explicit UNKNOWN for a
+missing outcome and separate not-testable rows. HarnessReport and author-loop progress
+continue to count simulator cases. The aggregate model verdict and all numeric limits
+remain unchanged. A partial measurement cannot promote an unavailable run to PASS.

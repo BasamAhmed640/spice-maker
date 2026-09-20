@@ -273,6 +273,8 @@ boardmodeler model build --part PN --out DIR [--datasheet PDF | --requirements F
     [--subckt NAME] [--backend api|bob|scripted|fixture] [--provider ID] [--model ID]
     [--max-tokens N] [--team-id ID] [--allow-remote] [--no-reinforce] [--iterations N]
     [--timeout S] [--json] [--strict]           # api: the SETUP key; bob: Bob Shell; no login
+boardmodeler model import --file F --part PN --source-url URL --license-note TEXT --out DIR
+    [--json]                                    # byte-preserved vendor IBIS/AMI/Touchstone
 boardmodeler model test --out DIR [--timeout S] [--json] [--strict]
 boardmodeler model install --out DIR [--into DIR | --user-lib] [--apply] [--json]
 boardmodeler run tests --project DIR [--scope S] [--test ID] [--list-tests] [--json] [--out F]

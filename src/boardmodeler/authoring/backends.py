@@ -98,6 +98,7 @@ class AuthorRequest:
     model_dir: Path
     max_turns: int
     expect_text: bool = False
+    session_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -151,6 +152,7 @@ class ProcessRunner(Protocol):
         timeout_s: float,
         env: Mapping[str, str],
         cancel: threading.Event | None = None,
+        input_text: str | None = None,
     ) -> GuardedProcess:
         """Run ``argv`` in ``cwd``; kill the tree on timeout or cancellation."""
         ...
@@ -216,6 +218,7 @@ def run_bob_shell(
     timeout_s: float,
     env: Mapping[str, str],
     cancel: threading.Event | None = None,
+    input_text: str | None = None,
 ) -> GuardedProcess:
     """Run a list argv with ``shell=False``, honouring timeouts *and* cancellation.
 
@@ -235,7 +238,7 @@ def run_bob_shell(
         [str(executable), *argv[1:]],
         cwd=str(working_dir),
         shell=False,
-        stdin=subprocess.DEVNULL,
+        stdin=subprocess.PIPE if input_text is not None else subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -259,9 +262,12 @@ def run_bob_shell(
             killed = True
             _kill_tree(process)
         try:
-            stdout, stderr = process.communicate(timeout=_POLL_S if not killed else 30)
+            stdout, stderr = process.communicate(
+                input=input_text, timeout=_POLL_S if not killed else 30
+            )
             break
         except subprocess.TimeoutExpired:
+            input_text = None
             continue
     return GuardedProcess(
         returncode=process.returncode if process.returncode is not None else -1,
@@ -331,10 +337,11 @@ class BobShellBackend:
         ]
         if self.team_id:
             argv.extend(["--team-id", self.team_id])
-        prompt = request.prompt
+        argv.extend(["--disable-mcp", "--disable-subagents"])
         if request.expect_text:
-            prompt = f"{prompt.rstrip()}\n\n{TEXT_ONLY_INSTRUCTION}"
-        argv.append(prompt)
+            argv.extend(["--disable-tool-groups", "execute,edit"])
+        elif request.session_id:
+            argv.extend(["--resume", request.session_id])
         return argv
 
     def author(
@@ -369,6 +376,11 @@ class BobShellBackend:
                 timeout_s=runner_timeout,
                 env=child_env,
                 cancel=cancel,
+                input_text=(
+                    f"{request.prompt.rstrip()}\n\n{TEXT_ONLY_INSTRUCTION}"
+                    if request.expect_text
+                    else request.prompt
+                ),
             )
         except Exception as exc:
             return self._failed(redact(f"bob_shell_failed: {type(exc).__name__}: {exc}", [key]))
@@ -423,6 +435,11 @@ class BobShellBackend:
             detail += f" total_tokens={int(usage['total_tokens'])}"
         if not ok:
             detail += f"; exit={process.returncode}; stderr: {_oneline(process.stderr)[:200]}"
+        if request.expect_text:
+            message = payload.get("last_message")
+            if not isinstance(message, str) or not message.strip():
+                return self._failed("bob_text_missing: the result contained no last_message")
+            tail = redact(message, [key])
         return AuthorResult(
             ok=ok,
             detail=redact(detail, [key]),

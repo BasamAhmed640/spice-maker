@@ -416,7 +416,7 @@ def test_fail_then_pass_reaches_pass_on_turn_two(monkeypatch, tmp_path: Path) ->
     assert double.calls[0]["text"] == "* attempt 1\n"
     assert double.calls[1]["text"] == "* attempt 2\nCORRECTED\n"
     assert double.calls[1]["subckt"] == SUBCKT
-    assert double.calls[1]["workdir"] == workdir / "harness"
+    assert double.calls[1]["workdir"] == workdir / "harness" / "turn-2"
     assert double.calls[1]["ltspice"] == tmp_path / "LTspice.exe"
     assert double.calls[1]["timeout_s"] == TIMEOUT_S
     assert double.calls[0]["spec"].digest() == spec.digest()
@@ -504,7 +504,7 @@ def test_the_iteration_cap_is_unknown_and_names_the_failing_probe(
     assert probe in outcome.detail
     assert "FAIL" in outcome.detail
     assert "max_iterations=3" in outcome.detail
-    assert outcome.report is double.reports[-1]
+    assert outcome.report is double.reports[0], "keep the best candidate when later turns tie"
 
     assert "Harness feedback so far" not in prompts[0]
     assert double.reports[0].feedback() in prompts[1]
@@ -632,7 +632,7 @@ def test_a_repeating_agent_stops_after_stall_patience_no_progress_turns(
     assert "2 consecutive turn(s)" in outcome.detail
     assert "3 turn(s)" in outcome.detail
     assert FIVE[0] in outcome.detail
-    assert outcome.report is double.reports[-1]
+    assert outcome.report is double.reports[0]
     assert outcome.report.model_sha256 == double.reports[-1].model_sha256
     assert len(double.calls) == 3
     assert outcome.history[0] == f"turn 1: progress; failing {FIVE[0]}"
@@ -675,7 +675,7 @@ def test_an_agent_that_improves_twice_then_stalls_stops_at_the_stall(
 def test_max_iterations_still_caps_an_agent_that_would_otherwise_continue(
     monkeypatch, tmp_path: Path
 ) -> None:
-    """A changed failure mode counts as progress, so only the caller's cap can stop this."""
+    """Alternating failures are not improvement; an explicit cap still takes precedence."""
     spec = build_spec(FIVE[0])
     workdir = tmp_path / "build"
     loop.prepare_workdir(spec=spec, subckt=SUBCKT, workdir=workdir)
@@ -703,8 +703,8 @@ def test_max_iterations_still_caps_an_agent_that_would_otherwise_continue(
     assert len(double.calls) == 3
     assert "max_iterations=3" in outcome.detail
     assert FIVE[0] in outcome.detail
-    assert all("no progress" not in line for line in outcome.history)
-    assert outcome.report is double.reports[-1]
+    assert any("no progress" in line for line in outcome.history)
+    assert outcome.report is double.reports[0]
 
 
 def test_cancellation_during_a_turn_ends_unknown_cancelled(monkeypatch, tmp_path: Path) -> None:
@@ -1075,6 +1075,61 @@ def test_build_outcome_json_round_trips() -> None:
     assert restored.report.model_sha256 == report.model_sha256
     assert [entry.status for entry in restored.report.outcomes] == ["FAIL"]
     assert restored.report.passed() is False
+
+
+def test_a_spec_with_no_covered_row_never_asks_the_agent_or_the_harness(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Zero covered characteristics is an explicit UNKNOWN, not a wasted author turn."""
+    spec = SpecSet(
+        part=PART,
+        subckt=SUBCKT,
+        doc_id=DOC_ID,
+        characteristics=(characteristic(probe=None),),
+    )
+    workdir = tmp_path / "build"
+    loop.prepare_workdir(spec=spec, subckt=SUBCKT, workdir=workdir)
+
+    def double(**kwargs: object) -> object:
+        raise AssertionError("nothing is covered, so the harness must not run")
+
+    monkeypatch.setattr(loop, "run_harness", double)
+    authored: list[int] = []
+    backend = ScriptedBackend(lambda turn, path, prompt: authored.append(turn))
+
+    outcome = loop.build_model(make_request(tmp_path, spec, backend, workdir=workdir))
+
+    assert outcome.status == "UNKNOWN"
+    assert "no_covered_characteristics" in outcome.detail
+    assert authored == []
+    assert outcome.report.outcomes == ()
+
+
+def test_a_fresh_process_revalidates_a_passing_candidate_without_authoring(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """No process receipt for an existing pass: one simulator run, zero author turns."""
+    from boardmodeler.authoring import validation_cache
+
+    probe = probe_id()
+    spec = build_spec(probe)
+    workdir = tmp_path / "build"
+    loop.prepare_workdir(spec=spec, subckt=SUBCKT, workdir=workdir)
+    (tmp_path / "LTspice.exe").write_bytes(b"")
+    write_model(workdir, "CORRECTED MODEL\n")
+    double = HarnessDouble(probe)
+    monkeypatch.setattr(loop, "run_harness", double)
+    monkeypatch.setattr(validation_cache, "_OBSERVED", {})
+
+    authored: list[int] = []
+    backend = ScriptedBackend(lambda turn, path, prompt: authored.append(turn))
+
+    outcome = loop.build_model(make_request(tmp_path, spec, backend, workdir=workdir))
+
+    assert outcome.status == "PASS", outcome.detail
+    assert outcome.iterations == 0
+    assert authored == []
+    assert len(double.calls) == 1
 
 
 def test_loop_request_bounds_are_validated_and_no_cap_is_the_default(tmp_path: Path) -> None:

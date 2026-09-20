@@ -189,6 +189,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     model_sub = model.add_subparsers(dest="model_command")
 
+    model_import = model_sub.add_parser(
+        "import", help="preserve a vendor IBIS/AMI/Touchstone source with provenance"
+    )
+    model_import.add_argument("--file", type=Path, required=True)
+    model_import.add_argument("--out", type=Path, required=True)
+    model_import.add_argument("--part", required=True)
+    model_import.add_argument("--source-url", required=True)
+    model_import.add_argument("--license-note", required=True)
+    model_import.add_argument("--json", action="store_true")
+
     model_build = model_sub.add_parser(
         "build",
         help="let an agent author the model, then judge it against the datasheet rows",
@@ -766,6 +776,26 @@ def _cmd_export(args: argparse.Namespace) -> int:
 
 
 def _cmd_model(args: argparse.Namespace) -> int:
+    if args.model_command == "import":
+        from boardmodeler.models.vendor_io import import_io_source
+
+        try:
+            result = import_io_source(
+                args.file,
+                args.out,
+                part=args.part,
+                source_url=args.source_url,
+                license_note=args.license_note,
+            )
+        except (OSError, ValueError) as exc:
+            print(json.dumps({"status": "BLOCKED", "detail": str(exc)}) if args.json else str(exc))
+            return 2
+        print(
+            json.dumps(result, indent=2)
+            if args.json
+            else f"Source preserved: {result['manifest']}\nElectrical validation: UNKNOWN. {result['next_step']}"
+        )
+        return 0
     action = getattr(args, "model_command", None)
     if action == "build":
         return _cmd_model_build(args)
@@ -773,7 +803,7 @@ def _cmd_model(args: argparse.Namespace) -> int:
         return _cmd_model_test(args)
     if action == "install":
         return _cmd_model_install(args)
-    print("error: specify a model subcommand: build, test or install")
+    print("error: specify a model subcommand: build, import, test or install")
     return 2
 
 
@@ -950,7 +980,10 @@ def _cmd_model_build(args: argparse.Namespace) -> int:
     backend_name = str(args.backend or "api").strip().lower()
     if backend_name == "api":
         backend = build_api_backend(
-            provider_id=args.provider, model=args.model, max_tokens=args.max_tokens
+            provider_id=args.provider,
+            model=args.model,
+            max_tokens=args.max_tokens,
+            team_id=args.team_id,
         )
     elif backend_name == "bob":
         backend = BobShellBackend(team_id=args.team_id)
