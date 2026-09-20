@@ -624,3 +624,12 @@ The model card and MakeModelResult count rows, including an explicit UNKNOWN for
 missing outcome and separate not-testable rows. HarnessReport and author-loop progress
 continue to count simulator cases. The aggregate model verdict and all numeric limits
 remain unchanged. A partial measurement cannot promote an unavailable run to PASS.
+
+
+### Windows installer dependency isolation (2026-09-20)
+
+The release build must resolve native dependencies using the Python environment and
+Windows system directories, never arbitrary tools inherited through PATH. Frozen CLI
+success does not establish GUI startup: before packaging, launch the normal executable
+from outside the source tree, observe its actual responsive Qt window, and close it.
+This gate belongs in build.ps1 so local and GitHub Windows builds both enforce it.
