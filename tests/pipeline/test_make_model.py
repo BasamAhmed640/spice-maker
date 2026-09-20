@@ -569,24 +569,56 @@ def test_shutdown_ioff_binds_to_the_regulator_and_power_off_leakage_to_the_io_pr
     shutdown = _io_row("REQ_SHUT", "Shutdown current IOFF is at most 1 uA", "A", maximum=1e-6)
     leak = _io_row(
         "REQ_LEAK",
-        "Power-off leakage current IOFF at VCC = 3.3 V",
+        "Power-off leakage current IOFF at VCC = 0 V",
         "A",
         maximum=5e-6,
-        conditions=[Condition(text="VCC = 3.3 V", parameter_overrides={"io_test_v": 3.3})],
+        conditions=[Condition(text="VCC = 0 V", parameter_overrides={"io_test_v": 3.3})],
     )
     bare = _io_row(
         "REQ_BARE",
-        "Power-off leakage current at VCC = 3.3 V",
+        "Power-off leakage current at VCC = 0 V",
         "A",
         maximum=5e-6,
-        conditions=[Condition(text="VCC = 3.3 V", parameter_overrides={"io_test_v": 3.3})],
+        conditions=[Condition(text="VCC = 0 V", parameter_overrides={"io_test_v": 3.3})],
     )
 
     entries = {entry["req_id"]: entry for entry in bind_requirements([shutdown, leak, bare])}
 
     assert entries["REQ_SHUT"]["probe"] == "shutdown_current"
     assert entries["REQ_LEAK"]["probe"] == "io_power_off_leakage"
+    assert entries["REQ_LEAK"]["params"]["io_vcc"] == 0.0
     assert entries["REQ_BARE"]["probe"] == "io_power_off_leakage"
+
+
+def test_a_powered_condition_is_not_a_power_off_leakage_row() -> None:
+    """A real leakage row at a powered rail is a different measurement, not a PASS."""
+    powered = _io_row(
+        "REQ_OFF_33",
+        "Output power-off leakage current IOFF is at most 1 uA at VCC = 3.3 V",
+        "A",
+        maximum=1e-6,
+        conditions=[Condition(text="VCC = 3.3 V", parameter_overrides={"io_test_v": 3.3})],
+    )
+    entry = bind_requirements([powered])[0]
+    assert entry["probe"] is None
+    assert "condition_invalid" in entry["not_testable_reason"]
+
+
+def test_a_supply_current_ioff_row_is_not_measured_by_the_output_leakage_probe() -> None:
+    """A supply-current row is not broadened to a different terminal's current."""
+    for supply in (0.0, 3.3):
+        supply_current = _io_row(
+            f"REQ_SUPPLY_{supply}",
+            f"Off-state supply current IOFF is at most 1 uA at VCC = {supply} V",
+            "A",
+            maximum=1e-6,
+            conditions=[
+                Condition(text=f"VCC = {supply} V", parameter_overrides={"io_test_v": 3.3})
+            ],
+        )
+        entry = bind_requirements([supply_current])[0]
+        assert entry["probe"] is None, supply
+        assert "no deterministic probe" in entry["not_testable_reason"]
 
 
 def _synthetic_io_rows(**overrides: object) -> list[Requirement]:
@@ -618,7 +650,7 @@ def _synthetic_io_rows(**overrides: object) -> list[Requirement]:
                     "parameter_overrides": {"io_vcc": 3.3, "io_load_a": -0.002},
                 }
             ],
-            "signal_refs": ["Y"],
+            "signal_refs": overrides.get("voh_signals", ["Y"]),
             "evidence": [
                 {
                     "doc_id": str(overrides.get("voh_doc", doc)),
@@ -712,6 +744,30 @@ def test_a_unicode_dash_does_not_invert_a_noninverting_output() -> None:
     entry = _voh_entry(_synthetic_io_rows(polarity_excerpt="Y is a non\u2013inverting output."))
     assert entry["probe"] == "io_voh"
     assert entry["params"]["io_inverting"] == 0.0
+
+
+def test_a_lost_hyphen_does_not_invert_a_noninverting_output() -> None:
+    for excerpt in (
+        "Y is a non inverting output.",
+        "Y is a non\ninverting output.",
+        "Y is a non - inverting output.",
+    ):
+        entry = _voh_entry(_synthetic_io_rows(polarity_excerpt=excerpt))
+        assert entry["probe"] == "io_voh", excerpt
+        assert entry["params"]["io_inverting"] == 0.0, excerpt
+
+
+def test_polarity_matches_a_node_syntax_signal_reference() -> None:
+    """The extractor stores ``V(Y)``; datasheet prose writes ``Y`` for the same node."""
+    entry = _voh_entry(_synthetic_io_rows(voh_signals=["V(Y)"], polarity_signals=["V(A)", "V(Y)"]))
+    assert entry["probe"] == "io_voh"
+    assert entry["params"]["io_inverting"] == 0.0
+    assert entry["derived_conditions"]["io_inverting"]["source_req"] == "REQ-POL"
+
+
+def test_a_differential_signal_reference_does_not_seed_polarity() -> None:
+    entry = _voh_entry(_synthetic_io_rows(voh_signals=["V(A)-V(B)"]))
+    assert entry["probe"] is None
 
 
 def test_conflicting_polarity_evidence_leaves_the_row_a_gap() -> None:

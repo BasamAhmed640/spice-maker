@@ -59,7 +59,8 @@ def io_spec():
                 req_class="DOCUMENTED_LIMIT",
                 not_testable_reason=None,
                 probe_params={
-                    "io_vcc": 3.3,
+                    "io_vcc": 0.0 if probe_id == "io_power_off_leakage" else 3.3,
+                    "io_input_high": 0.0 if probe_id == "io_power_off_leakage" else 3.3,
                     "io_load_a": 0.002,
                     "io_cap_f": 15e-12,
                     "io_test_v": 3.3,
@@ -336,6 +337,99 @@ def test_io_conditions_are_required_and_units_checked():
     assert compile("VCC = 3.3 V")[1].startswith("condition_missing")
     assert compile("VCC = 3.3 A")[1].startswith("condition_unit_invalid")
     assert compile("VCC = 3.3 V", {"VCC": 1.8})[1].startswith("condition_conflict")
+
+
+def test_power_off_leakage_keeps_the_declared_supply_and_refuses_a_powered_row(tmp_path):
+    """The renderer must never silently turn a powered condition into a zero-supply test."""
+    from boardmodeler.authoring.probes import ProbeError
+
+    model = tmp_path / "buffer.lib"
+    model.write_text(BUFFER)
+    probe = PROBES["io_power_off_leakage"]
+
+    off = probe.render(
+        model_lib=model,
+        subckt="IO",
+        params={"io_vcc": 0.0, "io_test_v": 3.3, "io_input_high": 0.0},
+    )
+    assert any(
+        line.split()[:3] == ["Vcc", "vcc", "0"] and line.split()[3] == "0"
+        for line in off.splitlines()
+    )
+    with pytest.raises(ProbeError, match="power_off_supply_invalid"):
+        probe.render(
+            model_lib=model,
+            subckt="IO",
+            params={"io_vcc": 3.3, "io_test_v": 3.3, "io_input_high": 3.3},
+        )
+
+    requirement = SimpleNamespace(
+        conditions=[Condition(text="VCC = 3.3 V", parameter_overrides={"io_test_v": 3.3})]
+    )
+    params, reason = operating_params(requirement, probe)
+    assert params == {} and reason.startswith("condition_invalid")
+
+    off_requirement = SimpleNamespace(
+        conditions=[Condition(text="VCC = 0 V", parameter_overrides={"io_test_v": 3.3})]
+    )
+    params, reason = operating_params(off_requirement, probe)
+    assert reason is None and params["io_vcc"] == 0.0
+
+
+def test_a_zero_supply_power_off_row_rejects_a_negative_input_rail() -> None:
+    probe = PROBES["io_power_off_leakage"]
+    requirement = SimpleNamespace(
+        conditions=[
+            Condition(
+                text="VCC = 0 V",
+                parameter_overrides={"io_test_v": 3.3, "io_input_high": -1.0},
+            )
+        ]
+    )
+    params, reason = operating_params(requirement, probe)
+    assert params == {} and "nonnegative" in reason
+
+
+def test_an_undecodable_existing_candidate_still_reaches_the_author(tmp_path, monkeypatch):
+    """A vendor-encoded candidate is offered to the agent as text, never a traceback."""
+    from boardmodeler.authoring import loop as loop_module
+    from boardmodeler.authoring.harness import HarnessReport
+
+    spec = replace(io_spec(), characteristics=io_spec().characteristics[:1])
+    model_dir = tmp_path / "model"
+    model_dir.mkdir()
+    model_dir.joinpath("IO.lib").write_bytes(
+        b".subckt IO VCC A Y GND OE\n\xff\xfe vendor bytes\n.ends IO\n"
+    )
+    prompts: list[str] = []
+
+    def script(turn, workdir, prompt):
+        prompts.append(prompt)
+        (workdir / "model/IO.lib").write_text(BUFFER)
+
+    def canned_harness(*, model_lib, subckt, spec, workdir, ltspice, timeout_s=120.0, cancel=None):
+        return HarnessReport(
+            part=spec.part,
+            model_sha256=sha256_file(model_lib),
+            spec_digest=spec.digest(),
+            outcomes=(),
+        )
+
+    monkeypatch.setattr(loop_module, "run_harness", canned_harness)
+    result = build_model(
+        BuildRequest(
+            part=spec.part,
+            subckt="IO",
+            spec=spec,
+            workdir=tmp_path,
+            ltspice=tmp_path / "LTspice.exe",
+            backend=ScriptedBackend(script),
+            max_iterations=1,
+        )
+    )
+    assert result.status == "UNKNOWN"
+    assert prompts and "Current candidate SHA256" in prompts[0]
+    assert "\ufffd" in prompts[0], "the undecodable bytes must be shown, not dropped"
 
 
 def test_ranges_are_checked_against_explicit_nominal_regardless_of_order():
