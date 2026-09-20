@@ -4,7 +4,7 @@
 selected. Extract the ZIP, open the extracted repository folder, and double-click
 **Install.exe** beside this README. The installer is included in the ZIP.
 
-The included v1.1.2 installer fixes the QtWidgets startup crash and keeps the animated
+The included v1.1.3 installer fixes the QtWidgets startup crash and keeps the animated
 pepper setup. Python is bundled; LTspice and, when using IBM Bob, Bob Shell are separate
 prerequisites. See INSTALL.txt for instructions and SHA256SUMS.txt for the installer hash.
 
@@ -74,7 +74,7 @@ setup. The same folder contains INSTALL.txt and SHA256SUMS.txt.
 Open SETUP once to select LTspice and save your API key. Python is bundled; LTspice and,
 when using Bob, Bob Shell must be installed separately. This installer is unsigned.
 
-To rebuild, run `installer\build.ps1 -Version 1.1.2`; see
+To rebuild, run `installer\build.ps1 -Version 1.1.3`; see
 [installer details](installer/README.md). The build refreshes the root installer,
 instructions and checksum so committing those files updates Code → Download ZIP.
 

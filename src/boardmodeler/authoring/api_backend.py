@@ -702,7 +702,7 @@ class ApiKeyBackend:
                     **headers,
                     "Content-Type": "application/json",
                     "Accept": "application/json",
-                    "User-Agent": "SpiceMaker/1.1.2",
+                    "User-Agent": "SpiceMaker/1.1.3",
                     **(
                         {self.provider.session_header: self.session_id}
                         if self.provider.session_header

@@ -26,7 +26,26 @@ def main(argv=None):
     ).splitlines()
     changed = []
     for name in paths:
-        if name in ("src/boardmodeler/build_flavor.py", "installer/assets/pepper-splash.gif"):
+        if name in (
+            "src/boardmodeler/build_flavor.py",
+            "src/boardmodeler/agent_providers.py",
+            "src/boardmodeler/authoring/api_backend.py",
+            "src/boardmodeler/providers/http_inference.py",
+            "src/boardmodeler/providers/bob.py",
+            "src/boardmodeler/ui/setup_dialog.py",
+            "src/boardmodeler/ui/model_maker.py",
+            "tests/authoring/test_api_backend.py",
+            "tests/authoring/test_api_backend_paths.py",
+            "tests/test_desktop_retry_and_go.py",
+            "tests/test_desktop_retry.py",
+            "tests/providers/test_http_inference.py",
+            "tests/ui/test_provider_refusal.py",
+            "tests/domain/test_records_roundtrip.py",
+            "tests/pipeline/test_make_model.py",
+            "tests/test_cli_model.py",
+            "tests/ui/test_setup_dialog.py",
+            "installer/assets/pepper-splash.gif",
+        ):
             continue
         if not name.startswith(("src/", "tests/", "installer/", ".github/", "tools/")):
             continue

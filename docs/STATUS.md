@@ -1,3 +1,25 @@
+# Maintenance 1.1.3 — 2026-09-20
+
+Exact target parts now reach extraction and its cache key; suffixes from one family PDF
+cannot share unrelated cached rows. JSON diagnostics redact full responses before
+excerpting them, including partial-secret boundary alignments. Draft changes are now
+covered by regression tests instead of being untested working-tree-only changes.
+
+This general edition contains 11 provider entries. The Bob edition now deliberately
+owns a distinct Bob-only catalog, author adapter, UI and related tests/documentation.
+The sync helper preserves those differences rather than copying them back.
+
+Installer 1.1.3 replaces the prior root binary while keeping Install.exe in the main
+Code-menu ZIP. Build cleanup matches the exact package/version filename, so 1.1.1
+cannot remove 1.1.10 artifacts; the project Python 3.14 environment is required.
+Historical sections below describe their original revisions, not the current release.
+The Windows workflow is a manually dispatched build job; no unobserved CI packaging
+run or bit-for-bit reproducibility is claimed.
+
+A complete LM358 model remains unqualified: prior live extraction returned invalid
+JSON despite HTTP success. These fixes are not evidence that every op-amp behavior has
+an implemented probe. Current test/build results are recorded after execution below.
+
 # Desktop PDF retry and Go subscription — 2026-09-20
 
 The reported LM358 run stopped before inference: the same cached PDF was first
@@ -28,8 +50,8 @@ ZIP on main. No backend or frozen application code changed.
 
 # Windows startup hotfix 1.1.1 — 2026-09-20
 
-Confirmed the 1.1.0 QtWidgets startup crash: PyInstaller collected Poppler's ICU 78
-`icuuc.dll` from the build machine's PATH instead of using Windows ICU. Qt requested
+Confirmed the 1.1.0 QtWidgets startup crash: The frozen build contained an incompatible ICU 78 `icuuc.dll`; its original
+provenance was not established. Qt requested
 `ucnv_open`; the bundled DLL exposed `ucnv_open_78`. Loading Qt6Core failed with Windows
 error 127; preloading Windows System32/icuuc.dll made the same Qt6Core load successfully.
 
@@ -413,3 +435,19 @@ in their focused run). Bob: 1050 passed, 14 skipped. Ruff check/format passed, 1
 The installed desktop executable was updated and matched the rebuilt application hash;
 its real window opened, responded and exited cleanly. The selected provider is now Go,
 with the existing OS credential and requested model preserved.
+
+
+## Observed 1.1.3 checks
+
+- `.venv/Scripts/python.exe -m pytest -q -m "not ltspice" --tb=short`: 1063 passed, 5 skipped, 127 deselected. Skips identify absent vendor originals and the opt-in network documentation check.
+- Ruff check and format completed successfully.
+- `installer/build.ps1 -Version 1.1.3` completed, including a real responsive frozen
+  Qt window, animated setup and root/ZIP installer publication.
+- Root Install.exe matches the canonical setup and release ZIP installer byte for byte.
+  Both splash GIFs retain 90 frames.
+- The actual build cleanup code retained 1.1.10 and a different package's artifacts
+  while deleting only requested 1.1.1 filenames in an isolated test directory.
+
+- `.venv/Scripts/python.exe -m pytest -q -m ltspice --tb=short`: 127 passed, 1068 deselected, against the real installed simulator (272.42 seconds).
+
+- The screenshot helper now restores/foregrounds and redraws its own test window before capture. An incomplete background capture was corrected and the Bob window was visually checked.

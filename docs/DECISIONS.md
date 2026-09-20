@@ -632,7 +632,8 @@ The release build must resolve native dependencies using the Python environment 
 Windows system directories, never arbitrary tools inherited through PATH. Frozen CLI
 success does not establish GUI startup: before packaging, launch the normal executable
 from outside the source tree, observe its actual responsive Qt window, and close it.
-This gate belongs in build.ps1 so local and GitHub Windows builds both enforce it.
+This gate belongs in build.ps1. The Windows workflow invokes that script when dispatched;
+its configuration does not establish that a CI packaging run has occurred.
 
 
 ### Installer in GitHub Code archives (2026-09-20)
@@ -658,3 +659,13 @@ Reasoning references: https://api-docs.deepseek.com/guides/thinking_mode/,
 https://platform.claude.com/docs/en/build-with-claude/effort,
 https://ai.google.dev/gemini-api/docs/thinking,
 https://docs.x.ai/developers/model-capabilities/text/reasoning.
+
+
+## Bob source isolation and maintenance 1.1.3 — 2026-09-20
+
+The Bob edition now owns a catalog and author adapter containing only Bob, with no
+unused competing integrations behind a filter. Its UI, tests and docs are explicitly
+edition-owned. Synchronization preserves those files. The general catalog retains
+11 entries. Both editions include target-part extraction/cache identity and whole-text
+redaction before diagnostic excerpts. API JSON schema validity alone does not qualify
+a real device; the unresolved LM358 extraction and op-amp coverage remain explicit.

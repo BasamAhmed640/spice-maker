@@ -387,9 +387,14 @@ def extract_json_object(text: str, *, secrets: Sequence[str] = ()) -> dict[str, 
     try:
         document = json.loads(stripped)
     except json.JSONDecodeError as exc:
+        # Redact the whole reply before taking an excerpt: slicing a secret first
+        # leaves a fragment that exact-match redaction cannot recognize.
+        safe_text = redact(stripped, secrets)
+        safe_pos = len(redact(stripped[: exc.pos], secrets))
         raise ProviderError(
             "response_not_json",
-            f"the assistant message is not a JSON object: {redact(stripped[:200], secrets)}",
+            f"invalid JSON at line {exc.lineno}, column {exc.colno}: {exc.msg}; "
+            f"near {safe_text[max(0, safe_pos - 80) : safe_pos + 120]!r}",
         ) from exc
     if not isinstance(document, dict):
         raise ProviderError(
