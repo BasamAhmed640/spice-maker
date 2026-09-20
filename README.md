@@ -1,5 +1,7 @@
 # Spice Maker
 
+**Installer update pending:** Windows Application Control blocked the new 1.1.9 installer on the verification machine. The source includes the new key check, but Code → Download ZIP retains the last verified **1.1.8 installer**, which does not include that feature. No security policy was changed.
+
 **SAVE & CHECK KEY** now verifies a newly saved key in the background, with a 15-second wait and clear verified/rejected/unverified results. [Credential safety and check details](docs/API_KEY_CHECK.md).
 
 Datasheet extraction and model verification now recover smaller requests, preserve failed-run feedback, and report untested numeric requirements honestly. See [coverage and reliability](docs/DATASHEET_ROBUSTNESS.md).
@@ -17,7 +19,7 @@ final duration. See [what the agents and simulator do](docs/AGENT_WORKFLOW.md).
 selected. Extract the ZIP, open the extracted repository folder, and double-click
 **Install.exe** beside this README. The installer is included in the ZIP.
 
-The included v1.1.9 installer fixes the QtWidgets startup crash and keeps the animated
+The included v1.1.8 installer fixes the QtWidgets startup crash and keeps the animated
 pepper setup. Python is bundled; LTspice and, when using IBM Bob, Bob Shell are separate
 prerequisites. See INSTALL.txt for instructions and SHA256SUMS.txt for the installer hash.
 

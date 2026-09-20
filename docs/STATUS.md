@@ -572,3 +572,12 @@ Both packaged 1.1.9 executables passed all seven TLV9002 real-LTspice checks;
 release ZIP installer bytes matched the tracked root installers and checksums.
 The Bob 1.1.9 installer completed with exit 0, and the installed application opened
 successfully with the same executable hash as the tested frozen build.
+
+Final general-installation check: Windows Application Control blocked the 1.1.9
+Install.exe before launch (error 4551, Code Integrity event 3077). Its frozen app
+had passed GUI/simulator checks, but that does not establish installer acceptance.
+The tracked installer/instructions/checksum/animation were restored to the last
+verified 1.1.8 release. General 1.1.9 source is pushed; a new general binary release
+is not published. The installed general application remains 1.1.8. An approved
+signing certificate/service is needed for a dependable solution; no trust settings
+or Windows security policy were changed.
