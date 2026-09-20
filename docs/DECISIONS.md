@@ -500,11 +500,11 @@ accepts only the IBM Bob API.
 **Decision — the agent catalog is the single knob.** `src/boardmodeler/agent_providers.py`
 holds an ordered tuple of `AgentProvider` entries. Everything else reads it: the setup
 page builds its provider row from it, the backend factory resolves a provider from it, and
-`doctor` reports one credential per entry. A build that must accept only Bob ships
-`CATALOG = (bob,)`, and then there is *no* provider row on the setup page and the key row
-keeps the label it always had (`BOB API KEY`) — the fork's divergence is that tuple plus
-README wording, not a fork of the code. `tests/ui/test_setup_dialog.py` proves the
-single-entry build behaves that way in-process, so the promise is tested, not asserted.
+`doctor` reports one credential per entry. A build that must accept only Bob sets the
+`BOB_ONLY` flavor (D-016), which filters `CATALOG` to the one entry; then there is *no*
+provider row on the setup page and the key row keeps the label it always had
+(`BOB API KEY`). `tests/ui/test_setup_dialog.py` proves the single-entry build behaves that
+way in-process, so the promise is tested, not asserted.
 
 **Decision — keys, not logins.** Every provider is reached with a raw API key stored in the
 OS keyring under `provider:<name>:api_key` (the repo's existing credential helper), with
