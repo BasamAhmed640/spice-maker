@@ -259,7 +259,10 @@ class SetupDialog(QDialog):
         self._provider = provider
         self.key_label.setText(provider.key_label)
         self.key_edit.setPlaceholderText(f"paste your {provider.label} API key")
-        self.key_hint.setText(f"{provider.key_hint}\n{provider.docs}")
+        self.key_hint.setText(
+            f"{provider.key_hint}\n{provider.docs}\n"
+            "GO sends your chosen datasheet and model text to this provider."
+        )
         self.model_edit.setText(self._model_for(provider))
         self.model_label.setVisible(provider.model_editable)
         self.model_edit.setVisible(provider.model_editable)
@@ -343,6 +346,9 @@ class SetupDialog(QDialog):
             QMessageBox.warning(self, "Could not store the key", str(exc))
             return
         self.key_edit.clear()
+        # SAVE KEY must also save which provider owns it; otherwise GO can still
+        # use the previous provider until the unrelated SAVE button is pressed.
+        self._save()
         self._refresh_status()
         self.saved_label.setText(
             f"{self._provider.label} key stored in the Windows credential store"

@@ -34,6 +34,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
+from boardmodeler.build_flavor import BOB_ONLY
+
 __all__ = [
     "CATALOG",
     "DEFAULT_PROVIDER_ID",
@@ -232,6 +234,10 @@ CATALOG: tuple[AgentProvider, ...] = (
         env_aliases=("MISTRAL_API_KEY",),
     ),
 )
+
+if BOB_ONLY:
+    CATALOG = tuple(entry for entry in CATALOG if entry.id == "bob")
+
 
 #: The provider a build expects when the user has not chosen one. Bob, always.
 DEFAULT_PROVIDER_ID = "bob"

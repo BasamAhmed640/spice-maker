@@ -87,8 +87,19 @@ def datasheet_for(tmp_path: Path) -> Path:
 
     path = tmp_path / "stand_in_datasheet.pdf"
     sheet = canvas.Canvas(str(path))
-    sheet.drawString(72, 720, "Stand-in datasheet: the real original is not checked out.")
-    sheet.showPage()
+    import textwrap
+
+    raw = json.loads(REQUIREMENTS.read_text(encoding="utf-8"))
+    for page in range(raw["document"]["page_count"]):
+        sheet.drawString(30, 810, "TEST_FIXTURE: synthetic evidence for pipeline contract tests")
+        y = 790
+        for requirement in raw["requirements"]:
+            for evidence in requirement["evidence"]:
+                if evidence["page"]["pdf_page"] == page:
+                    for line in textwrap.wrap(evidence["excerpt"], width=100):
+                        sheet.drawString(30, y, line)
+                        y -= 10
+        sheet.showPage()
     sheet.save()
     return path
 
@@ -159,12 +170,21 @@ def fake_ltspice(tmp_path: Path) -> LtspiceInstall:
 
 
 def make_request(tmp_path: Path, **overrides: object) -> MakeModelRequest:
+    requirements = REQUIREMENTS
+    if not DATASHEET.is_file():
+        raw = json.loads(REQUIREMENTS.read_text(encoding="utf-8"))
+        for row in raw["requirements"]:
+            row["origin"] = "TEST_FIXTURE"
+            for evidence in row["evidence"]:
+                evidence["extraction"] = "synthetic_fixture"
+        requirements = tmp_path / "synthetic-requirements.json"
+        requirements.write_text(json.dumps(raw), encoding="utf-8")
     values: dict[str, object] = {
         "part": PART,
         "subckt": SUBCKT,
         "datasheet": datasheet_for(tmp_path),
         "out_dir": tmp_path / "out",
-        "requirements_json": REQUIREMENTS,
+        "requirements_json": requirements,
         "bindings_json": BINDINGS,
     }
     values.update(overrides)
