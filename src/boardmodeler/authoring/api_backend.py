@@ -746,7 +746,16 @@ class ApiKeyBackend:
                 last_detail = f"{type(exc).__name__}: {redact(str(exc), [key])}"
             if response is not None:
                 if 200 <= response.status < 300:
-                    return _decoded(response, secrets=[key])
+                    try:
+                        return _decoded(response, secrets=[key])
+                    except ProviderError as exc:
+                        if exc.code not in {"stream_incomplete", "stream_invalid"}:
+                            raise
+                        last_detail = f"{exc.code}: {exc.detail}"
+                        if attempts >= total_attempts:
+                            raise
+                        _sleep(_backoff_s(attempts))
+                        continue
                 last_status = response.status
                 last_detail = f"HTTP {response.status}: {redact(_excerpt(response), [key])}"
                 if response.status not in RETRYABLE_STATUSES:
@@ -779,6 +788,11 @@ class ApiKeyBackend:
 def _decoded(response: HttpResponse, *, secrets: list[str]) -> dict[str, Any]:
     """One JSON-object response body, or a redacted ``ProviderError``."""
     text = response.text()
+    if any(
+        key.lower() == "content-type" and "text/event-stream" in value.lower()
+        for key, value in response.headers.items()
+    ) or text.lstrip().startswith("data:"):
+        return _decoded_chat_stream(text, secrets=secrets)
     try:
         document = json.loads(text)
     except ValueError as exc:
@@ -792,6 +806,60 @@ def _decoded(response: HttpResponse, *, secrets: list[str]) -> dict[str, Any]:
             f"the endpoint returned a {type(document).__name__}, expected a JSON object",
         )
     return document
+
+
+def _decoded_chat_stream(text: str, *, secrets: list[str]) -> dict[str, Any]:
+    """Reassemble a completed SSE answer; reasoning deltas are never persisted."""
+    chunks = []
+    usage = {}
+    finish = None
+    done = False
+    events = 0
+    reasoning_chars = 0
+    for line in text.splitlines():
+        if not line.startswith("data:"):
+            continue
+        data = line[5:].strip()
+        if data == "[DONE]":
+            done = True
+            continue
+        try:
+            event = json.loads(data)
+        except ValueError as exc:
+            raise ProviderError(
+                "stream_invalid", "malformed stream event; no answer accepted"
+            ) from exc
+        if event.get("error"):
+            raise ProviderError("stream_error", redact(str(event["error"])[:500], secrets))
+        if isinstance(event.get("usage"), dict):
+            usage = event["usage"]
+        for choice in event.get("choices", []):
+            if choice.get("index", 0) != 0:
+                continue
+            content = (choice.get("delta") or {}).get("content")
+            events += 1
+            reasoning_chars += len(str((choice.get("delta") or {}).get("reasoning_content") or ""))
+            if isinstance(content, str):
+                chunks.append(content)
+            if choice.get("finish_reason") is not None:
+                finish = choice["finish_reason"]
+    if not done or finish is None:
+        raise ProviderError(
+            "stream_incomplete",
+            f"stream ended without its completion markers (events={events}, "
+            f"answer_chars={sum(map(len, chunks))}, reasoning_chars={reasoning_chars}, "
+            f"finish={finish!r}, done={done}); no answer accepted",
+        )
+    return {
+        "choices": [
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": "".join(chunks)},
+                "finish_reason": finish,
+            }
+        ],
+        "usage": usage,
+    }
 
 
 def _relative_target(model_dir: Path, name: str) -> tuple[Path | None, str]:

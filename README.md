@@ -1,5 +1,7 @@
 # Spice Maker
 
+Datasheet extraction and model verification now recover smaller requests, preserve failed-run feedback, and report untested numeric requirements honestly. See [coverage and reliability](docs/DATASHEET_ROBUSTNESS.md).
+
 IC symbols now use a consistent local layout with verified model pin order. See
 [standard symbols](docs/STANDARD_SYMBOLS.md).
 
@@ -13,7 +15,7 @@ final duration. See [what the agents and simulator do](docs/AGENT_WORKFLOW.md).
 selected. Extract the ZIP, open the extracted repository folder, and double-click
 **Install.exe** beside this README. The installer is included in the ZIP.
 
-The included v1.1.7 installer fixes the QtWidgets startup crash and keeps the animated
+The included v1.1.8 installer fixes the QtWidgets startup crash and keeps the animated
 pepper setup. Python is bundled; LTspice and, when using IBM Bob, Bob Shell are separate
 prerequisites. See INSTALL.txt for instructions and SHA256SUMS.txt for the installer hash.
 

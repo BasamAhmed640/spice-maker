@@ -504,3 +504,34 @@ Unmeasurable rows remain explicit gaps; accepting a unit does not create a probe
   4 skipped (unavailable vendor originals), 154 deselected.
 - New checks cover compound scaling, incompatible dimensions, extraction without
   an unnecessary correction request, cached replay and retaining unprobed rows.
+
+
+## 2026-09-20 — diverse datasheets and bounded recovery (1.1.8)
+
+Implemented independent frozen circuit recipes with physical pin maps, bounded cached
+extraction batches, explicit unsupported quantities and coverage gaps, whole-response
+deadlines, observed failure feedback on resumed runs, stable candidate retention,
+structural library preflight, and corrected RAW/path handling. No provider or reasoning
+level is silently substituted. The Bob catalog and API backend remain Bob-only.
+
+Observed checks:
+- `.venv/Scripts/python.exe -m pytest -q -m "not ltspice and not network" --disable-warnings`: 1156 passed, 4 skipped.
+- Final shared partial-fixture change: `pytest -q tests/authoring/test_circuit_probe.py -m "not ltspice"`: 24 passed, 2 deselected in the general checkout.
+- General real-simulator regression: `pytest -q tests/authoring/test_circuit_probe.py tests/authoring/test_live_failure_regressions.py tests/pipeline/test_make_model.py -m ltspice`: 9 passed, 80 deselected.
+- Ruff lint/format checks passed before final packaging. Both frozen GUIs opened in the startup verifier.
+
+The live five-datasheet matrix includes TLV9002, SN74LVC1G14, SN74LVC1T45,
+TPS7A2033 and LMV331. Four currently pass their covered checks and independent
+functional tests. The regulator exposed full-load, shutdown and convergence failures;
+its repair remains under investigation. These results do not establish every datasheet,
+all operating conditions, or a new live Bob account result. Software regression passes
+must not be represented as device certification. See DATASHEET_ROBUSTNESS.md.
+
+
+Final shared regressions: all 29 circuit-recipe tests passed with real LTspice
+(including node aliases and a deliberately wrong output with a DC hint). General
+offline suite: 1159 passed, 4 skipped, 159 deselected. Bob focused latest regressions:
+29 passed, 4 skipped, 5 deselected. General final frozen executable passed all seven
+TLV9002 checks and the release ZIP installer matched the root checksum. General
+installer completed with exit 0; installed and built executable SHA256 both equal
+51bbecc18c56c8b1be49ba6bf745fccc342a9622d33c07ec25945950da1208ba.

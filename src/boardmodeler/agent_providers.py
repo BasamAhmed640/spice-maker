@@ -222,7 +222,12 @@ CATALOG: tuple[AgentProvider, ...] = (
         model="deepseek-v4-flash",
         env_aliases=("OPENCODE_API_KEY",),
         session_header="x-opencode-session",
-        extra_body={"thinking": {"type": "enabled"}, "reasoning_effort": "max"},
+        extra_body={
+            "thinking": {"type": "enabled"},
+            "reasoning_effort": "max",
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        },
     ),
     AgentProvider(
         id="opencode_go",
@@ -236,7 +241,12 @@ CATALOG: tuple[AgentProvider, ...] = (
         model="deepseek-v4.1-flash",
         env_aliases=("OPENCODE_API_KEY",),
         session_header="x-opencode-session",
-        extra_body={"thinking": {"type": "enabled"}, "reasoning_effort": "max"},
+        extra_body={
+            "thinking": {"type": "enabled"},
+            "reasoning_effort": "max",
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        },
     ),
     AgentProvider(
         id="mistral",

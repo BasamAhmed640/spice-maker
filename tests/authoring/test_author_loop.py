@@ -777,13 +777,12 @@ def test_a_turn_timeout_is_reported_as_its_own_reason_and_spends_the_turn(
 
     assert backend.calls == 2, "the timed-out turn was spent, not retried for free"
     assert outcome.status == "UNKNOWN"
-    assert len(double.calls) == 2, "the harness judged the bytes that were on disk"
-    assert "turn_timeout" not in outcome.detail
-    assert "max_iterations=2" in outcome.detail
+    assert len(double.calls) == 1, "unchanged bytes after a timeout need no repeated simulation"
+    assert "turn_timeout" in outcome.detail
     assert outcome.history[0].startswith(f"turn 1: progress; failing {FIVE[0]}; ")
     assert "turn_timeout" in outcome.history[0] and "0.05 s" in outcome.history[0]
     assert "cancelled" not in outcome.history[0], "the loop's own reason, not the backend's"
-    assert outcome.history[1].startswith(f"turn 2: no progress; failing {FIVE[0]}; ")
+    assert "existing candidate preserved" in outcome.history[1]
     assert "turn_timeout" in outcome.history[1]
 
 
