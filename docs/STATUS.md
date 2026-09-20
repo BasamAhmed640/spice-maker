@@ -451,3 +451,17 @@ with the existing OS credential and requested model preserved.
 - `.venv/Scripts/python.exe -m pytest -q -m ltspice --tb=short`: 127 passed, 1068 deselected, against the real installed simulator (272.42 seconds).
 
 - The screenshot helper now restores/foregrounds and redraws its own test window before capture. An incomplete background capture was corrected and the Bob window was visually checked.
+
+
+## Observed 1.1.4 timer checks
+
+- Added a monotonic elapsed clock beside GO, independent of progress messages; it
+  includes cancellation cleanup, freezes on completion/error, and resets on the next run.
+- `python -m pytest -q tests/gui -m "not ltspice" --tb=short`: 14 passed,
+  1 real-simulator integration test deselected. New cases drive actual GO clicks and a
+  quiet worker through success, blocked results, exceptions, cancellation and restart.
+- `python -m ruff check .` and `python -m ruff format --check .`: passed.
+- `installer/build.ps1 -Version 1.1.4`: succeeded, including the actual frozen GUI launch.
+- Root Install.exe matches the release ZIP and canonical setup; checksum verified.
+  The pepper animation retains 90 frames. No paid API requests were made.
+- Agent roles and present LM358 qualification limits are documented in AGENT_WORKFLOW.md.

@@ -669,3 +669,12 @@ edition-owned. Synchronization preserves those files. The general catalog retain
 11 entries. Both editions include target-part extraction/cache identity and whole-text
 redaction before diagnostic excerpts. API JSON schema validity alone does not qualify
 a real device; the unresolved LM358 extraction and op-amp coverage remain explicit.
+
+
+## Elapsed build time (1.1.4)
+
+The GO timer uses a monotonic clock and a GUI event timer, independent of worker
+progress signals. It starts for an accepted build, includes cancellation cleanup,
+freezes on the terminal result/error, and resets on the next GO. It is not an ETA.
+The agent workflow is documented in AGENT_WORKFLOW.md without claiming unmeasured
+model accuracy or exposing private reasoning.
