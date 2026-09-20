@@ -89,10 +89,8 @@ class AgentProvider:
     #: harness can judge (0 PASS with thinking off, 4 PASS / 0 FAIL at low effort), and
     #: the same switch will occasionally spend the whole output budget reasoning.
     extra_body: Mapping[str, object] = field(default_factory=dict)
-    #: Used *instead of* :attr:`extra_body` for one re-ask inside the same turn when the
-    #: reply carries no text because the model stopped at its output budget: the entry's
-    #: own documented way of making it answer at all (DeepSeek: thinking off, ~10 s).
-    #: Empty means the entry has no such second setting and the turn fails honestly.
+    #: Legacy field retained for compatibility. The backend never uses it to lower
+    #: reasoning or switch providers; truncation recovery only grows a known budget.
     retry_body: Mapping[str, object] = field(default_factory=dict)
 
     @property

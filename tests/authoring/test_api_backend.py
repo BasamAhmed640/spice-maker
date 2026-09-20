@@ -300,33 +300,79 @@ def test_an_entry_without_a_switch_sends_none(tmp_path: Path) -> None:
     assert "thinking" not in body
 
 
-def test_an_empty_reply_at_the_budget_is_reasked_with_the_fallback_setting(
-    tmp_path: Path,
-) -> None:
-    """A model that thinks the whole budget away gets the entry's second setting.
-
-    This is the failure that actually ends a DeepSeek turn: the answer exists, but the
-    reply is empty at ``finish_reason='length'``. The entry declares the setting that
-    makes the model answer, so the turn is re-asked instead of lost.
-    """
-    deepseek = replace(provider("deepseek"), retry_body={"thinking": {"type": "disabled"}})
-    assert deepseek.retry_body, "the DeepSeek entry declares its fallback setting"
+@pytest.mark.parametrize(
+    "effort,budget", [("none", 32768), ("low", 65536), ("high", 65536), ("max", 131072)]
+)
+def test_truncation_recovers_without_changing_reasoning(tmp_path, effort, budget):
+    entry = replace(
+        provider("deepseek"),
+        extra_body={"thinking": {"type": "enabled"}, "reasoning_effort": effort},
+    )
     reply = json.dumps({"files": {f"model/{SUBCKT}.lib": LIB_TEXT}})
     transport = Sequenced(
         (200, openai_reply("", finish_reason="length")), (200, openai_reply(reply))
     )
     request = request_for(tmp_path)
+    result = backend_for(entry, transport).author(request)
+    assert result.ok, result.detail
+    first, second = [json.loads(r.body) for r in transport.requests]
+    assert first["max_tokens"] == budget
+    assert second["max_tokens"] == budget * 2
+    assert second["reasoning_effort"] == first["reasoning_effort"] == effort
+    assert first["thinking"] == second["thinking"]
+    assert first["model"] == second["model"]
+    assert result.usage["completion_tokens"] == 14
+    assert transport.requests[1].timeout_s <= transport.requests[0].timeout_s
+    assert (request.model_dir / f"{SUBCKT}.lib").read_text() == LIB_TEXT
 
-    result = backend_for(deepseek, transport).author(request)
 
-    assert result.ok is True, result.detail
-    assert (request.model_dir / f"{SUBCKT}.lib").read_text(encoding="utf-8") == LIB_TEXT
-    first = json.loads(transport.requests[0].body)
-    second = json.loads(transport.requests[1].body)
-    assert first["thinking"] == deepseek.extra_body["thinking"]
-    assert first["reasoning_effort"] == "max"
-    assert second["thinking"] == deepseek.retry_body["thinking"]
-    assert "reasoning_effort" not in second, "the fallback body replaces the entry's own"
+def test_explicit_cost_cap_is_preserved_on_truncation(tmp_path):
+    transport = Recorder(openai_reply("", finish_reason="length"))
+    result = backend_for(provider("deepseek"), transport, max_output_tokens=2048).author(
+        request_for(tmp_path)
+    )
+    assert not result.ok and "api_output_truncated" in result.detail
+    assert len(transport.requests) == 1
+    assert json.loads(transport.requests[0].body)["max_tokens"] == 2048
+
+
+@pytest.mark.parametrize("entry", [p for p in CATALOG if not p.uses_cli], ids=lambda p: p.id)
+@pytest.mark.parametrize("http_status", [200, 401, 403])
+def test_each_supported_http_key_route_handles_success_and_auth_errors(
+    tmp_path, entry, http_status
+):
+    files = json.dumps({"files": {f"model/{SUBCKT}.lib": LIB_TEXT}})
+    if entry.wire == "anthropic":
+        response = json.dumps(
+            {"content": [{"type": "text", "text": files}], "stop_reason": "end_turn"}
+        )
+    elif entry.wire == "google":
+        response = json.dumps(
+            {"candidates": [{"content": {"parts": [{"text": files}]}, "finishReason": "STOP"}]}
+        )
+    else:
+        response = openai_reply(files)
+    transport = Recorder(
+        response if http_status == 200 else '{"error":"invalid key"}', status=http_status
+    )
+    result = backend_for(entry, transport).author(request_for(tmp_path))
+    assert result.ok == (http_status == 200)
+    assert len(transport.requests) == 1
+    assert SECRET not in result.detail and SECRET not in result.stdout_tail
+    assert transport.requests[0].url.startswith(entry.endpoint)
+    if http_status != 200:
+        assert str(http_status) in result.detail
+        assert not written_files(tmp_path)
+
+
+def test_truncated_repair_cannot_write_even_parseable_files(tmp_path):
+    reply = json.dumps({"files": {f"model/{SUBCKT}.lib": LIB_TEXT}})
+    transport = Sequenced(
+        (200, openai_reply("broken")), (200, openai_reply(reply, finish_reason="length"))
+    )
+    result = backend_for(provider("openai"), transport).author(request_for(tmp_path))
+    assert not result.ok and "api_output_truncated" in result.detail
+    assert not written_files(tmp_path)
 
 
 def test_an_entry_without_a_fallback_reports_the_empty_reply(tmp_path: Path) -> None:
@@ -338,7 +384,7 @@ def test_an_entry_without_a_fallback_reports_the_empty_reply(tmp_path: Path) -> 
     result = backend_for(plain, transport).author(request_for(tmp_path))
 
     assert result.ok is False
-    assert "response_empty" in result.detail, result.detail
+    assert "api_output_truncated" in result.detail, result.detail
     assert "length" in result.detail, "the stop reason is named"
     assert len(transport.requests) == 1, "nothing else is sent"
 
@@ -522,9 +568,30 @@ def test_a_truncated_reply_is_reported_as_truncated_not_merely_malformed(
     ).author(request)
 
     assert result.ok is False
-    assert result.detail.startswith("api_reply_unparsed:")
+    assert result.detail.startswith("api_output_truncated:")
     assert "finish_reason='length'" in result.detail
     assert written_files(tmp_path) == []
+
+
+@pytest.mark.parametrize("text", ['{"requirements": []}', '{"requirements": ["unfinished'])
+def test_text_extraction_rejects_length_without_retry_or_partial_answer(tmp_path, text):
+    transport = Recorder(openai_reply(text, finish_reason="length"))
+    result = backend_for(provider("openai"), transport).author(
+        request_for(tmp_path, expect_text=True)
+    )
+    assert not result.ok
+    assert result.detail.startswith("api_output_truncated:")
+    assert result.stdout_tail == ""
+    assert result.usage["completion_tokens"] == 7
+    assert len(transport.requests) == 1
+
+
+def test_max_reasoning_default_has_room_for_reasoning_and_answer(tmp_path):
+    transport = Recorder(openai_reply("{}"))
+    backend_for(provider("deepseek"), transport).author(request_for(tmp_path, expect_text=True))
+    body = json.loads(transport.requests[0].body)
+    assert body["max_tokens"] == 131072
+    assert body["reasoning_effort"] == "max"
 
 
 def test_an_empty_answer_names_the_stop_reason(tmp_path: Path) -> None:
@@ -544,7 +611,7 @@ def test_an_empty_answer_names_the_stop_reason(tmp_path: Path) -> None:
     result = backend_for(provider("deepseek"), Recorder(reply)).author(request)
 
     assert result.ok is False
-    assert result.detail.startswith("api_request_failed: response_empty:")
+    assert result.detail.startswith("api_output_truncated:")
     assert "output-token limit (finish_reason='length')" in result.detail
     assert "api_reply_unparsed" not in result.detail, "a truncation is not a malformed reply"
     assert written_files(tmp_path) == []

@@ -465,3 +465,12 @@ with the existing OS credential and requested model preserved.
 - Root Install.exe matches the release ZIP and canonical setup; checksum verified.
   The pepper animation retains 90 frames. No paid API requests were made.
 - Agent roles and present LM358 qualification limits are documented in AGENT_WORKFLOW.md.
+
+
+## 1.1.5 LM358 correction — 2026-09-20
+
+Added the exact-datasheet reviewed profile, dual-op-amp DC/AC/transient probes, complex raw support, and op-amp follower export. Offline suites initially found a missing probe question and an outdated registry unit whitelist; both corrected. Final checks and package evidence are recorded below.
+
+Final local checks: `pytest -q -m "not ltspice and not network"`: 1106 passed, 4 skipped (git-ignored vendor originals). `ruff check .` and `ruff format --check .`: passed. Frozen GUI launch and animated package checks: passed; release ZIP and root Install.exe are identical. Shared simulator suite: 151 passed; the subsequently added exported-op-amp-example test also passed. Instrument-only tests use a labeled synthetic fixture, not claimed device data.
+
+Live selected-key LM358 source run at maximum thinking: 221.9 seconds, 32 nominal comparisons passed in real LTspice, 10 explicit coverage gaps. The initial 32,768-token failure was reproduced from the provider finish reason and usage. Offline key-route tests cover all ten HTTP provider entries, including authorization failures; these are not live certification of other accounts. Reasoning preservation/recovery covers none/low/high/max.

@@ -256,7 +256,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="output-token budget for one --backend api turn (default: the config file's "
-        "agent_max_tokens, else 32768 - reasoning models spend part of it before writing)",
+        "agent_max_tokens, else a model-aware default; reasoning shares this budget)",
     )
     model_build.add_argument(
         "--allow-remote", action="store_true", help="permit sending the datasheet to the provider"

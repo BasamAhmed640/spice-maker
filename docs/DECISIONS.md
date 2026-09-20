@@ -678,3 +678,12 @@ progress signals. It starts for an accepted build, includes cancellation cleanup
 freezes on the terminal result/error, and resets on the next GO. It is not an ETA.
 The agent workflow is documented in AGENT_WORKFLOW.md without claiming unmeasured
 model accuracy or exposing private reasoning.
+
+
+## LM358 qualification (1.1.5)
+
+Use a hash-bound reviewed extraction profile for the exact supplied LM358 datasheet, preserving explicit coverage gaps and rechecking citations. Qualify both the instruments and the generated model in LTspice; typical comparisons prevent idealized zero-offset/bias candidates passing maximum limits alone. Add native complex AC decoding and use it consistently when revalidating cached reports. See LM358_VALIDATION.md for scope.
+
+The observed Go response spent all 32,768 tokens on reasoning and ended with finish_reason=length. Maximum effort is preserved; the DeepSeek maximum-effort default is now 131,072 total output tokens, per https://api-docs.deepseek.com/api/create-chat-completion/. Explicit caller/config caps remain honored. Length-truncated text is never accepted as extraction, and is not retried unchanged as malformed JSON.
+
+Truncation recovery uses one larger request only for a documented model ceiling and automatic budgets. It preserves reasoning and provider, aggregates usage, and shares the original turn deadline. Explicit token/cost caps are never increased. The transport regression covers none/low/high/max and rejects truncated repair responses even when they parse as JSON.

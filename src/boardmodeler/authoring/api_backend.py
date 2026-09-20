@@ -213,6 +213,8 @@ def _reply_text(wire: str, payload: Mapping[str, Any]) -> tuple[str, str | None]
         stop = first.get("finish_reason") if isinstance(first, Mapping) else None
         reason = stop if isinstance(stop, str) and stop else None
         if not isinstance(content, str) or not content.strip():
+            if _limit_note(wire, reason):
+                return "", reason
             raise ProviderError(
                 "response_empty", _empty_reply_reason("openai", "the assistant message", reason)
             )
@@ -228,6 +230,8 @@ def _reply_text(wire: str, payload: Mapping[str, Any]) -> tuple[str, str | None]
         stop = payload.get("stop_reason")
         reason = stop if isinstance(stop, str) and stop else None
         if not joined.strip():
+            if _limit_note(wire, reason):
+                return "", reason
             raise ProviderError(
                 "response_empty", _empty_reply_reason("anthropic", "the response", reason)
             )
@@ -246,6 +250,8 @@ def _reply_text(wire: str, payload: Mapping[str, Any]) -> tuple[str, str | None]
         stop = first.get("finishReason") if isinstance(first, Mapping) else None
         reason = stop if isinstance(stop, str) and stop else None
         if not joined.strip():
+            if _limit_note(wire, reason):
+                return "", reason
             raise ProviderError(
                 "response_empty", _empty_reply_reason("google", "the candidate", reason)
             )
@@ -425,49 +431,48 @@ class ApiKeyBackend:
             prompt = f"{prompt.rstrip()}\n\n{REPLY_FORMAT_INSTRUCTION}"
         url, headers, body = self._shape(prompt, key=key)
         limit = self.timeout_s if timeout_s is None else float(timeout_s)
+        deadline = time.monotonic() + limit
         try:
             text, usage, stop = self._exchange(
                 url=url, headers=headers, body=body, key=key, cancel=cancel, timeout_s=limit
             )
-        except ProviderError as exc:
-            if exc.code == "cancelled":
-                return self._failed("cancelled: the API request was stopped before it completed")
-            # A model whose own switch is what let it answer can still spend the whole
-            # budget reasoning and return nothing. The entry declares the setting that
-            # turns that off, so re-ask once with it rather than losing the turn.
-            if exc.code == "response_empty" and self.provider.retry_body:
-                retry_url, retry_headers, retry_body = self._shape(
-                    prompt, key=key, extra_body=self.provider.retry_body
-                )
-                try:
-                    text, usage, stop = self._exchange(
-                        url=retry_url,
-                        headers=retry_headers,
+            # One adaptive retry only where a model ceiling is documented. Never
+            # override an explicit cost cap or change the requested reasoning mode.
+            ceiling = self._automatic_token_ceiling()
+            if _limit_note(self.provider.wire, stop) and self.max_output_tokens is None and ceiling:
+                token_key = "max_completion_tokens" if self.provider.reasoning else "max_tokens"
+                budget = int(body[token_key])
+                remaining = deadline - time.monotonic()
+                if budget < ceiling and remaining > 1:
+                    retry_body = {**body, token_key: min(ceiling, budget * 2)}
+                    text, more_usage, stop = self._exchange(
+                        url=url,
+                        headers=headers,
                         body=retry_body,
                         key=key,
                         cancel=cancel,
-                        timeout_s=limit,
+                        timeout_s=remaining,
                     )
-                except ProviderError as again:
-                    return self._failed(
-                        redact(
-                            f"api_request_failed: {exc.code}: {exc.detail}; the retry with "
-                            f"the provider's fallback setting failed: {again.code}: {again.detail}",
-                            [key],
-                        )
-                    )
-                except Exception as again:  # a transport that raises is still recorded
-                    return self._failed(
-                        redact(
-                            f"api_request_failed: {exc.code}: {exc.detail}; the retry with "
-                            f"the provider's fallback setting failed: {type(again).__name__}: {again}",
-                            [key],
-                        )
-                    )
-            else:
-                return self._failed(redact(f"api_request_failed: {exc.code}: {exc.detail}", [key]))
-        except Exception as exc:  # a transport that raises is still a recorded failure
+                    usage = {
+                        name: usage.get(name, 0) + more_usage.get(name, 0)
+                        for name in set(usage) | set(more_usage)
+                    }
+        except ProviderError as exc:
+            if exc.code == "cancelled":
+                return self._failed("cancelled: the API request was stopped before it completed")
+            return self._failed(redact(f"api_request_failed: {exc.code}: {exc.detail}", [key]))
+        except Exception as exc:
             return self._failed(redact(f"api_request_failed: {type(exc).__name__}: {exc}", [key]))
+        if stop in {"length", "max_tokens", "MAX_TOKENS"}:
+            return AuthorResult(
+                ok=False,
+                detail="api_output_truncated: the provider exhausted its answer/reasoning budget; "
+                "no partial response was accepted. Increase agent_max_tokens in configuration or "
+                "use --max-tokens." + _truncation_note(self.provider.wire, stop),
+                usage=usage,
+                stdout_tail="",
+                session_id=None,
+            )
         if request.expect_text:
             return AuthorResult(
                 ok=True,
@@ -496,14 +501,18 @@ class ApiKeyBackend:
                     body=retry_body,
                     key=key,
                     cancel=cancel,
-                    timeout_s=limit,
+                    timeout_s=max(0.001, deadline - time.monotonic()),
                 )
             except ProviderError as exc:
                 problem = f"{problem}; the retry failed: {exc.code}"
             except Exception as exc:
                 problem = f"{problem}; the retry failed: {type(exc).__name__}"
             else:
-                retried, retried_problem = parse_files_reply(again_text)
+                retried, retried_problem = (
+                    (None, "api_output_truncated")
+                    if _limit_note(self.provider.wire, again_stop)
+                    else parse_files_reply(again_text)
+                )
                 usage = {
                     name: usage.get(name, 0.0) + again_usage.get(name, 0.0)
                     for name in set(usage) | set(again_usage)
@@ -580,7 +589,25 @@ class ApiKeyBackend:
         return str(self.model or self.provider.model or "").strip()
 
     def _max_tokens(self) -> int:
-        return self.max_output_tokens or MAX_OUTPUT_TOKENS
+        if self.max_output_tokens is not None:
+            return self.max_output_tokens
+        # The provider counts reasoning inside this budget. Its documented default
+        # for maximum effort is 128K; 32K can end before the first answer token.
+        # https://api-docs.deepseek.com/api/create-chat-completion/
+        if self._automatic_token_ceiling() is not None:
+            effort = self.provider.extra_body.get("reasoning_effort")
+            if effort == "max":
+                return 131072
+            if effort in ("low", "high"):
+                return 65536
+        return MAX_OUTPUT_TOKENS
+
+    def _automatic_token_ceiling(self) -> int | None:
+        """Only models whose output ceiling is documented may grow automatically."""
+        model = self._model().lower().rsplit("/", 1)[-1]
+        if model in {"deepseek-flash", "deepseek-pro"} or model.startswith("deepseek-v4"):
+            return 393216
+        return None
 
     def _shape(
         self, prompt: str, *, key: str, extra_body: Mapping[str, object] | None = None
