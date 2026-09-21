@@ -1,3 +1,12 @@
+# 1.3.0 installer verification complete
+
+Installer run 35572961840 and source CI 35572962215 passed for `2da3893c25f5472b6d9efd776c95ae8c265d444a`.
+The actual installer passed GUI startup, first-launch setup, same-folder data preservation
+and fresh-copy isolation on GitHub Windows. Source, window and splash versions are 1.3.0.
+Install.exe is tracked directly for Code > Download ZIP. See BUILD_VERIFICATION.json
+for source provenance and installer hash. No live provider or broad device-accuracy
+claim is established by these checks.
+
 ## 2026-09-21 — 1.3.0 source ready for installer verification
 
 Fixed behavioral-source repair scope (including nested subcircuits, forward current
