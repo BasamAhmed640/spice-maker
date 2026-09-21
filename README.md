@@ -1,6 +1,7 @@
 # Spice Maker
 
-**Installer update pending:** Windows Application Control blocked the new 1.1.10 application on the verification machine. Source now uses an encrypted local key file and a quick key check. Code → Download ZIP retains the last verified **1.1.8 installer**, which does not include these changes. No security policy was changed.
+**1.1.11** processes only the selected PDF when a model folder is reused and shows live batch progress. The installer splash and app title display the same version. [What changed and what was verified](docs/EXTRACTION_PROGRESS.md).
+
 
 **SAVE & CHECK KEY** now verifies a newly saved key in the background, with a 15-second wait and clear verified/rejected/unverified results. [Credential safety and check details](docs/API_KEY_CHECK.md).
 
@@ -19,7 +20,7 @@ final duration. See [what the agents and simulator do](docs/AGENT_WORKFLOW.md).
 selected. Extract the ZIP, open the extracted repository folder, and double-click
 **Install.exe** beside this README. The installer is included in the ZIP.
 
-The included v1.1.8 installer fixes the QtWidgets startup crash and keeps the animated
+The included v1.1.11 installer fixes the QtWidgets startup crash and keeps the animated
 pepper setup. Python is bundled; LTspice and, when using IBM Bob, Bob Shell are separate
 prerequisites. See INSTALL.txt for instructions and SHA256SUMS.txt for the installer hash.
 
@@ -89,7 +90,7 @@ setup. The same folder contains INSTALL.txt and SHA256SUMS.txt.
 Open SETUP once to select LTspice and save your API key. Python is bundled; LTspice and,
 when using Bob, Bob Shell must be installed separately. This installer is unsigned.
 
-To rebuild, run `installer\build.ps1 -Version 1.1.10`; see
+To rebuild, run `installer\build.ps1 -Version 1.1.11`; see
 [installer details](installer/README.md). The build refreshes the root installer,
 instructions and checksum so committing those files updates Code → Download ZIP.
 
