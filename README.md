@@ -1,5 +1,7 @@
 # Spice Maker
 
+**1.3.0: quick structural checks are now the GUI default.** No AI test-circuit planning or simulation runs before delivery. Electrical accuracy remains explicitly unverified. Enable **Full simulation verification (slower)** in SETUP, or use **Run full verification** after a quick build. [Modes and limitations](docs/QUICK_MODE.md).
+
 **1.2.1 fixes streamed API completion and shows received-data progress.** [API fix and measured checks](docs/API_STREAM_PROGRESS.md).
 
 **This build is portable.** Extract the GitHub **Code > Download ZIP** archive and run
@@ -27,13 +29,11 @@ final duration. See [what the agents and simulator do](docs/AGENT_WORKFLOW.md).
 selected. Extract the ZIP, open the extracted repository folder, and double-click
 **Install.exe** beside this README. The installer is included in the ZIP.
 
-The included v1.2.1 installer fixes the QtWidgets startup crash and keeps the animated
+The included v1.3.0 installer fixes the QtWidgets startup crash and keeps the animated
 pepper setup. Python is bundled; LTspice and, when using IBM Bob, Bob Shell are separate
 prerequisites. See INSTALL.txt for instructions and SHA256SUMS.txt for the installer hash.
 
-**Give it a datasheet and a part number; agents author an LTspice model; real simulator
-runs judge it against the datasheet's own rows; you get a `.lib`, a symbol and a card
-saying exactly what was tested.** That is the product. Everything below the fold is
+**Give it a datasheet and a part number; an agent authors an LTspice model. The GUI now defaults to local structural checks. Full simulation verification is optional. You get a `.lib`, a symbol and a card that states what was checked and what remains unverified.** That is the product. Everything below the fold is
 supporting machinery, and the board/circuit/UI layers date from an earlier, wider spec.
 
 ```powershell
