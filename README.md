@@ -1,6 +1,11 @@
 # Spice Maker
 
-**1.1.11** processes only the selected PDF when a model folder is reused and shows live batch progress. The installer splash and app title display the same version. [What changed and what was verified](docs/EXTRACTION_PROGRESS.md).
+**1.2.0 is portable.** Extract the GitHub **Code > Download ZIP** archive and run
+**Install.exe** inside it. The animated installer puts the app in `app/` in that same
+folder. Open `Start.cmd` next time. First launch asks you to choose LTspice and a model
+folder inside this extracted folder, and enter your key. It never restores settings
+or keys from an older installation. [Storage and fresh-start instructions](docs/PORTABLE_STORAGE.md).
+
 
 
 **SAVE & CHECK KEY** now verifies a newly saved key in the background, with a 15-second wait and clear verified/rejected/unverified results. [Credential safety and check details](docs/API_KEY_CHECK.md).
@@ -20,7 +25,7 @@ final duration. See [what the agents and simulator do](docs/AGENT_WORKFLOW.md).
 selected. Extract the ZIP, open the extracted repository folder, and double-click
 **Install.exe** beside this README. The installer is included in the ZIP.
 
-The included v1.1.11 installer fixes the QtWidgets startup crash and keeps the animated
+The included v1.2.0 installer fixes the QtWidgets startup crash and keeps the animated
 pepper setup. Python is bundled; LTspice and, when using IBM Bob, Bob Shell are separate
 prerequisites. See INSTALL.txt for instructions and SHA256SUMS.txt for the installer hash.
 
@@ -48,12 +53,11 @@ the default provider and needs Bob Shell installed
 bob.ibm.com → API keys with **Scope = Inference** (an *Inference* key needs no team id; a
 *general* key does). The same row also takes a plain vendor key from OpenAI, Anthropic, Google,
 DeepSeek, OpenRouter, xAI, Groq, Mistral or OpenCode Zen or OpenCode Go, and those run over HTTP with no
-CLI and no extra install. Only the selected key is kept in a local file encrypted for your Windows user — never to a config file, a project
-directory, a manifest or a log line. Setup is one page and holds only what persists: the LTspice
+CLI and no extra install. Only the selected key is kept in a local file encrypted for your Windows user — never to a config file, a manifest or a log line; its ciphertext lives in `data/credentials.bin`. Setup is one page and holds only what persists: the LTspice
 path (with a smoke test), the agent provider and key, the model id when the provider takes one,
 the folder finished models go to, the read-only LTspice user library path, and the
 web-reinforcement switch. Installing a finished model is always the window's **Install into
-LTspice** action, which copies into the per-user library. The main window holds nothing but the
+LTspice** action, which copies into this folder's `library/`; add its `sym` and `sub` folders to LTspice's search paths once. The main window holds nothing but the
 part number, the datasheet, the save location, **GO** and the progress detail. Without an agent
 the run stops immediately with `BLOCKED` naming what is missing — it never substitutes another
 provider. The selected key now handles extraction and authoring. Four extraction tasks
