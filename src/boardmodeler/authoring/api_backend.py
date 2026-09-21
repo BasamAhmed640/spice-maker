@@ -480,7 +480,13 @@ class ApiKeyBackend:
         deadline = time.monotonic() + limit
         try:
             text, usage, stop = self._exchange(
-                url=url, headers=headers, body=body, key=key, cancel=cancel, timeout_s=limit
+                url=url,
+                headers=headers,
+                body=body,
+                key=key,
+                cancel=cancel,
+                timeout_s=limit,
+                progress=request.progress,
             )
             # One adaptive retry only where a model ceiling is documented. Never
             # override an explicit cost cap or change the requested reasoning mode.
@@ -498,6 +504,7 @@ class ApiKeyBackend:
                         key=key,
                         cancel=cancel,
                         timeout_s=remaining,
+                        progress=request.progress,
                     )
                     usage = {
                         name: usage.get(name, 0) + more_usage.get(name, 0)
@@ -548,6 +555,7 @@ class ApiKeyBackend:
                     key=key,
                     cancel=cancel,
                     timeout_s=max(0.001, deadline - time.monotonic()),
+                    progress=request.progress,
                 )
             except ProviderError as exc:
                 problem = f"{problem}; the retry failed: {exc.code}"
@@ -718,6 +726,7 @@ class ApiKeyBackend:
         key: str,
         cancel: threading.Event | None,
         timeout_s: float,
+        progress=None,
     ) -> tuple[str, dict[str, float], str | None]:
         """One turn as ``(assistant text, usage, stop reason)``.
 
@@ -727,7 +736,13 @@ class ApiKeyBackend:
         the provider's own stop reason.
         """
         payload = self._post_json(
-            url=url, headers=headers, body=body, key=key, cancel=cancel, timeout_s=timeout_s
+            url=url,
+            headers=headers,
+            body=body,
+            key=key,
+            cancel=cancel,
+            timeout_s=timeout_s,
+            progress=progress,
         )
         usage = (
             payload.get("usageMetadata") if self.provider.wire == "google" else payload.get("usage")
@@ -744,6 +759,7 @@ class ApiKeyBackend:
         key: str,
         cancel: threading.Event | None,
         timeout_s: float,
+        progress=None,
     ) -> dict[str, Any]:
         """POST one JSON body with the same retry policy as the shared path.
 
@@ -773,7 +789,7 @@ class ApiKeyBackend:
                 headers={
                     **headers,
                     "Content-Type": "application/json",
-                    "Accept": "application/json",
+                    "Accept": "text/event-stream" if body.get("stream") else "application/json",
                     "User-Agent": "SpiceMaker/1.1.3",
                     **(
                         {self.provider.session_header: self.session_id}
@@ -783,7 +799,10 @@ class ApiKeyBackend:
                 },
                 body=encoded,
                 timeout_s=min(timeout_s, remaining),
+                progress=progress,
             )
+            if progress:
+                progress(f"API HTTP attempt {attempts}/{total_attempts}: connecting")
             response: HttpResponse | None = None
             try:
                 response = self.transport(request)

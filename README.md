@@ -1,6 +1,8 @@
 # Spice Maker
 
-**1.2.0 is portable.** Extract the GitHub **Code > Download ZIP** archive and run
+**1.2.1 fixes streamed API completion and shows received-data progress.** [API fix and measured checks](docs/API_STREAM_PROGRESS.md).
+
+**This build is portable.** Extract the GitHub **Code > Download ZIP** archive and run
 **Install.exe** inside it. The animated installer puts the app in `app/` in that same
 folder. Open `Start.cmd` next time. First launch asks you to choose LTspice and a model
 folder inside this extracted folder, and enter your key. It never restores settings
@@ -25,7 +27,7 @@ final duration. See [what the agents and simulator do](docs/AGENT_WORKFLOW.md).
 selected. Extract the ZIP, open the extracted repository folder, and double-click
 **Install.exe** beside this README. The installer is included in the ZIP.
 
-The included v1.2.0 installer fixes the QtWidgets startup crash and keeps the animated
+The included v1.2.1 installer fixes the QtWidgets startup crash and keeps the animated
 pepper setup. Python is bundled; LTspice and, when using IBM Bob, Bob Shell are separate
 prerequisites. See INSTALL.txt for instructions and SHA256SUMS.txt for the installer hash.
 
