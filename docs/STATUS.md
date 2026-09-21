@@ -599,3 +599,22 @@ or Windows security policy were changed.
   (Application Control). No policy was bypassed or changed. The repository keeps
   its last verified 1.1.8 installer; the privacy changes currently require source
   or a future approved binary release. The existing desktop app is still 1.1.8.
+
+
+## 2026-09-20 — selected datasheet isolation and visible progress (1.1.11)
+
+The UCC28251 run reused a folder containing LM358 and oscillator documents. The
+model extraction path accidentally selected all three: 93 electrical pages and
+18 initial batches. Explicit document selection now limits this run to UCC28251:
+45 electrical pages and 9 batches, preserving manufacturing-appendix accounting.
+No API calls were made for this before/after planning check.
+
+Progress reports completed/total batches, active requests, retries and elapsed
+time every five seconds. Failed work is not counted as completed. Tests cover
+reused-folder isolation, cache independence and progress during a blocked request.
+Source, package and splash version must match; the window title shows 1.1.11.
+
+General tests: 1,186 passed / 4 skipped. Bob tests: 1,076 passed / 8 skipped.
+Ruff passed. Both local frozen GUI launch checks passed. Local Application Control
+blocked the packaging tool; a manual GitHub Windows packaging workflow now builds
+the same source with no local policy changes and records artifact hashes.
