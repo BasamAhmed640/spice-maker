@@ -470,3 +470,140 @@ def test_saving_a_browsed_path_makes_it_the_configured_one(
 
     assert json.loads(isolated_config.read_text(encoding="utf-8"))["ltspice"]["path"] == str(exe)
     assert "saved configuration" in page.ltspice_status.text().lower()
+
+
+# --------------------------------------------------------------------------- #
+# What BROWSE hands the file dialog: a folder, never the file it must pick.
+#
+# Qt's third argument is the starting *directory*. Handed a path that is not an existing
+# directory — the LTspice.exe itself, or an install that has since been removed — the
+# native dialog chooses a place of its own: in practice the process's current drive root,
+# "Look in: C:\\", listing C:\\ where nothing is selectable, so Open cannot succeed.
+# That is the reported bug, so every case below asserts on that argument.
+
+
+def _record_dir(monkeypatch, seen: list[str]) -> None:
+    """Stand in for both static dialogs, recording the starting directory each is given."""
+
+    def record_dir(parent, caption, directory, *rest):
+        seen.append(directory)
+        return ""
+
+    monkeypatch.setattr("boardmodeler.ui.setup_dialog.QFileDialog.getExistingDirectory", record_dir)
+
+
+def test_browse_starts_in_the_folder_that_holds_the_configured_exe(
+    qtbot, isolated_config: Path, monkeypatch, tmp_path: Path
+) -> None:
+    """The user's case: the field holds a full path to LTspice.exe that is there."""
+    monkeypatch.delenv("LTSPICE_EXE", raising=False)
+    exe = tmp_path / "Programs" / "ADI" / "LTspice" / "LTspice.exe"
+    exe.parent.mkdir(parents=True)
+    exe.write_bytes(b"test fixture")
+    seen: list[str] = []
+
+    def record_open(parent, caption, directory, filter):
+        seen.append(directory)
+        return "", ""
+
+    monkeypatch.setattr("boardmodeler.ui.setup_dialog.QFileDialog.getOpenFileName", record_open)
+
+    page = _page(qtbot)
+    page.ltspice_edit.setText(str(exe))
+    page.browse_ltspice_button.click()
+
+    assert seen == [str(exe.parent)], "the folder holding the exe, never the exe itself"
+    assert Path(seen[0]).is_dir()
+
+
+def test_browse_starts_somewhere_usable_when_the_exe_is_gone(
+    qtbot, isolated_config: Path, monkeypatch, tmp_path: Path
+) -> None:
+    """An uninstalled LTspice leaves a path behind: the dialog must not open at C:\\ for it."""
+    monkeypatch.delenv("LTSPICE_EXE", raising=False)
+    gone = tmp_path / "programs" / "ADI" / "LTspice" / "LTspice.exe"
+    seen: list[str] = []
+
+    def record_open(parent, caption, directory, filter):
+        seen.append(directory)
+        return "", ""
+
+    monkeypatch.setattr("boardmodeler.ui.setup_dialog.QFileDialog.getOpenFileName", record_open)
+
+    page = _page(qtbot)
+    page.ltspice_edit.setText(str(gone))
+    page.browse_ltspice_button.click()
+
+    assert seen == [str(Path.home())], "nowhere better than home for a path that is gone"
+    assert Path(seen[0]).is_dir()
+    assert seen[0] != Path(seen[0]).anchor, "never the drive root the user reported"
+
+
+def test_browse_always_hands_the_dialog_a_folder(
+    qtbot, isolated_config: Path, monkeypatch, tmp_path: Path
+) -> None:
+    """Every shape the LTspice field can hold: empty, a folder, a file, a stale path."""
+    monkeypatch.delenv("LTSPICE_EXE", raising=False)
+    exe = tmp_path / "ADI" / "LTspice" / "LTspice.exe"
+    exe.parent.mkdir(parents=True)
+    exe.write_bytes(b"test fixture")
+    empty_folder = tmp_path / "models"
+    empty_folder.mkdir()
+    stale = tmp_path / "LTspice.exe"  # the folder survives, the exe does not
+    gone = tmp_path / "gone" / "LTspice.exe"  # nothing of that path is left
+    passed: list[str] = []
+
+    def record_open(parent, caption, directory, filter):
+        passed.append(directory)
+        return "", ""
+
+    monkeypatch.setattr("boardmodeler.ui.setup_dialog.QFileDialog.getOpenFileName", record_open)
+    page = _page(qtbot)
+
+    cases = [
+        ("", str(Path.home())),
+        ("   ", str(Path.home())),
+        (str(exe), str(exe.parent)),
+        (f"  {exe}  ", str(exe.parent)),
+        (str(exe.parent), str(exe.parent)),
+        (str(exe.parent) + os.sep, str(exe.parent)),
+        (str(stale), str(tmp_path)),
+        (str(gone), str(Path.home())),  # nowhere on that path exists, so: home
+    ]
+    for value, expected in cases:
+        page.ltspice_edit.setText(value)
+        page.browse_ltspice_button.click()
+        assert passed[-1] == expected, f"{value!r} must start in {expected!r}"
+        assert Path(passed[-1]).is_dir(), f"{value!r} must start in a folder that exists"
+        assert passed[-1] != Path(passed[-1]).anchor, f"{value!r} must not start at a drive root"
+
+
+def test_choosing_a_model_folder_hands_the_dialog_a_folder_too(
+    qtbot, isolated_config: Path, monkeypatch, tmp_path: Path
+) -> None:
+    """The model folder can be stale or clear as well; same rule, same argument."""
+    folder = tmp_path / "models"
+    folder.mkdir()
+    stale = tmp_path / "models-old"
+    gone = tmp_path / "deleted" / "models"
+    seen: list[str] = []
+    _record_dir(monkeypatch, seen)
+
+    page = _page(qtbot)
+
+    page.model_dir_edit.setText(str(folder))
+    page._choose_model_dir()
+    assert seen == [str(folder)], "a folder opens at itself"
+
+    page.model_dir_edit.setText(str(stale))
+    page._choose_model_dir()
+    assert seen[-1] == str(tmp_path), "a stale folder opens at the one that survives"
+
+    page.model_dir_edit.setText(str(gone))
+    page._choose_model_dir()
+    assert seen[-1] == str(Path.home()), "a path with nothing left opens at home"
+
+    page.model_dir_edit.setText("")
+    page._choose_model_dir()
+    assert seen[-1] == str(Path.home()), "an empty field opens at home"
+    assert all(Path(directory).is_dir() for directory in seen)
