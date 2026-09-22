@@ -1,4 +1,4 @@
-# Portable storage in 1.3.0
+# Portable storage in 1.4.0
 
 The folder extracted from GitHub is the storage boundary for this copy:
 

@@ -1,8 +1,10 @@
-# 1.3.0 installer verification complete
+# 1.4.0 source; 1.3.0 installer verification complete
 
 Installer run 35572961840 and source CI 35572962215 passed for `2da3893c25f5472b6d9efd776c95ae8c265d444a`.
 The actual installer passed GUI startup, first-launch setup, same-folder data preservation
-and fresh-copy isolation on GitHub Windows. Source, window and splash versions are 1.3.0.
+and fresh-copy isolation on GitHub Windows. That verified installer and its window/splash
+strings are 1.3.0; the source tree is now 1.4.0 (see the entry below) and a fresh installer
+verification must pass on it before publication.
 Install.exe is tracked directly for Code > Download ZIP. See BUILD_VERIFICATION.json
 for source provenance and installer hash. No live provider or broad device-accuracy
 claim is established by these checks.

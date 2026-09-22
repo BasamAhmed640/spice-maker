@@ -1,5 +1,9 @@
 # Spice Maker
 
+**1.4.0: a model build no longer fails on its own clock.** A full-mode build used to fund its retries from what was left of one turn deadline, so a slow reasoning-class model left its own retry seconds to run in and that clock failure was published as the model's verdict. A retry now requires a viable budget, budget exhaustion is its own reported condition, and the supporting-material search declines immediately rather than spending an allowance it cannot use. Measured on the same datasheet and provider: cold 2828.7 s with 4 PASS rows, warm 1559.1 s with 34 PASS rows, 4 extraction cache hits, the model published both times. The published status is still `UNKNOWN` — the honest label for a partly verified model, because 34 simulator-observed PASS rows out of the testable set is not measured accuracy. [Defect remediation](docs/STATUS.md).
+
+The rest of 1.4.0 is containment and usability. Credentials are a plain local file in this folder (`data/credentials.json`) with no DPAPI, no registry entry and no Credential Manager entry — **weaker at rest than what it replaced**, because anyone who can read the folder can read the key. LTspice is configured, never searched: first launch does not probe install locations, and discovery runs only on SETUP's FIND or `doctor --find-ltspice`. Outbound inference is pinned to the selected provider's documented host and refused before any request is sent, and the supporting-material search reads only the part vendor's sites and gives up immediately with a stated reason. The model window and SETUP are resizable, the doctor report is a scrollable view showing the whole report (it used to reach only its last 4000 characters), and an hourglass beside the timer animates only while a build runs. The installer provisions a real in-folder `.venv` from vendored wheels with no network access at install time, writes `Start.cmd`, `Boardmodeler.cmd` and a folder-local shortcut, and leaves an existing copy of the app untouched; that `.venv` has no Qt, so window-opening commands (`ui`, `setup`) go through `app\SpiceMaker.exe`. [Storage and fresh-start instructions](docs/PORTABLE_STORAGE.md).
+
 **1.3.0: quick structural checks are now the GUI default.** Quick mode skips AI test-circuit planning and uses structural checks plus a five-second unpowered LTspice load when available. Electrical accuracy remains explicitly unverified. Enable **Full simulation verification (slower)** in SETUP, or use **Run full verification** after a quick build. [Modes and limitations](docs/QUICK_MODE.md).
 
 **1.2.1 fixes streamed API completion and shows received-data progress.** [API fix and measured checks](docs/API_STREAM_PROGRESS.md).
@@ -29,9 +33,10 @@ final duration. See [what the agents and simulator do](docs/AGENT_WORKFLOW.md).
 selected. Extract the ZIP, open the extracted repository folder, and double-click
 **Install.exe** beside this README. The installer is included in the ZIP.
 
-The included v1.3.0 installer fixes the QtWidgets startup crash and keeps the animated
-pepper setup. Python is bundled; LTspice and, when using IBM Bob, Bob Shell are separate
-prerequisites. See INSTALL.txt for instructions and SHA256SUMS.txt for the installer hash.
+The tracked **Install.exe** is still stamped 1.3.0 — it fixes the QtWidgets startup crash
+and keeps the animated pepper setup — while the source tree is 1.4.0. A 1.4.0 installer
+rebuild is pending, so the installer in this ZIP is the verified 1.3.0 build. Python is
+bundled; LTspice and, when using IBM Bob, Bob Shell are separate prerequisites. See INSTALL.txt for instructions and SHA256SUMS.txt for the installer hash.
 
 **Give it a datasheet and a part number; an agent authors an LTspice model. The GUI now defaults to local structural checks. Full simulation verification is optional. You get a `.lib`, a symbol and a card that states what was checked and what remains unverified.** That is the product. Everything below the fold is
 supporting machinery, and the board/circuit/UI layers date from an earlier, wider spec.
@@ -99,7 +104,7 @@ setup. The same folder contains INSTALL.txt and SHA256SUMS.txt.
 Open SETUP once to select LTspice and save your API key. Python is bundled; LTspice and,
 when using Bob, Bob Shell must be installed separately. This installer is unsigned.
 
-To rebuild, run `installer\build.ps1 -Version 1.1.11`; see
+To rebuild, run `installer\build.ps1 -Version 1.4.0`; see
 [installer details](installer/README.md). The build refreshes the root installer,
 instructions and checksum so committing those files updates Code → Download ZIP.
 
