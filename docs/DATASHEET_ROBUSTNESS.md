@@ -43,6 +43,24 @@ necessary before relying on a model in a hardware design. The five-device diagno
 matrix is deliberately kept separate from unit tests; passing software tests alone
 does not certify any generated device model.
 
+## Remote egress
+
+Two destinations are possible and both are narrow. Inference may reach only the host the
+selected provider's catalog entry documents: an endpoint whose host is not that exact
+host is refused before the transport is invoked, with a reason naming the expected host,
+and it is never retried. Scheme, port, case and a trailing root dot are ignored; a
+lookalike domain (`api.deepseek.com.evil.test`, `evilapi.deepseek.com`) is a different
+host and is refused. This is separate from `--allow-remote`, which decides whether the
+datasheet may be sent at all.
+
+The optional web reinforcement stage may fetch only hosts that belong to the part's own
+vendor: the datasheet provenance the project already recorded (document records under
+`docs/`, `vendor-io` attribution manifests, plus any vendor URL the caller knows) and the
+catalog's documented vendor hosts. A candidate outside that set is recorded as an
+unverified claim with a `vendor_refused:` reason and is never fetched, and when no
+candidate is on the vendor's sites the stage finishes immediately as
+`no_vendor_source_found` instead of spending its search budget.
+
 ## Verification
 
 Regression coverage includes streamed-response completion and deadlines, compound

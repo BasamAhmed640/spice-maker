@@ -1,6 +1,7 @@
 # Saving and checking a key
 
-SETUP's **SAVE & CHECK KEY** stores the entered key in an encrypted local file,
+SETUP's **SAVE & CHECK KEY** stores the entered key in a local file inside this folder's
+data directory,
 clears the password field, and starts a background connection check. The window
 stays responsive and stops waiting after 15 seconds. Closing SETUP or changing
 provider discards the old check's result.
@@ -27,20 +28,22 @@ license must first be accepted by the user. An Inference API key avoids needing
 the additional team ID required by General keys. The check never accepts the
 license automatically and never puts the key in command arguments.
 
-One key per edition is saved in `%LOCALAPPDATA%\SpiceMakerData\credentials.bin`
-or `%LOCALAPPDATA%\SpiceMakerBobData\credentials.bin`. Windows current-user DPAPI
-encrypts it. These data folders sit outside the installer-managed application folders,
-so installing an update does not delete the saved key. The app never uses Windows Credential Manager or a plaintext fallback.
-Saving another provider replaces the earlier key. Only the format version, provider
-identifier and key are inside the encrypted payload. The encryption context differs
-between editions; it is not a secret or an app-exclusive security boundary.
+One key per edition is saved in the extracted folder's own `data/credentials.json`
+(Bob edition: `data/credentials.bob.json`) as ordinary local JSON holding only the format
+version, provider identifier and key. Nothing is bound to Windows: no DPAPI ciphertext,
+no registry entry, no Credential Manager entry and no user-profile location, and no
+configuration or credential is ever written outside this folder. The file is not
+encrypted; anyone who can read the folder can read the key, so keep the copy private.
+Saving another provider replaces the earlier key. Because updates replace `app/` only,
+the saved key survives them.
 
 Keys never belong in settings JSON, model output, the repository, installer or ZIP.
-An update on the same computer can reuse its local encrypted file; a download on
-another computer has no key. Copying the file is not a supported transfer method.
-Programs running as the same Windows user can potentially decrypt it, so keep the
-Windows account and device protected. There is no recovery password or cloud backup
-managed by this app. To forget the saved key, close the app and delete credentials.bin.
+An update on the same computer reuses its local file; a fresh download on another
+computer has no key. Copying the whole extracted folder carries the key with it.
+Programs or users that can read the folder can read the file, so keep the device and
+the folder protected. There is no recovery password or cloud backup
+managed by this app. To forget the saved key, close the app and delete the credential
+file (`data/credentials.json`).
 
 Settings JSON stores the configuration version and non-default preferences only.
 Model files, extracted datasheet evidence and simulation results remain in the
@@ -52,7 +55,6 @@ redirects. The setup UI shows fixed diagnostic messages rather than provider res
 bodies or exception strings that could echo a secret. No Windows security policy
 needs to be disabled for credential checking.
 
-References: [Windows current-user encryption](https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata),
-[IBM Bob API keys](https://bob.ibm.com/docs/ide/account/api-keys),
+References: [IBM Bob API keys](https://bob.ibm.com/docs/ide/account/api-keys),
 [Bob non-interactive sessions](https://bob.ibm.com/docs/shell/getting-started/start-bobshell-non-interactive),
 [Bob settings and optional telemetry](https://bob.ibm.com/docs/shell/configuration/configuring).

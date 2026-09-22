@@ -734,6 +734,9 @@ Defaults are omitted from settings JSON; model evidence and caches remain separa
 Existing vault entries require explicit user-authorized migration/removal; the app
 does not enumerate or delete a user's other saved credentials.
 
+**Superseded by:** D-022 (credentials are a plain local file in the extracted
+folder, 2026-09-21).
+
 
 ## 2026-09-20 — scope extraction to the selected datasheet
 
@@ -775,3 +778,135 @@ electrical PASS. Full electrical verification remains optional.
 Repairing a behavioral source must update current references only in that source's
 own subcircuit, preserving unrelated circuits and original evidence. The sanity
 receipt version changes so candidates from the earlier repair logic are not reused.
+
+
+## D-021 — Per-turn authoring budget: a retry needs a viable budget (2026-09-21)
+
+One authoring turn is bounded by one caller budget, but the attempts inside it do
+not get whatever is left over. A retry is started only with at least
+`MIN_ATTEMPT_S` (30 s) remaining; attempt one is gated only on having time, so a
+caller's own small `timeout_s` is honoured as given. A turn that cannot afford a
+retry keeps the reason it actually observed — a truncated or unparseable reply —
+and budget exhaustion is raised as its own condition (`deadline_exhausted`), never
+as `timeout`. The recorded UCC28251 residual was 24.1999 s, and the previous
+`timeout_s=max(0.001, remaining)` made a doomed retry read as a model verdict. A
+token-ceiling retry is slower than the attempt that already ran, so it needs a real
+budget behind it, not a remainder.
+
+Rejected: funding retries from the remainder; reporting a clock failure as a model
+outcome; raising `MAX_OUTPUT_TOKENS` without measurement (it stays 32768).
+Evidence: `authoring/api_backend.py`; the regression test fails on `HEAD` and
+passes on the fix; focused authoring/egress/credential tests 228 passed, 1 skipped.
+
+
+## D-022 — Credentials are a plain local file inside the extracted folder (2026-09-21)
+
+One selected key is stored per edition as `data/credentials.json` (Bob:
+`credentials.bob.json`) through `storage.state_file()`, which refuses any name
+that could land outside the copy. No DPAPI, no Credential Manager, no registry, no
+user-profile location and no machine-held key; explicit environment variables
+remain for automation. **Tradeoff, stated to the user:** this is weaker at rest
+than DPAPI — the file is protected only by the folder, so anyone who can read the
+folder can read the key. SETUP and every provider entry say "plain local file (not
+encrypted)" rather than implying encryption.
+
+Rejected: DPAPI or a credential vault (defect 3 requires no Windows keys ever), a
+machine-wide key, and a plaintext fallback that is not disclosed.
+Evidence: `security/credentials.py`, `storage.py`,
+`tests/security/test_credentials.py`, `tests/test_portable_storage.py`.
+
+
+## D-023 — LTspice is configured, never searched at startup (2026-09-21)
+
+`locate()`/`locate_outcome()` read only an explicit setting — the saved
+configuration, `LTSPICE_EXE`, or the argument the caller passed — and otherwise
+report `reason="unset"` without touching an install directory. Well-known install
+locations are probed by `discover()` only when the user explicitly asks, which in
+the application is SETUP's FIND press. BROWSE takes a hand-picked executable, and
+the status text distinguishes the user's search, a by-hand choice and a saved
+configuration. `doctor` keeps reporting `reason=unset` on an unconfigured machine.
+A test session states its simulator once through `LTSPICE_EXE` (session-scoped
+autouse fixture), so no test relies on implicit discovery and none skips on a
+false "LTspice is not installed" message.
+
+Rejected: convenience discovery at startup (the old behaviour) and silently falling
+through to another installation; both can snoop a machine and invalidate results.
+Evidence: `simulation/ltspice.py`, `ui/setup_dialog.py`,
+`tests/test_ltspice_explicit_only.py`.
+
+
+## D-024 — Egress only to the selected vendor's documented host (2026-09-21)
+
+`agent_providers.endpoint_is_vendor()` is the single source of truth and compares
+the whole host against the selected catalog entry's documented endpoint — no
+suffix, substring or registrable-domain match — so lookalikes such as
+`api.deepseek.com.evil.test`, `evilapi.deepseek.com` and `deepseek.com` are all
+refused. A provider outside the catalog declares no vendor host and may reach only
+loopback; a CLI provider is refused for any URL.
+`http_inference.require_vendor_endpoint()` runs before any header, credential
+lookup or socket and is never retried (`endpoint_not_vendor`);
+`api_backend._post_json` calls it once before the attempt loop, so no authoring
+path can reach a non-vendor destination.
+
+Web reinforcement is limited to the part vendor's own hosts, drawn from the
+`DocumentRecord` source URL, vendor-io manifests and the catalog's documentation
+hosts (a host matches itself and its subdomains). A candidate outside that set is
+recorded as `unverified_claim` with a `vendor_refused:` reason and never fetched;
+when no candidate is inside, the stage finishes immediately as
+`unavailable/no_vendor_source_found` instead of spending its budget and reporting a
+generic skip.
+
+Rejected: suffix/substring host matching, retrying a refused destination, and a
+generic skip after a budget-bound search.
+Evidence: `providers/http_inference.py`, `authoring/api_backend.py`,
+`authoring/reinforce.py`; the new tests fail at collection against unmodified
+`HEAD` (`cannot import name 'endpoint_is_vendor'`).
+
+
+## D-025 — BOB_ONLY narrows the catalog; it does not fork behaviour (2026-09-21)
+
+`build_flavor.BOB_ONLY` filters `agent_providers.CATALOG` down to the Bob entry
+(it also selects the per-edition application name and credential filename) rather
+than special-casing behaviour behind conditionals. One catalog therefore keeps the
+endpoint, credential and provider rules identical between editions, and the Bob
+build cannot construct a provider it does not ship. Edition-specific files remain
+the excluded flavour set that `tools/sync_shared_core.py` deliberately does not
+copy; Bob's `api_backend.py` is 83 lines against the general edition's 1032 and is
+hand-adapted, not filtered.
+
+Rejected: per-edition copies of catalog logic and `if bob:` branches in shared
+code.
+Evidence: `agent_providers.py`, `security/credentials.py`, `installer/build.ps1`,
+`tools/sync_shared_core.py`.
+
+
+## D-026 — A stage must not start work its budget cannot fund (2026-09-21)
+
+`authoring/reinforce.py` gave its only agent turn the whole `reinforce_timeout_s`
+allowance (`45.0` by default). One candidate-query turn on a max-effort reasoning
+model needs minutes, so the budget was *arithmetically* unspendable: every build
+paid the full 45 s and received `search_budget_exceeded: the supporting-material
+search did not finish within 45 s` — the owner's original log and every run since.
+"Give up fast" means declining **before** spending, not reporting an expired budget
+afterwards. A new floor, `MIN_AGENT_TURN_S = 90.0`, makes the stage decline
+immediately with `search_budget_too_small: … raise reinforce_timeout_s to enable
+it`, naming the setting the user can act on; at or above the floor the turn is
+attempted. Verified two-sided: at an 89 s budget the stage refuses with **zero**
+turns started; at 120 s the guard does not fire and the path proceeds into the
+candidate turn. Consequence, stated rather than hidden: because the default `45.0`
+is below the floor, the stage skips instantly by default — effectively off until
+the budget is raised to at least 90 s.
+
+Same class as D-021 (the per-turn authoring budget): a caller's budget must fund the
+work it authorises, and exhaustion must name itself instead of reading as a model
+result. Rejected: starting the turn and reporting the expired budget afterwards
+(the recorded failure mode, which burned the allowance and returned nothing);
+lowering the floor to match the old default (a 45 s turn cannot finish, so that
+only restores the defect); a silent skip with no reason.
+
+Evidence: `authoring/reinforce.py` (`MIN_AGENT_TURN_S`, `search_budget_too_small`),
+`pipeline/make_model.py` (`reinforce_timeout_s: float | None = 45.0`);
+`tests/authoring/test_reinforce.py`
+(`test_a_budget_too_small_for_one_turn_gives_up_without_spending_it`, whose stub
+backend must not be entered); two-sided manual check recorded in
+`docs/STATUS.md` §A5.

@@ -96,8 +96,10 @@ def test_the_page_names_the_unaccepted_provider_and_save_keeps_it(
     shown = page.provider_status.text()
     assert UNACCEPTED in shown
     assert "does not accept" in shown
-    assert page.height() == page.sizeHint().height()
-    assert page.width() == page.sizeHint().width()
+    # Content-sized, and resizable: the page opens showing all of it (the dialog holds the
+    # page in a scroll area now, so the page's hint is what describes the content).
+    assert page.size() == page.content_size()
+    assert not page.scroll_area.verticalScrollBar().isVisible()
 
     page._save()
 
@@ -232,6 +234,6 @@ def test_the_window_hands_the_raw_id_to_the_request(
     qtbot.waitUntil(lambda: window._result is not None, timeout=10_000)
 
     assert calls, "the window must start the run"
-    assert calls[0].provider == UNACCEPTED, (
+    assert calls[0].provider == UNACCEPTED, (  # type: ignore[attr-defined]
         "the request must carry the configured id so the engine refuses it"
     )

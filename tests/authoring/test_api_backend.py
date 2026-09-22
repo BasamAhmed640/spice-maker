@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -58,7 +59,10 @@ WIRE_ENTRIES: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="deepseek",
         key_label="DEEPSEEK API KEY",
-        key_hint="platform.deepseek.com → API keys  ·  stored in the encrypted local credential file",
+        key_hint=(
+            "platform.deepseek.com → API keys"
+            "  ·  saved in this folder as a plain local file (not encrypted)"
+        ),
         docs="https://api-docs.deepseek.com/",
         endpoint="https://api.deepseek.com",
         model="deepseek-flash",
@@ -71,7 +75,10 @@ WIRE_ENTRIES: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="openai",
         key_label="OPENAI API KEY",
-        key_hint="platform.openai.com → API keys  ·  stored in the encrypted local credential file",
+        key_hint=(
+            "platform.openai.com → API keys"
+            "  ·  saved in this folder as a plain local file (not encrypted)"
+        ),
         docs="https://developers.openai.com/api/docs/guides/text",
         endpoint="https://api.openai.com/v1",
         model="gpt-6-astra",
@@ -85,7 +92,10 @@ WIRE_ENTRIES: tuple[AgentProvider, ...] = (
         wire="anthropic",
         credential="anthropic",
         key_label="ANTHROPIC API KEY",
-        key_hint="console.anthropic.com → API keys  ·  stored in the encrypted local credential file",
+        key_hint=(
+            "console.anthropic.com → API keys"
+            "  ·  saved in this folder as a plain local file (not encrypted)"
+        ),
         docs="https://platform.claude.com/docs/en/get-started",
         endpoint="https://api.anthropic.com/v1",
         model="claude-opus-5",
@@ -98,7 +108,10 @@ WIRE_ENTRIES: tuple[AgentProvider, ...] = (
         wire="google",
         credential="google",
         key_label="GEMINI API KEY",
-        key_hint="aistudio.google.com → API keys  ·  stored in the encrypted local credential file",
+        key_hint=(
+            "aistudio.google.com → API keys"
+            "  ·  saved in this folder as a plain local file (not encrypted)"
+        ),
         docs="https://ai.google.dev/gemini-api/docs/text-generation",
         endpoint="https://generativelanguage.googleapis.com/v1beta",
         model="gemini-3.8-flash",
@@ -178,7 +191,11 @@ class Sequenced(Recorder):
 def with_key(value: str = SECRET):
     def lookup(name: str) -> Credential:
         return Credential(
-            name=name, value=value, source=SecretSource.LOCAL_FILE, detail="encrypted local file"
+            name=name,
+            value=value,
+            source=SecretSource.LOCAL_FILE,
+            # the detail production's get_credential returns for a found local file
+            detail="local file in this copy's data directory",
         )
 
     return lookup
@@ -334,6 +351,72 @@ def test_explicit_cost_cap_is_preserved_on_truncation(tmp_path):
     assert not result.ok and "api_output_truncated" in result.detail
     assert len(transport.requests) == 1
     assert json.loads(transport.requests[0].body)["max_tokens"] == 2048
+
+
+class MovableClock:
+    """A monotonic clock the test moves, scoped to the backend module.
+
+    ``api_backend`` reads the clock through its module-global ``time``, so replacing
+    that one reference keeps the fake inside the code under test instead of patching
+    the standard library for the whole process. Everything else defers to the real
+    module so a future ``time.x`` call in the backend still works.
+    """
+
+    def __init__(self) -> None:
+        self.now = 0.0
+        self._real = time
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._real, name)
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        """Backoff is not waited on: the clock is already under test control."""
+
+
+class BudgetBurning(Sequenced):
+    """Answers each queued response, and moves the clock forward while doing so."""
+
+    def __init__(self, clock: MovableClock, burn_s: float, *responses: tuple[int, str]) -> None:
+        super().__init__(*responses)
+        self.clock = clock
+        self.burn_s = burn_s
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        response = super().__call__(request)
+        self.clock.now += self.burn_s
+        return response
+
+
+def test_an_unaffordable_retry_keeps_the_truncation_reason(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A retry funded from the turn's leftovers must not replace the real reason.
+
+    The recorded UCC28251 build ended as ``api_request_failed: timeout: the 24.1999 s
+    budget for this turn was exhausted before attempt 2 of 3``. The provider had
+    answered — the reply was merely cut off at the output limit — and the retry that
+    could not be afforded overwrote that with a clock reason. A truncated reply then
+    read as a provider timeout, and the whole build was published as UNKNOWN. The
+    24.1999 s was what remained of the turn after the first attempt.
+    """
+    clock = MovableClock()
+    monkeypatch.setattr(api_backend, "time", clock)
+    # The first answer is truncated and consumes all but 10 s of a 600 s turn.
+    transport = BudgetBurning(
+        clock, 590.0, (200, openai_reply("", finish_reason="length")), (500, "server exploded")
+    )
+
+    result = backend_for(provider("deepseek"), transport, timeout_s=600.0).author(
+        request_for(tmp_path)
+    )
+
+    assert not result.ok
+    assert "api_output_truncated" in result.detail, result.detail
+    assert "timeout" not in result.detail, result.detail
+    assert len(transport.requests) == 1, "a retry with no budget behind it was started"
 
 
 @pytest.mark.parametrize("entry", [p for p in CATALOG if not p.uses_cli], ids=lambda p: p.id)
@@ -758,7 +841,7 @@ def test_a_missing_key_names_every_source_and_no_value() -> None:
     assert usable is False
     assert reason.startswith("api_key_unavailable:")
     assert "deepseek" in reason
-    assert "SETUP" in reason and "encrypted local file" in reason
+    assert "SETUP" in reason and "plain local file" in reason
     assert "BOARDMODELER_DEEPSEEK_API_KEY" in reason and "DEEPSEEK_API_KEY" in reason
     assert SECRET not in reason
 
@@ -889,7 +972,7 @@ def test_availability_is_true_with_a_key_and_names_the_source() -> None:
     usable, reason = backend.availability()
 
     assert usable is True
-    assert "openai" in reason.lower() and "encrypted local file" in reason
+    assert "openai" in reason.lower() and "local file in this copy's data directory" in reason
     assert SECRET not in reason
 
 

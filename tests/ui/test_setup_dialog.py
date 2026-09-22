@@ -42,9 +42,15 @@ def dialog(qtbot, isolated_config):
 
 
 def test_the_page_is_sized_to_its_content(dialog) -> None:
-    """A page taller than its content is the dead space the owner objected to."""
-    assert dialog.height() == dialog.sizeHint().height()
-    assert dialog.width() == dialog.sizeHint().width()
+    """A page taller than its content is the dead space the owner objected to.
+
+    The window is resizable now, so the page lives in a scroll area; the scroll area's own
+    hint is a frame constant, so the content being asserted is the page's: it must open
+    showing all of it, with no scrollbar.
+    """
+    assert dialog.size() == dialog.content_size()
+    assert not dialog.scroll_area.horizontalScrollBar().isVisible()
+    assert not dialog.scroll_area.verticalScrollBar().isVisible()
 
 
 def test_saving_persists_only_the_declared_settings(dialog, isolated_config: Path) -> None:
@@ -70,7 +76,7 @@ def test_the_api_key_goes_to_the_credential_store_and_never_to_the_config(
     )
     monkeypatch.setattr(
         "boardmodeler.security.credentials.describe_credential",
-        lambda name: "sourced from the encrypted local file",
+        lambda name: "sourced from this folder's plain local file (not encrypted)",
     )
 
     dialog.key_edit.setText(SECRET)
@@ -219,8 +225,8 @@ def test_a_single_provider_catalog_keeps_the_bob_only_page(
     assert page.model_edit.isVisible() is False
     assert page.restricted_note is not None
     assert "IBM Bob API only" in page.restricted_note.text()
-    assert page.height() == page.sizeHint().height()
-    assert page.width() == page.sizeHint().width()
+    assert page.size() == page.content_size()
+    assert not page.scroll_area.verticalScrollBar().isVisible()
 
     from boardmodeler.ui.model_maker import ModelMakerWindow
 
@@ -279,9 +285,188 @@ def test_a_config_naming_another_provider_is_repairable_from_setup(
 
     assert page.provider_combo is None, "one catalog entry means no provider row"
     assert page.use_note is not None, "the page offers the provider this build uses"
-    assert agent_providers.only_provider().id == agent_providers.default_provider().id
+    only = agent_providers.only_provider()
+    assert only is not None and only.id == agent_providers.default_provider().id
 
     page.use_note.click()
     page._save()
 
     assert load_config().agent_provider == agent_providers.default_provider().id
+
+
+# --------------------------------------------------------------------------- #
+# LTspice on this page: configured, browsed or searched — never snooped
+
+
+def _page(qtbot):
+    """A freshly built setup page, with no ambient simulator path inherited."""
+    from boardmodeler.ui.setup_dialog import SetupDialog
+
+    page = SetupDialog()
+    qtbot.addWidget(page)
+    page.show()
+    qtbot.waitExposed(page)
+    return page
+
+
+def test_opening_the_page_searches_nothing(qtbot, isolated_config: Path, monkeypatch) -> None:
+    """The install scan may only run because the user pressed FIND.
+
+    Opening SETUP, refreshing its status and drawing it must all resolve the configured
+    setting and stop. ``discover`` is poisoned here, so a call made while the page is
+    built fails loudly instead of passing unnoticed — this is the machine-snooping
+    regression the owner reported.
+    """
+    monkeypatch.delenv("LTSPICE_EXE", raising=False)
+    searched: list[int] = []
+
+    def never_called(*_args, **_kwargs):
+        searched.append(1)
+        raise AssertionError("discover() ran without the user pressing FIND")
+
+    monkeypatch.setattr("boardmodeler.simulation.ltspice.discover", never_called)
+    # ``discover`` is the only caller today; poisoning the candidate list as well keeps
+    # this guard true for any future caller that reaches install locations directly.
+    monkeypatch.setattr("boardmodeler.simulation.ltspice._install_candidates", never_called)
+
+    page = _page(qtbot)
+    page._refresh_status()
+    page._fit_to_content()
+
+    assert searched == [], "nothing on this page may probe install locations by itself"
+
+
+def test_nothing_configured_says_so_and_asks_the_user(
+    qtbot, isolated_config: Path, monkeypatch
+) -> None:
+    monkeypatch.delenv("LTSPICE_EXE", raising=False)
+
+    page = _page(qtbot)
+
+    shown = page.ltspice_status.text().lower()
+    assert page.ltspice_edit.text() == ""
+    assert "not set yet" in shown
+    assert "find" in shown and "browse" in shown, "the user must be told how to set it"
+    assert "discovered automatically" not in shown, "no search happened, so none may be claimed"
+    assert "nothing is searched automatically" in shown
+
+
+def test_find_searches_when_pressed_and_saves_nothing(
+    qtbot, isolated_config: Path, monkeypatch, tmp_path: Path
+) -> None:
+    """FIND is the one explicit ask: it probes, it fills the field, it writes nothing."""
+    from boardmodeler.simulation.ltspice import LocateOutcome, LtspiceInstall
+
+    monkeypatch.delenv("LTSPICE_EXE", raising=False)
+    found = tmp_path / "LTspice.exe"
+    found.write_bytes(b"test fixture")
+    calls: list[int] = []
+
+    def fake_discover(explicit=None):
+        calls.append(1)
+        return LocateOutcome(
+            install=LtspiceInstall(path=found, source="LOCALAPPDATA"),
+            probed=[(found, "LOCALAPPDATA")],
+            reason="discovered",
+        )
+
+    monkeypatch.setattr("boardmodeler.simulation.ltspice.discover", fake_discover)
+
+    page = _page(qtbot)
+
+    assert calls == [], "the search must not run when the page opens"
+    assert page.ltspice_edit.text() == ""
+
+    page.find_ltspice_button.click()
+
+    assert calls == [1], "pressing FIND is what runs the search, exactly once"
+    assert page.ltspice_edit.text() == str(found), "what it found must fill the field"
+    assert not isolated_config.exists(), "FIND must not save; only SAVE writes the config"
+    shown = page.ltspice_status.text().lower()
+    assert "find found" in shown, f"the search must be reported as the user's: {shown!r}"
+    assert "not saved yet" in shown and "save" in shown
+
+
+def test_find_reports_finding_nothing_without_inventing_one(
+    qtbot, isolated_config: Path, monkeypatch, tmp_path: Path
+) -> None:
+    from boardmodeler.simulation.ltspice import LocateOutcome
+
+    monkeypatch.delenv("LTSPICE_EXE", raising=False)
+    probed = [
+        (tmp_path / "Programs" / "ADI" / "LTspice" / "LTspice.exe", "LOCALAPPDATA"),
+        (tmp_path / "ADI" / "LTspice" / "LTspice.exe", "ProgramFiles"),
+    ]
+
+    def fake_discover(explicit=None):
+        return LocateOutcome(install=None, probed=probed, reason="not_installed")
+
+    monkeypatch.setattr("boardmodeler.simulation.ltspice.discover", fake_discover)
+
+    page = _page(qtbot)
+    page.find_ltspice_button.click()
+
+    shown = page.ltspice_status.text().lower()
+    assert page.ltspice_edit.text() == "", "a search that found nothing must fill nothing"
+    assert "2" in shown and "found no ltspice" in shown, f"it must say where: {shown!r}"
+    assert "browse" in shown, "and offer the manual way out"
+    assert not isolated_config.exists()
+
+
+def test_a_saved_path_is_reported_as_saved_configuration(
+    qtbot, isolated_config: Path, monkeypatch, tmp_path: Path
+) -> None:
+    """The other honest state: it came from the config file, not from a search."""
+    from boardmodeler.config import AppConfig, LtspiceConfig, save_config
+
+    monkeypatch.delenv("LTSPICE_EXE", raising=False)
+    exe = tmp_path / "LTspice.exe"
+    exe.write_bytes(b"test fixture")
+    save_config(AppConfig(ltspice=LtspiceConfig(path=str(exe))), isolated_config)
+
+    page = _page(qtbot)
+
+    assert page.ltspice_edit.text() == str(exe)
+    shown = page.ltspice_status.text().lower()
+    assert "saved configuration" in shown
+    assert "discovered automatically" not in shown and "find found" not in shown
+
+
+def test_browse_fills_the_field_by_hand_and_saves_nothing(
+    qtbot, isolated_config: Path, monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.delenv("LTSPICE_EXE", raising=False)
+    exe = tmp_path / "LTspice.exe"
+    exe.write_bytes(b"test fixture")
+    monkeypatch.setattr(
+        "boardmodeler.ui.setup_dialog.QFileDialog.getOpenFileName",
+        lambda *args, **kwargs: (str(exe), "LTspice (*.exe)"),
+    )
+
+    page = _page(qtbot)
+    page.browse_ltspice_button.click()
+
+    assert page.ltspice_edit.text() == str(exe)
+    assert "browse" in page.ltspice_status.text().lower()
+    assert not isolated_config.exists(), "BROWSE must not save either"
+
+
+def test_saving_a_browsed_path_makes_it_the_configured_one(
+    qtbot, isolated_config: Path, monkeypatch, tmp_path: Path
+) -> None:
+    """SAVE is what turns "found/chosen" into "configured", and it must say so."""
+    monkeypatch.delenv("LTSPICE_EXE", raising=False)
+    exe = tmp_path / "LTspice.exe"
+    exe.write_bytes(b"test fixture")
+    monkeypatch.setattr(
+        "boardmodeler.ui.setup_dialog.QFileDialog.getOpenFileName",
+        lambda *args, **kwargs: (str(exe), "LTspice (*.exe)"),
+    )
+
+    page = _page(qtbot)
+    page.browse_ltspice_button.click()
+    page.model_dir_edit.setText(str(tmp_path / "models"))
+    page._save()
+
+    assert json.loads(isolated_config.read_text(encoding="utf-8"))["ltspice"]["path"] == str(exe)
+    assert "saved configuration" in page.ltspice_status.text().lower()

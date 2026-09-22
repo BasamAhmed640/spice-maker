@@ -12,12 +12,13 @@ from __future__ import annotations
 
 import json
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 import pytest
 
+from boardmodeler.agent_providers import CATALOG, endpoint_is_vendor
 from boardmodeler.config import ProviderConfig
 from boardmodeler.domain.enums import ProviderKind
 from boardmodeler.providers.base import (
@@ -31,6 +32,7 @@ from boardmodeler.providers.http_inference import (
     HttpRequest,
     HttpResponse,
     build_chat_body,
+    chat_completion,
 )
 from boardmodeler.security import credentials
 
@@ -100,7 +102,7 @@ def _handler_for(endpoint: MockEndpoint) -> type[BaseHTTPRequestHandler]:
             length = int(self.headers.get("Content-Length") or 0)
             endpoint._respond(self, self.rfile.read(length))
 
-        def log_message(self, *args: object) -> None:
+        def log_message(self, format: str, *args: object) -> None:
             """Silence the stdlib request log."""
 
     return Handler
@@ -116,7 +118,7 @@ def chat_response(payload: dict[str, Any]) -> bytes:
 
 
 @pytest.fixture
-def endpoint() -> MockEndpoint:
+def endpoint() -> Iterator[MockEndpoint]:
     server = MockEndpoint()
     try:
         yield server
@@ -153,6 +155,7 @@ def make_provider(
     url: str | None,
     *,
     transport: Callable[[HttpRequest], HttpResponse] | None = None,
+    name: str = NAME,
     **overrides: Any,
 ) -> HttpInferenceProvider:
     fields: dict[str, Any] = {
@@ -165,7 +168,7 @@ def make_provider(
     fields.update(overrides)
     return HttpInferenceProvider(
         provider_config=ProviderConfig(**fields),
-        name=NAME,
+        name=name,
         transport=transport,
         sleep=lambda _seconds: None,
     )
@@ -431,3 +434,126 @@ def test_deepseek_documentation_still_names_the_configured_strings() -> None:
 
     assert "api.deepseek.com" in page
     assert "chat/completions" in page
+
+
+# --------------------------------------------------------------------------- #
+# egress: the endpoint actually used is the vendor's own declared host
+
+
+@pytest.mark.parametrize("entry", [item for item in CATALOG if item.endpoint], ids=lambda e: e.id)
+def test_every_catalog_endpoint_is_accepted(entry: Any) -> None:
+    allowed, reason = endpoint_is_vendor(entry.id, str(entry.endpoint))
+    assert allowed is True, reason
+    assert entry.id in reason
+    # The path is not the policy; the host is.
+    assert endpoint_is_vendor(entry.id, f"{entry.endpoint}/chat/completions")[0] is True
+
+
+def test_scheme_port_case_and_trailing_dot_are_not_part_of_the_policy() -> None:
+    assert endpoint_is_vendor("openai", "http://api.openai.com:8443/v1")[0] is True
+    assert endpoint_is_vendor("openai", "https://API.OpenAI.com./v1")[0] is True
+    assert endpoint_is_vendor("openai", "https://api.openai.com/v2/some/other/path")[0] is True
+    assert endpoint_is_vendor("openai", "api.openai.com/v1")[0] is True
+
+
+def test_a_non_vendor_endpoint_is_refused_before_any_network_call() -> None:
+    calls: list[HttpRequest] = []
+
+    def transport(request: HttpRequest) -> HttpResponse:
+        calls.append(request)
+        raise AssertionError("a refused destination must not be contacted")
+
+    provider = make_provider(
+        "https://proxy.example.invalid/v1", transport=transport, name="deepseek"
+    )
+
+    with pytest.raises(ProviderError) as excinfo:
+        provider.extract(make_request())
+
+    assert excinfo.value.code == "endpoint_not_vendor"
+    assert "api.deepseek.com" in excinfo.value.detail
+    assert "deepseek" in excinfo.value.detail
+    assert calls == [], "the check runs before the transport sees a request"
+
+
+def test_health_refuses_a_non_vendor_endpoint_without_probing() -> None:
+    calls: list[HttpRequest] = []
+
+    def transport(request: HttpRequest) -> HttpResponse:
+        calls.append(request)
+        raise AssertionError("a refused destination must not be probed")
+
+    health = make_provider(
+        "https://proxy.example.invalid/v1", transport=transport, name="anthropic"
+    ).health(5.0)
+
+    assert health.ok is False
+    assert health.code == "endpoint_not_vendor"
+    assert "api.anthropic.com" in health.detail
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://api.deepseek.com.evil.test/v1",
+        "https://evilapi.deepseek.com/v1",
+        "https://api.deepseek.com@evil.test/v1",
+        "https://deepseek.com/v1",
+        "https://api.deepseek.com.evil.test/v1/chat/completions",
+    ],
+)
+def test_a_lookalike_vendor_host_is_refused(url: str) -> None:
+    calls: list[HttpRequest] = []
+
+    def transport(request: HttpRequest) -> HttpResponse:
+        calls.append(request)
+        raise AssertionError("a lookalike destination must not be contacted")
+
+    provider = make_provider(url, transport=transport, name="deepseek")
+
+    with pytest.raises(ProviderError) as excinfo:
+        provider.extract(make_request())
+
+    assert excinfo.value.code == "endpoint_not_vendor"
+    assert calls == []
+
+
+def test_chat_completion_refuses_a_non_vendor_url_when_a_provider_is_named() -> None:
+    calls: list[HttpRequest] = []
+
+    def transport(request: HttpRequest) -> HttpResponse:
+        calls.append(request)
+        raise AssertionError("a refused destination must not be contacted")
+
+    with pytest.raises(ProviderError) as excinfo:
+        chat_completion(
+            {"model": MODEL, "messages": []},
+            transport=transport,
+            url="https://proxy.example.invalid/v1/chat/completions",
+            headers={"Authorization": "Bearer x"},
+            timeout_s=1.0,
+            retries=2,
+            provider="openai",
+        )
+
+    assert excinfo.value.code == "endpoint_not_vendor"
+    assert calls == []
+
+
+def test_a_provider_outside_the_catalog_declares_no_vendor_host() -> None:
+    allowed, reason = endpoint_is_vendor("http_inference", "http://127.0.0.1:8000/v1")
+    assert allowed is True, "a loopback fixture is not internet egress"
+    assert "loopback" in reason
+
+    refused, reason = endpoint_is_vendor("http_inference", "https://inference.example.invalid/v1")
+    assert refused is False
+    assert reason.startswith("provider_not_in_catalog:")
+    assert "inference.example.invalid" in reason
+
+
+def test_a_cli_provider_declares_no_http_endpoint() -> None:
+    allowed, reason = endpoint_is_vendor("bob", "https://api.deepseek.com/v1")
+
+    assert allowed is False
+    assert reason.startswith("provider_has_no_http_endpoint:")

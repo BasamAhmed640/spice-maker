@@ -710,3 +710,252 @@ The installed GUI title displays 1.1.11, encrypted keys remained readable, and
 all seven TLV9002 real-LTspice checks passed. Root Install.exe and the release ZIP
 contain the same installer. The earlier general-desktop update block is resolved
 for this tested build; no local Windows security policy was changed.
+
+
+## 2026-09-21 — 1.4.0 defect remediation (uncommitted working tree)
+
+The owner's eight reported defects, graded model quality > speed to model >
+usability/containment > UI > usage. Plan of record and pre-change baseline:
+`docs/PLAN-1.4.0.md` (goals G1-G8, baseline at `main` @ `0c239c6`). Nothing in
+this change set is staged, committed or pushed; every workstream below exists
+only in the working tree. The tree moved while this record was written: the
+1.4.0 version bump (`pyproject.toml`, `boardmodeler.__version__`, `uv.lock`) and
+the `make_model.LTSPICE_MISSING` wording landed at 21:26. Each number names the
+tree it was measured on.
+
+| Command | Observed result |
+|---|---|
+| `uv run python -m pytest -q -m "not ltspice"` (current tree) | **1339 passed, 5 skipped, 162 deselected** (47.17 s) |
+| same command, detached worktree at `0c239c6` | **1260 passed, 5 skipped, 160 deselected** (37.43 s) |
+| `uv run python -m pytest -q` (full, real LTspice included) | **1 failed, 1500 passed, 5 skipped** (303.80 s) |
+| `uv run python -m pytest tests/gui tests/ui -q` | **91 passed, 1 failed** (16.78 s) |
+| `uv run python -m pytest tests/authoring/test_api_backend.py tests/providers/test_http_inference.py tests/authoring/test_reinforce.py tests/security/test_credentials.py tests/test_ltspice_explicit_only.py -q` | **228 passed, 1 skipped** (10.08 s) |
+
+`uv run python -m pytest` is used because Smart App Control blocks the
+`.venv\Scripts\*.exe` shims (`os error 4551`).
+
+The single failure, `tests/gui/test_model_maker_integration.py::test_a_real_build_reaches_the_window`,
+is **pre-existing, not caused by this change set**: replayed in a detached
+worktree at `0c239c6` it fails with the identical message (`UNKNOWN`; "21 row(s)
+remain unverified or lack a measurement"). CI does not run it: `ci.yml` uses
+`-m "not ltspice and not network"`.
+
+### A1 — per-turn authoring budget (defects 1 and 2)
+
+`authoring/api_backend.py`. A turn spent three attempts from one deadline and
+funded both retries from the *remainder*; the parse retry passed
+`timeout_s=max(0.001, remaining)`, so a slow first attempt made the retry fail as
+`timeout` and that clock failure was reported as the build's verdict. The
+recorded UCC28251 residual was 24.1999 s. Now:
+
+* `MIN_ATTEMPT_S = 30.0`: a retry (attempt > 1) starts only with a viable budget; attempt one is gated only on having time, so a caller's own small `timeout_s` is still honoured.
+* Budget exhaustion raises `deadline_exhausted`, not `timeout`, naming the remaining seconds and the required minimum.
+* The truncation retry and the parse retry do not start when unaffordable and keep the reason actually observed.
+* Settings are converted and validated in the constructor, naming the setting instead of raising `TypeError: '<=' not supported between ...`.
+
+Checkpoint-recorded (not re-run here): the new regression test
+`test_an_unaffordable_retry_keeps_the_truncation_reason` passes on the fix and
+fails reverted to `HEAD` with `api_request_failed: timeout: the 10 s budget for
+this turn was exhausted before attempt 2 of 3`; during A2's mid-refactor the
+suite was 1256 passed, 5 failed, all five in A2. Deliberately unchanged
+(checkpoint): `MAX_OUTPUT_TOKENS = 32768` for a reasoning model — raising it is an
+unmeasured cost/latency change.
+
+### A2 — secrets and portable storage (defect 3, groundwork for 6)
+
+`security/credentials.py`, `config.py`, `storage.py`, `simulation/ltspice.py`.
+`credential_path()` is `data/credentials.json` in this copy's folder
+(`credentials.bob.json` for Bob); no DPAPI, Credential Manager, registry, AppData
+or machine-held key. `storage.state_file()` refuses any name that could land
+outside the copy, and the write guard now follows a portable process rather than
+`sys.frozen` alone (the folder-local `env/python` is contained too; a developer
+checkout stays unconfined). `ltspice.discover()` is split out of `locate()`, so an
+unconfigured machine reports `reason="unset"` and touches no install path; only an
+explicit user request searches. SETUP, settings and every catalog entry now say
+the key is a plain local file, not encrypted. Checkpoint-recorded: full
+non-ltspice suite after A2 **1311 passed, 0 failed**.
+
+A2's no-snoop change also switched real-simulator coverage off silently: the suite
+had relied on implicit discovery, so `uv run pytest -q` recorded (checkpoint)
+**10 failed, 1454 passed, 27 skipped**, with ~22 tests skipping on the now-false
+message "LTspice is not installed". Repaired by a session-scoped autouse fixture
+in `tests/conftest.py` that states the session's executable once through
+`LTSPICE_EXE`, so in-process `locate()` calls and CLI subprocesses see an explicit
+path, plus truthful skip messages. `tests/test_ltspice_explicit_only.py` keeps
+`doctor` reporting `reason=unset`. Current tree: the suite table above.
+
+### A2b — the no-snoop change silently switched off the real-simulator tests
+
+A2's change is correct, but the suite had relied on the implicit discovery it
+removed, so real-simulator coverage stopped running instead of failing loudly.
+Measured immediately before the repair (a later tree than the checkpoint's
+1454-passed reading): **10 failed, 1458 passed, 27 skipped**; after: **1 failed,
+1496 passed, 5 skipped**, and the one remaining failure was the stale GUI
+assertion now fixed in §C1. The repair: a session-scoped autouse fixture in
+`tests/conftest.py` states the session's executable once through `LTSPICE_EXE`, so
+in-process `locate()` calls and the CLI subprocesses a test spawns both see an
+explicitly configured path; direct `locate()` call sites go through
+`locate() or discover().install` or the existing `ltspice_install` fixture; and
+skip sites that blamed a missing install were reworded (nine at `HEAD`, eight
+corrected) because LTspice **is** installed on this machine — it was unconfigured.
+`tests/test_ltspice_explicit_only.py` remains the guard that the app does not
+snoop: `doctor --json` keeps `reason: "unset"` and `searched: false`.
+
+### A3 — installer, offline venv, folder-local shortcut (defects 4 and 8)
+
+`installer/vendor_env.py` (new), `package_portable.py`, `verify_portable.py`,
+`PortableInstaller.cs`, `INSTALL.txt`. `env/` carries a vendored CPython runtime
+and the pinned wheel set with `wheels.sha256`; setup builds this copy's `.venv`
+with `--no-index --find-links env/wheels` and strips a caller's `PYTHONHOME`,
+`PYTHONPATH` and `VIRTUAL_ENV`. Setup writes only inside the extracted folder
+(`app/`, `env/`, `.venv/`, `Start.cmd`, `Boardmodeler.cmd`, `Spice Maker.lnk`,
+`data/`, `models/`, `library/`); no registry, Start Menu, desktop or AppData
+entry. Copies in different folders never read or change each other.
+
+Measured evidence `build/portable-verification.json` (2026-09-21 21:07:29),
+produced by the documented `python installer/verify_portable.py` (the artifact
+itself records no command line):
+
+| Field | Observed |
+|---|---|
+| status | **PASS** |
+| installer | sha256 `b02de9ac8c5a0f486c276e251af3f1e0f7e55f57530ef5e82010dab956247a36`, 89 376 256 B |
+| environment | version 1.3.0, base `<copy>\env\python`, numpy 2.5.3, 9 wheels, config `<copy>\data\config.json` |
+| two copies installed concurrently | true; the second left the first byte-unchanged |
+| outside the folder | no AppData, Start Menu, shortcut or uninstall entry added (one pre-existing `SpiceMaker` uninstall entry observed) |
+| launcher | `Start.cmd` in the copy |
+
+`Install.exe` grew 54 431 744 → **89 376 256 B** (+~35 MB). `PySide6-Essentials`
+is deliberately not vendored (~77 MB compressed; `Install.exe` is a tracked file
+and GitHub's per-file limit is 100 MB), so the `.venv` serves `version`, `doctor`
+and `model ...`, while the window-opening commands (`ui`, `setup`) are served by
+`app\SpiceMaker.exe --cli`. That is a size tradeoff, not a capability claim.
+
+### A4 — vendor-only egress (defect 8)
+
+`agent_providers.endpoint_is_vendor()` compares the whole host against the selected
+catalog entry's documented endpoint (no suffix/substring/registrable-domain match,
+so `api.deepseek.com.evil.test`, `evilapi.deepseek.com` and `deepseek.com` are all
+refused); a provider outside the catalog may reach only loopback.
+`http_inference.require_vendor_endpoint()` refuses before any header, credential
+lookup or socket and is never retried (`endpoint_not_vendor`), and
+`api_backend._post_json` calls it once before the attempt loop. Web reinforcement
+draws candidate hosts from the part's own `DocumentRecord` `source_url`, vendor-io
+manifests and the catalog's documentation hosts (host and subdomains); a candidate
+outside that set is recorded as `unverified_claim` and never fetched, and the
+stage finishes immediately as `unavailable/no_vendor_source_found` when none is
+inside. Checkpoint-recorded: +17 tests, and replaying the new tests against an
+unmodified `HEAD` archive fails at collection with
+`cannot import name 'endpoint_is_vendor'`.
+
+### A5 — the reinforce stage must fund the work it starts (defect 2, second instance)
+
+`authoring/reinforce.py` gave its **only** agent turn the whole
+`reinforce_timeout_s` allowance, whose default is `45.0`. One max-effort candidate
+query takes minutes, so the budget was *arithmetically unspendable*: every build
+paid 45 s and got `search_budget_exceeded: the supporting-material search did not
+finish within 45 s` — present in the owner's original log and in the recorded run.
+New module constant `MIN_AGENT_TURN_S = 90.0`; below that floor the stage declines
+**before** spending, returning `search_budget_too_small: … raise
+reinforce_timeout_s to enable it`. Verified two-sided: at 89 s the stage refuses
+with **zero** agent turns started; at 120 s the guard does not fire and the path
+proceeds into the candidate turn. Net effect: **45 s removed from every build** —
+and, because the default `45.0` is now below the floor, the stage **skips
+instantly by default**, i.e. it is effectively off until the budget is raised to
+at least 90 s. Decision: D-026.
+
+### B1 — UI (defects 5, 6 and 7)
+
+`ui/model_maker.py`, `ui/setup_dialog.py`. `ModelMakerWindow` no longer calls
+`setFixedSize` — `resize(900,600)` plus a content-derived minimum (checkpoint:
+742×417); `SetupDialog` pages sit in a font-free `QScrollArea`. New `DoctorView`:
+resizable, read-only monospace `QPlainTextEdit`, COPY REPORT and SHOW RAW
+JSON/READABLE, with no truncation (the test asserts `view.raw_json == raw`, which
+keeps the head the old `[-4000:]` discarded). New `HourglassWidget` (18×22,
+`QPainter` line-art, `INTERVAL_MS = 80`, 24 frames per drain) stops when idle; no
+binary asset was added. SETUP now has FIND and BROWSE: `_resolved_ltspice()` uses
+`locate_outcome()` and performs no discovery, and `discover()` runs only when the
+user presses FIND; the status text distinguishes the user's search, a by-hand
+choice and a saved configuration.
+
+Checkpoint-recorded: `tests/gui/` + `tests/ui/` 83 passed, window contract 5
+passed. Current tree: 91 passed; the one failure was the stale GUI assertion,
+fixed (see §A2b and the resolved item under "Unresolved failures"). The
+checkpoint's "gap B1 did not close" — startup discovery inside
+`_resolved_ltspice()` — is closed in the current tree.
+
+### B2 — real-desktop (computer-use) verification of the window
+
+The main window was launched on a real desktop and driven through the computer-use
+tools: `visible True`, `900x600`, minimum **742×417** (no `setFixedSize`; the
+maximum size is unbounded), resizes to `1200x800`, and the hourglass widget is
+present. The geometry was read by driving the widget directly rather than judged
+from a screenshot; re-read offscreen for this record with the same values. Honest
+caveat: **a full model build through the GUI was deliberately not run** — it is the
+same engine as the CLI and would have cost ~20+ minutes for no new information.
+
+### C1 — datasheet-suite harness
+
+`tools/verify_datasheet_suite.py` (new) drives real datasheets through the real
+`model build` path and records wall clock, status, counts, artefact sha256s and
+the LTspice load verdict, then checks the repository's own honesty rules. Earlier
+artifact `build/datasheet-suite.json` (2026-09-21 21:30:54), one run:
+
+| datasheet | mode | status | model | wall | detail |
+|---|---|---|---|---|---|
+| ucc28251 | full | BLOCKED | no | 477.5 s | `test_planning_failed: api_request_failed: http_error: HTTP 402 ... Insufficient Balance` |
+
+Honesty checks reported none; that run published no model and no counts, because the
+DeepSeek account was out of credit. An earlier 339 s `NO_PAYLOAD` run (checkpoint)
+was an artifact of a tree being edited at the time, not a defect.
+
+**Superseded: a post-fix full-mode run has completed and published a model.** The
+same owner scenario was re-taken at 22:35:59, provider `opencode_go`, model
+`deepseek-v4.1-flash` at `reasoning_effort="max"`, with LTspice configured
+explicitly through `LTSPICE_EXE` (`data/config.json` names only the provider and
+model). Recorded in `build/datasheet-suite.json` (written 2026-09-21 22:35:59) and
+`build/datasheet-suite.md` at version 1.4.0, on the run's recorded `src/` content
+hash `69dfd8a310be2bad`:
+
+| Field | Observed |
+|---|---|
+| status | `UNKNOWN`, **with a published model** (not a block) |
+| published | `UCC28251.lib` (3547 B, sha256 `e85f337e7f37…`), `UCC28251.asy`, `MODEL_CARD.md` |
+| counts | **PASS 4 / UNKNOWN 120 / NOT_APPLICABLE 174**; the original failing run was 0 / 127 / 171 |
+| simulator evidence | **13** real LTspice `.raw` artifacts under the run's `validation-cache` |
+| honesty | `honesty_problems: 0`; the suite's own check reports `none` |
+| wall clock | **2828.7 s** |
+| recorded detail | `api_request_failed: deadline_exhausted: only -2.02 s of the 600 s turn budget remained before attempt 3 of 3…` — the third author turn was not retried; the verdict is `UNKNOWN` for coverage, not for the clock |
+
+G1 is met end-to-end by this run: it completed and published a model, and the budget
+condition is named in the detail rather than silently deciding the status. One
+strictness note is kept rather than smoothed: `PLAN-1.4.0.md` says budget exhaustion
+"must be surfaced as `BLOCKED`"; this run's status is `UNKNOWN` (120 rows have no
+measurement) and the exhaustion appears in the run detail. **G2 (speed) is only
+partly met: 2828.7 s is still slow.** One datasheet, one run, 4 PASS rows: a
+completed build with limited verified coverage, not a claim of model accuracy.
+
+### C2 — Bob API-key claims checked against IBM's documentation
+
+Every checkable claim matches the shipped code: `BOB_API_KEY` is the documented
+variable and is placed only in the child **environment**, never in `argv` (IBM
+documents the environment variable, and the installed Bob Shell 2.0.4 has no
+`--api-key` flag); an **Inference**-scope key needs no team id while a **general**
+key requires `--team-id`, exactly as `BobShellBackend.argv()` implements it
+(`--team-id` is added only when one was supplied, and only the CLI has the flag);
+and Bob's catalog entry carries no HTTP endpoint because IBM publishes hosts but no
+inference path. Two honest caveats: IBM **does not publish an API-key format**, so
+"does the key look right" is unverifiable rather than wrong; and a GUI user holding
+a **general** key cannot proceed, because SETUP has no team-id field (`--team-id`
+exists only on the `model build` command line).
+
+### Unresolved failures and open items
+
+* **Version stamp skew.** Source is now 1.4.0 (`pyproject.toml`, `boardmodeler.__version__`, `uv.lock`, landed 21:26), while the tracked `Install.exe`, `INSTALL.txt` and `SHA256SUMS.txt` are stamped **1.3.0**. `installer/build.ps1 -Version 1.4.0` now passes the source/pyproject guard (observed: it proceeded into asset rendering and environment vendoring); `-Version 1.3.0` is refused with `Installer version must match source and pyproject.toml (1.4.0)`, so the stamped 1.3.0 binaries can no longer be rebuilt from this tree. A 1.4.0 rebuild is pending. The checkpoint's note that `-Version 1.4.0` fails because the source is still 1.3.0 was true when written and is superseded.
+* **Unsigned-binary release risk.** A freshly built unsigned `Install.exe` is blocked on a Smart App Control machine (`WinError 4551`; CodeIntegrity 3089/3077/3033) until it has reputation or is signed (documented in `installer/README.md`). It did not recur for the 21:06 build — the 21:07 verification launched and installed it — but signing is the dependable fix.
+* **The `.venv` has no Qt, deliberately** (size; GitHub's 100 MB per-file limit). `ui` and `setup` work only through `app\SpiceMaker.exe --cli`; the extracted copy's `.venv` serves `version`, `doctor` and `model ...`.
+* **Resolved — was "pre-existing failing test, outside CI".** `tests/gui/test_model_maker_integration.py::test_a_real_build_reaches_the_window` asserted `result.status == "PASS"`; the engine returns `UNKNOWN`, and the assertion was **stale**, not the code. `_Run.decide()` returns PASS only when no row is `UNKNOWN`, and `_Run.rows()` (`pipeline/make_model.py`) preserves untested quantitative rows as `UNKNOWN` — the `docs/DECISIONS.md` entry "Preserve untested quantitative rows as UNKNOWN" (2026-09-20) added by commit `cc7c558`, which also rewrote the row classifier. The test had not been running: it was skipping on a false "LTspice is not installed", so its expectation was never exercised until §A2b repaired the simulator fixture. It passes now (`9 passed` together with `tests/test_ltspice_explicit_only.py`); the table's `1 failed` row above is superseded by the fix. Lesson: a silently-skipping test hid a stale assertion.
+* **G1/G2 end-to-end.** Superseded: the post-fix full-mode run completed and published a model (§C1). G1 is met; **G2 (speed) is only partly met — 2828.7 s is still slow**. Provider note: the HTTP 402 was the **DeepSeek** account being out of credit, and it did kill one attempt; DeepSeek remains out of balance, and that account was not re-tested. The completed run used `opencode_go`, whose key is supplied as `BOARDMODELER_OPENCODE_API_KEY` or `OPENCODE_API_KEY` — `OPENCODE_GO_API_KEY` is **not** read by this build, because `opencode` and `opencode_go` share one credential named `opencode` (`api_backend.env_sources`, `env_var_name("opencode")`).
+* `MAX_OUTPUT_TOKENS` remains 32768 (deliberate; change would be unmeasured).
+* **The Bob edition has been mirrored and hand-adapted** (nothing staged or committed; `spice-maker-bob` is at v1.4.0). `tools/sync_shared_core.py ../spice-maker-bob --apply` was run. Verified here: `ruff format --check .` clean (239 files) and `tests/test_desktop_retry.py tests/ui/ tests/gui/` → **87 passed**; `doctor --json` reports `version 1.4.0`, a single catalog entry (label `BOB API KEY`), and `searched: false` with `reason: "unset"`. Recorded for that verification: the full gate **1209 passed, 13 skipped** (not re-run for this note). Structural immunity to the authoring-budget defect: Bob authors through `_run_guarded` in the shared `authoring/backends.py` — one process against one deadline, with `timed_out` returned as data on a `GuardedProcess`, so no retry is funded from a remainder and the defect's mechanism cannot occur. Honest caveat: `BobShellBackend` turns `timed_out` into a failed `AuthorResult` carrying a `bob_shell_timeout` detail (`authoring/backends.py`); the route from there to the user-visible outcome was not traced. **Drift found while writing this:** the dry run now reports **1** shared file differing (`tests/ui/test_main_window.py` — the general edition dropped an unused `QObject` import 4 s after the file was copied), which Bob's `ruff check .` now flags as that one F401; the one-line mirror is pending.
+* Nothing is committed or pushed. No release binary should be published from this tree before the version stamp and signing items are resolved.

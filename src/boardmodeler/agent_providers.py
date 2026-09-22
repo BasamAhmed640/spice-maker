@@ -31,8 +31,10 @@ be overridden per machine in SETUP or with ``--model``, because these strings do
 
 from __future__ import annotations
 
+import ipaddress
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from urllib.parse import urlsplit
 
 from boardmodeler.build_flavor import BOB_ONLY
 
@@ -42,9 +44,11 @@ __all__ = [
     "AgentProvider",
     "by_id",
     "default_provider",
+    "endpoint_is_vendor",
     "ids",
     "only_provider",
     "require",
+    "vendor_host",
 ]
 
 #: Wires this build knows how to speak. A catalog entry naming anything else is a
@@ -57,7 +61,8 @@ class AgentProvider:
     """One accepted way to reach an agent, and how its key is stored.
 
     ``credential`` is the name used with :mod:`boardmodeler.security.credentials`
-    (encrypted local entry ``provider:<credential>:api_key``, environment fallback
+    (plain local entry ``provider:<credential>:api_key`` in this folder's credential
+    file, environment fallback
     ``BOARDMODELER_<CREDENTIAL>_API_KEY``); ``env_aliases`` are additional plain
     environment variables the same key is read from, for people who already export
     the vendor's own variable. ``key_label`` and ``key_hint`` are the setup page's
@@ -123,7 +128,10 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="deepseek",
         key_label="DEEPSEEK API KEY",
-        key_hint="platform.deepseek.com → API keys  ·  stored in the encrypted local credential file",
+        key_hint=(
+            "platform.deepseek.com → API keys"
+            "  ·  saved in this folder as a plain local file (not encrypted)"
+        ),
         docs="https://api-docs.deepseek.com/",
         endpoint="https://api.deepseek.com",
         model="deepseek-flash",
@@ -138,7 +146,10 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="openai",
         key_label="OPENAI API KEY",
-        key_hint="platform.openai.com → API keys  ·  stored in the encrypted local credential file",
+        key_hint=(
+            "platform.openai.com → API keys"
+            "  ·  saved in this folder as a plain local file (not encrypted)"
+        ),
         docs="https://developers.openai.com/api/docs/guides/text",
         endpoint="https://api.openai.com/v1",
         model="gpt-6-astra",
@@ -152,7 +163,10 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="anthropic",
         credential="anthropic",
         key_label="ANTHROPIC API KEY",
-        key_hint="console.anthropic.com → API keys  ·  stored in the encrypted local credential file",
+        key_hint=(
+            "console.anthropic.com → API keys"
+            "  ·  saved in this folder as a plain local file (not encrypted)"
+        ),
         docs="https://platform.claude.com/docs/en/get-started",
         endpoint="https://api.anthropic.com/v1",
         model="claude-opus-5",
@@ -165,7 +179,10 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="google",
         credential="google",
         key_label="GEMINI API KEY",
-        key_hint="aistudio.google.com → API keys  ·  stored in the encrypted local credential file",
+        key_hint=(
+            "aistudio.google.com → API keys"
+            "  ·  saved in this folder as a plain local file (not encrypted)"
+        ),
         docs="https://ai.google.dev/gemini-api/docs/text-generation",
         endpoint="https://generativelanguage.googleapis.com/v1beta",
         model="gemini-3.8-flash",
@@ -178,7 +195,9 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="openrouter",
         key_label="OPENROUTER API KEY",
-        key_hint="openrouter.ai → keys  ·  stored in the encrypted local credential file",
+        key_hint=(
+            "openrouter.ai → keys  ·  saved in this folder as a plain local file (not encrypted)"
+        ),
         docs="https://openrouter.ai/docs/quickstart",
         endpoint="https://openrouter.ai/api/v1",
         model="~openai/gpt-sol-latest",
@@ -191,7 +210,9 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="xai",
         key_label="XAI API KEY",
-        key_hint="console.x.ai → API keys  ·  stored in the encrypted local credential file",
+        key_hint=(
+            "console.x.ai → API keys  ·  saved in this folder as a plain local file (not encrypted)"
+        ),
         docs="https://docs.x.ai/developers/models",
         endpoint="https://api.x.ai/v1",
         model="grok-4.6",
@@ -204,7 +225,10 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="groq",
         key_label="GROQ API KEY",
-        key_hint="console.groq.com → API keys  ·  stored in the encrypted local credential file",
+        key_hint=(
+            "console.groq.com → API keys"
+            "  ·  saved in this folder as a plain local file (not encrypted)"
+        ),
         docs="https://console.groq.com/docs/api-reference",
         endpoint="https://api.groq.com/openai/v1",
         model="llama-3.3-70b-versatile",
@@ -254,7 +278,10 @@ CATALOG: tuple[AgentProvider, ...] = (
         wire="openai",
         credential="mistral",
         key_label="MISTRAL API KEY",
-        key_hint="console.mistral.ai → API keys  ·  stored in the encrypted local credential file",
+        key_hint=(
+            "console.mistral.ai → API keys"
+            "  ·  saved in this folder as a plain local file (not encrypted)"
+        ),
         docs="https://docs.mistral.ai/getting-started/quickstarts/developer/first-api-request",
         endpoint="https://api.mistral.ai/v1",
         model="mistral-large-latest",
@@ -304,6 +331,90 @@ def default_provider() -> AgentProvider:
     if not CATALOG:  # pragma: no cover - a build with no provider cannot run anything
         raise ValueError("this build has an empty provider catalog")
     return CATALOG[0]
+
+
+def vendor_host(url: str | None) -> str | None:
+    """The host a URL (or bare host) names, normalized for comparison.
+
+    Comparison never cares about scheme, port, case, a trailing root dot or
+    userinfo: only the host decides. A value this function cannot parse yields
+    ``None``, and a caller that needs a decision must refuse rather than treat
+    ``None`` as a match.
+    """
+    if not url or not isinstance(url, str):
+        return None
+    text = url.strip()
+    if not text:
+        return None
+    parts = urlsplit(text)
+    if parts.hostname is None:  # a bare ``api.example.com/v1`` has no scheme to split
+        parts = urlsplit(f"//{text}")
+    host = parts.hostname
+    if host is None:
+        return None
+    return host.strip().strip(".").lower() or None
+
+
+def _is_loopback_host(host: str) -> bool:
+    """True for ``localhost`` and every loopback address: never internet egress."""
+    if host == "localhost" or host.endswith(".localhost"):
+        return True
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    mapped = getattr(address, "ipv4_mapped", None)
+    return bool((mapped if mapped is not None else address).is_loopback)
+
+
+def endpoint_is_vendor(provider: str | None, url: str) -> tuple[bool, str]:
+    """``(allowed, reason)`` for one inference destination.
+
+    This is the single source of truth for inference egress: the host a request
+    would go to must be exactly the host the selected :data:`CATALOG` entry
+    declares in its documented ``endpoint``. Scheme and port are ignored; the
+    host is compared as a whole, so ``https://api.deepseek.com.evil.test/v1``
+    and ``https://evilapi.deepseek.com/v1`` both fail against
+    ``api.deepseek.com`` (no suffix, substring or registrable-domain match — a
+    lookalike domain is a different domain).
+
+    A provider id outside the catalog declares no vendor host at all, so the
+    only destination it may reach is a loopback one (a local fixture or test
+    server, which is not internet egress); a public destination is refused
+    rather than guessed. A CLI provider (``bob``) has no HTTP endpoint and is
+    refused for any URL. The reason names the provider, the expected host and
+    the documentation it came from, so a refusal is reported instead of retried.
+    """
+    host = vendor_host(url)
+    if host is None:
+        return False, f"endpoint_host_missing: {url!r} names no host to match"
+    entry = by_id(provider)
+    if entry is None:
+        if _is_loopback_host(host):
+            return True, f"local_endpoint: {host!r} is loopback, not internet egress"
+        named = "<none>" if not provider else str(provider)
+        return False, (
+            f"provider_not_in_catalog: provider {named!r} is not a provider this build "
+            f"accepts ({list(ids())}), so no vendor host is declared; refusing the internet "
+            f"destination {host!r}"
+        )
+    if not entry.endpoint:
+        return False, (
+            f"provider_has_no_http_endpoint: provider {entry.id!r} uses the {entry.wire!r} wire "
+            f"and declares no HTTP endpoint (documentation: {entry.docs}); refusing {host!r}"
+        )
+    expected = vendor_host(entry.endpoint)
+    if expected is None:  # pragma: no cover - a catalog entry with an unusable endpoint
+        return False, (
+            f"provider_endpoint_unusable: provider {entry.id!r} declares an endpoint with no "
+            f"host ({entry.endpoint!r}); refusing {host!r}"
+        )
+    if host != expected:
+        return False, (
+            f"endpoint_not_vendor: provider {entry.id!r} declares host {expected!r} "
+            f"(documentation: {entry.docs}); refusing {host!r}"
+        )
+    return True, f"vendor_endpoint: {host!r} is the host provider {entry.id!r} declares"
 
 
 def only_provider() -> AgentProvider | None:

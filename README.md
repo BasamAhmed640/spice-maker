@@ -38,7 +38,7 @@ supporting machinery, and the board/circuit/UI layers date from an earlier, wide
 
 ```powershell
 uv sync --all-extras
-uv run boardmodeler doctor            # confirms LTspice is usable (real smoke test)
+uv run boardmodeler doctor            # checks the configured LTspice with a real smoke test
 uv run boardmodeler model build `
     --part TPS54320 --subckt TPS54320 `
     --requirements fixtures/regulator/tps54320/requirements.json `
@@ -55,7 +55,10 @@ the default provider and needs Bob Shell installed
 bob.ibm.com → API keys with **Scope = Inference** (an *Inference* key needs no team id; a
 *general* key does). The same row also takes a plain vendor key from OpenAI, Anthropic, Google,
 DeepSeek, OpenRouter, xAI, Groq, Mistral or OpenCode Zen or OpenCode Go, and those run over HTTP with no
-CLI and no extra install. Only the selected key is kept in a local file encrypted for your Windows user — never to a config file, a manifest or a log line; its ciphertext lives in `data/credentials.bin`. Setup is one page and holds only what persists: the LTspice
+CLI and no extra install. Only the selected key is kept, as a plain local file in this folder
+(`data/credentials.json`) — never in a config file, a manifest or a log line. Nothing is bound to
+Windows and the file is **not encrypted**: anyone who can read this folder can read the key, so keep
+the copy private. Setup is one page and holds only what persists: the LTspice
 path (with a smoke test), the agent provider and key, the model id when the provider takes one,
 the folder finished models go to, the read-only LTspice user library path, and the
 web-reinforcement switch. Installing a finished model is always the window's **Install into
@@ -152,7 +155,7 @@ report:
 
 ```powershell
 uv sync --all-extras              # Python 3.14 venv with every dependency
-uv run boardmodeler doctor --json # LTspice discovery + smoke test, reader backend, OCR, credentials
+uv run boardmodeler doctor --json # configured LTspice + smoke test, reader backend, OCR, credentials
 uv run boardmodeler setup         # optional: record the LTspice path, provider, and data policy
 uv run boardmodeler ui            # optional: the desktop application
 ```

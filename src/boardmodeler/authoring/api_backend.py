@@ -3,7 +3,7 @@
 This backend is a *proposal source* exactly like Bob Shell: it may write files
 inside its sandbox and nothing it reports is evidence — the harness re-runs the
 real simulator on whatever the files actually contain. What differs is the
-transport: a raw API key from the encrypted local credential file (or ``BOARDMODELER_<NAME>_API_KEY``)
+transport: a raw API key from this folder's plain local credential file (or ``BOARDMODELER_<NAME>_API_KEY``)
 speaks the provider's documented HTTP shape directly, with no login flow and no
 local CLI.
 
@@ -82,6 +82,7 @@ from boardmodeler.providers.http_inference import (
     HttpResponse,
     ProviderError,
     Transport,
+    require_vendor_endpoint,
     urllib_transport,
 )
 from boardmodeler.security.credentials import (
@@ -106,10 +107,33 @@ __all__ = [
 ]
 
 DEFAULT_TIMEOUT_S = 600.0
-"""One authoring turn may take this long, retries included."""
+"""One authoring turn may take this long, every attempt inside it included.
+
+A turn is bounded by this budget, but the attempts *within* it do not get
+whatever is left over. A reasoning-class model can spend most of the budget
+before it writes a single token, so a retry funded from the remainder is
+arithmetically doomed: it would start with seconds left and fail as a
+``timeout``, which then reads as a verdict on the model rather than on the
+clock. :data:`MIN_ATTEMPT_S` is what stops that.
+"""
 
 DEFAULT_RETRIES = 2
 """Extra attempts for transport failures and :data:`RETRYABLE_STATUSES`."""
+
+MIN_ATTEMPT_S = 30.0
+"""The least time a *retry* is worth starting.
+
+A retry is only started with at least this much budget left, and a turn that
+cannot afford one keeps the reason it actually observed — a truncated or
+unparseable reply — instead of replacing it with a timeout it caused itself.
+`author` previously passed ``max(0.001, remaining)``, so a turn whose first
+attempt used the budget could still "attempt" a retry with a millisecond and
+report the resulting ``timeout`` as the build's outcome; 24.1999 s is a
+recorded instance of exactly that.
+
+This gates retries only. A caller's own explicit ``timeout_s`` is honoured as
+given, however small: that is the caller's decision, not a residual of ours.
+"""
 
 MAX_OUTPUT_TOKENS = 32768
 """Default room for one reply: a ``.lib`` plus its ``.asy`` in one message.
@@ -141,6 +165,47 @@ REPLY_FORMAT_INSTRUCTION = (
 _DRIVE_LETTER = re.compile(r"^[A-Za-z]:")
 _MAX_ERROR_BODY = 400
 _MAX_BACKOFF_S = 8.0
+
+
+def _number(value: object, name: str) -> float:
+    """``value`` as a float, or a ``ValueError`` that names the setting.
+
+    The settings file, the CLI and a JSON request all hand these in. Comparing an
+    unconverted value raised ``TypeError: '<=' not supported between instances of
+    'str' and 'int'`` from somewhere inside the constructor instead of saying which
+    setting was wrong.
+    """
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a number, got {value!r}") from exc
+
+
+def _positive_float(value: object, name: str) -> float:
+    """``value`` as a float greater than zero, or a ``ValueError``."""
+    number = _number(value, name)
+    if number <= 0:
+        raise ValueError(f"{name} must be > 0, got {value!r}")
+    return number
+
+
+def _non_negative_int(value: object, name: str) -> int:
+    """``value`` as an int of at least zero, or a ``ValueError``."""
+    try:
+        number = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a whole number, got {value!r}") from exc
+    if number < 0:
+        raise ValueError(f"{name} must be >= 0, got {value!r}")
+    return number
+
+
+def _positive_int(value: object, name: str) -> int:
+    """``value`` as an int greater than zero, or a ``ValueError``."""
+    number = _non_negative_int(value, name)
+    if number <= 0:
+        raise ValueError(f"{name} must be > 0, got {value!r}")
+    return number
 
 
 def _sleep(seconds: float) -> None:
@@ -192,7 +257,10 @@ def _numeric_usage(raw: object) -> dict[str, float]:
     if isinstance(raw, Mapping):
         for key, value in raw.items():
             if isinstance(value, (int, float)) and not isinstance(value, bool):
-                usage[str(key)] = float(value)
+                # The guard above already restricts this to a number, so the helper is
+                # here to keep one coercion idiom in the module rather than a second
+                # bare ``float()`` that a later widening of the guard could break.
+                usage[str(key)] = _number(value, str(key))
     return usage
 
 
@@ -304,7 +372,7 @@ def env_sources(provider: AgentProvider) -> tuple[str, ...]:
 def credential_for(
     provider: AgentProvider, lookup: Callable[[str], Credential] | None = None
 ) -> Credential:
-    """The key for ``provider``: encrypted file, ``BOARDMODELER_<NAME>_API_KEY``, then aliases.
+    """The key for ``provider``: the local credential file, ``BOARDMODELER_<NAME>_API_KEY``, then aliases.
 
     ``lookup`` is the repo helper (:func:`boardmodeler.security.credentials.get_credential`
     by default, and the injectable seam tests use); the catalog's own environment
@@ -384,8 +452,8 @@ class ApiKeyBackend:
     output budget (:data:`MAX_OUTPUT_TOKENS` when neither the caller nor the
     settings name one). ``timeout_s`` bounds one whole turn, retries included;
     ``retries`` counts extra attempts; ``transport`` is injectable so tests never
-    reach the network; and ``credential_lookup`` is the key source (the repo
-    encrypted file/``BOARDMODELER_*_API_KEY`` helpers plus the catalog's aliases by
+    reach the network; and ``credential_lookup`` is the key source (the repo's
+    plain local credential file/``BOARDMODELER_*_API_KEY`` helpers plus the catalog's aliases by
     default).
     """
 
@@ -405,17 +473,17 @@ class ApiKeyBackend:
                 f"ApiKeyBackend speaks {', '.join(HTTP_WIRES)}; provider {provider.id!r} uses "
                 f"the {provider.wire!r} wire — build it through build_api_backend instead"
             )
-        if timeout_s <= 0:
-            raise ValueError(f"timeout_s must be > 0, got {timeout_s}")
-        if retries < 0:
-            raise ValueError(f"retries must be >= 0, got {retries}")
-        if max_output_tokens is not None and max_output_tokens <= 0:
-            raise ValueError(f"max_output_tokens must be > 0 or None, got {max_output_tokens}")
+        # Converted and validated before anything is stored, so a bad setting names
+        # itself instead of failing as a comparison against a value of the wrong type.
+        timeout_s = _positive_float(timeout_s, "timeout_s")
+        retries = _non_negative_int(retries, "retries")
+        if max_output_tokens is not None:
+            max_output_tokens = _positive_int(max_output_tokens, "max_output_tokens")
         self.provider = provider
         self.model = model
         self.max_output_tokens = max_output_tokens
-        self.timeout_s = float(timeout_s)
-        self.retries = int(retries)
+        self.timeout_s = timeout_s
+        self.retries = retries
         self.transport: Transport = transport or urllib_transport
         self.credential_lookup: Callable[[str], Credential] = credential_lookup or get_credential
         self.session_id = uuid.uuid4().hex
@@ -466,8 +534,11 @@ class ApiKeyBackend:
         """One HTTP authoring turn. A failed or cancelled turn is returned, never raised."""
         if cancel is not None and cancel.is_set():
             return self._failed("cancelled: the API turn was not started, the build was cancelled")
-        if timeout_s is not None and float(timeout_s) <= 0:
-            return self._failed(f"api_request_failed: timeout_s must be > 0, got {timeout_s!r}")
+        if timeout_s is not None:
+            try:
+                timeout_s = _positive_float(timeout_s, "timeout_s")
+            except ValueError as exc:
+                return self._failed(f"api_request_failed: {exc}")
         usable, reason = self.availability()
         if not usable:
             return self._failed(reason)
@@ -476,7 +547,7 @@ class ApiKeyBackend:
         if not request.expect_text:
             prompt = f"{prompt.rstrip()}\n\n{REPLY_FORMAT_INSTRUCTION}"
         url, headers, body = self._shape(prompt, key=key)
-        limit = self.timeout_s if timeout_s is None else float(timeout_s)
+        limit = self.timeout_s if timeout_s is None else timeout_s
         deadline = time.monotonic() + limit
         try:
             text, usage, stop = self._exchange(
@@ -495,7 +566,9 @@ class ApiKeyBackend:
                 token_key = "max_completion_tokens" if self.provider.reasoning else "max_tokens"
                 budget = int(body[token_key])
                 remaining = deadline - time.monotonic()
-                if budget < ceiling and remaining > 1:
+                # A retry that raises the token ceiling is slower than the attempt that
+                # already ran, so it is only worth starting with a real budget behind it.
+                if budget < ceiling and remaining >= MIN_ATTEMPT_S:
                     retry_body = {**body, token_key: min(ceiling, budget * 2)}
                     text, more_usage, stop = self._exchange(
                         url=url,
@@ -547,18 +620,25 @@ class ApiKeyBackend:
                 "Reply again with exactly one JSON object and nothing else."
             )
             retry_url, retry_headers, retry_body = self._shape(retry_prompt, key=key)
+            left = deadline - time.monotonic()
             try:
+                if left < MIN_ATTEMPT_S:
+                    raise ProviderError(
+                        "deadline_exhausted",
+                        f"only {left:.3g} s of the {limit:g} s turn budget remained, and an "
+                        f"attempt needs {MIN_ATTEMPT_S:g} s",
+                    )
                 again_text, again_usage, again_stop = self._exchange(
                     url=retry_url,
                     headers=retry_headers,
                     body=retry_body,
                     key=key,
                     cancel=cancel,
-                    timeout_s=max(0.001, deadline - time.monotonic()),
+                    timeout_s=left,
                     progress=request.progress,
                 )
             except ProviderError as exc:
-                problem = f"{problem}; the retry failed: {exc.code}"
+                problem = f"{problem}; the retry was not run: {exc.code}: {exc.detail}"
             except Exception as exc:
                 problem = f"{problem}; the retry failed: {type(exc).__name__}"
             else:
@@ -632,7 +712,7 @@ class ApiKeyBackend:
         sources = env_sources(self.provider)
         return (
             f"api_key_unavailable: credential {self.provider.credential!r} has no value; store "
-            f"it in SETUP's encrypted local file or set {' or '.join(sources)}"
+            f"it in SETUP's plain local file in this folder or set {' or '.join(sources)}"
         )
 
     def _endpoint(self) -> str:
@@ -772,16 +852,29 @@ class ApiKeyBackend:
         attempts = 0
         last_detail = "no attempt was made"
         last_status: int | None = None
+        # The destination is checked before any attempt, so an endpoint outside the
+        # provider's documented host cannot be reached by this path at all — not by
+        # the retries below and not by the backoff loop. The URL is built from the
+        # catalog here, so this is a guard rather than a repair; it is the one place
+        # every authoring request passes through.
+        require_vendor_endpoint(self.provider.id, url)
         while attempts < total_attempts:
             attempts += 1
             if cancel is not None and cancel.is_set():
                 raise ProviderError("cancelled", f"cancelled before attempt {attempts}")
             remaining = deadline - time.monotonic()
-            if remaining <= 0:
+            # The caller's own budget is honoured as given; this only refuses an
+            # attempt that no longer has enough left to be worth starting. Attempt
+            # one is the caller's decision, so it is gated purely on having any time.
+            if remaining <= 0 or (attempts > 1 and remaining < MIN_ATTEMPT_S):
+                # Distinct from "timeout": no request failed here. The budget could
+                # not fund a viable attempt, and naming that is what keeps a clock
+                # problem from being reported as a provider or model problem.
                 raise ProviderError(
-                    "timeout",
-                    f"the {timeout_s:g} s budget for this turn was exhausted before attempt "
-                    f"{attempts} of {total_attempts}",
+                    "deadline_exhausted",
+                    f"only {remaining:.3g} s of the {timeout_s:g} s turn budget remained before "
+                    f"attempt {attempts} of {total_attempts}, and a retry needs "
+                    f"{MIN_ATTEMPT_S:g} s",
                 )
             request = HttpRequest(
                 method="POST",
