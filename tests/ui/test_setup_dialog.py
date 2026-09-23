@@ -18,7 +18,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 pytest.importorskip("PySide6")
 pytestmark = pytest.mark.gui
 
-SECRET = "sk-bob-sentinel-0123456789"
+SECRET = "sk-sentinel-0123456789"
 
 
 @pytest.fixture
@@ -56,14 +56,14 @@ def test_the_page_is_sized_to_its_content(dialog) -> None:
 def test_saving_persists_only_the_declared_settings(dialog, isolated_config: Path) -> None:
     dialog.model_dir_edit.setText(str(isolated_config.parent / "models"))
     dialog.ltspice_edit.setText(r"C:\tools\LTspice.exe")
-    dialog.reinforce_check.setChecked(False)
+    dialog.internet_check.setChecked(False)
 
     dialog._save()
 
     saved = json.loads(isolated_config.read_text(encoding="utf-8"))
     assert saved["default_model_dir"] == str(isolated_config.parent / "models")
     assert saved["ltspice"]["path"] == r"C:\tools\LTspice.exe"
-    assert saved["web_reinforcement"] is False
+    assert saved["internet_access"] is False
 
 
 def test_the_api_key_goes_to_the_credential_store_and_never_to_the_config(
@@ -83,19 +83,65 @@ def test_the_api_key_goes_to_the_credential_store_and_never_to_the_config(
     dialog._save_key()
     dialog._save()
 
-    assert stored == [("bob_shell", SECRET)]
+    from boardmodeler import agent_providers
+
+    assert stored == [(agent_providers.default_provider().credential, SECRET)]
     assert dialog.key_edit.text() == "", "the field must not keep the secret on screen"
     assert SECRET not in isolated_config.read_text(encoding="utf-8")
 
 
 def test_settings_round_trip_through_the_config(dialog, isolated_config: Path) -> None:
-    dialog.reinforce_check.setChecked(False)
+    dialog.internet_check.setChecked(False)
     dialog._save()
 
     from boardmodeler.config import load_config
 
     reloaded = load_config(isolated_config)
-    assert reloaded.web_reinforcement is False
+    assert reloaded.internet_access is False
+
+
+def test_the_page_has_exactly_one_switch_for_internet_access(dialog) -> None:
+    """The owner asked for one box for internet access; a second one would be the bug.
+
+    Enumerated from the widget tree rather than from attribute names, so a checkbox added
+    without a name of its own is still seen. The one switch must be the INTERNET ACCESS
+    box, and the per-build full-verification choice must not be a SETUP control at all:
+    it belongs beside GO in the build window, where the build that uses it is made.
+    """
+    from PySide6.QtWidgets import QCheckBox
+
+    boxes = dialog.findChildren(QCheckBox)
+    assert [box.text() for box in boxes] == ["INTERNET ACCESS"], (
+        "SETUP must hold exactly one checkbox, and it must be the network switch"
+    )
+    (network,) = boxes
+    assert network is dialog.internet_check
+    assert network.isChecked() is True, "the page opens with the stored value"
+
+    governing = [
+        box
+        for box in boxes
+        if any(
+            word in box.text().lower()
+            for word in ("internet", "network", "remote", "web", "reinforce")
+        )
+    ]
+    assert len(governing) == 1, [box.text() for box in governing]
+    assert not hasattr(dialog, "reinforce_check")
+    assert not hasattr(dialog, "full_verification_check")
+    assert not any("verification" in box.text().lower() for box in boxes)
+
+    # The page's JSON view has one network key and no per-build verification key.
+    from boardmodeler.ui.setup_dialog import describe_settings
+
+    described = describe_settings(dialog._config)
+    assert "full_verification" not in described
+    assert described["internet_access"] is True
+
+    # The one line beside it names both halves the switch governs.
+    hint = dialog.internet_hint.text()
+    assert "agent provider's API" in hint
+    assert "part vendor's site" in hint and "supporting material" in hint
 
 
 def test_the_smoke_test_is_run_and_reported(dialog, monkeypatch, tmp_path: Path) -> None:
@@ -203,38 +249,6 @@ def test_choosing_a_provider_points_the_key_row_at_its_own_credential(
     assert SECRET not in isolated_config.read_text(encoding="utf-8")
 
 
-def test_a_single_provider_catalog_keeps_the_bob_only_page(
-    qtbot, isolated_config: Path, monkeypatch
-) -> None:
-    """The Bob-only build is one catalog entry away: no provider row, Bob's own label."""
-    from boardmodeler import agent_providers
-
-    bob = agent_providers.by_id("bob")
-    assert bob is not None
-    monkeypatch.setattr(agent_providers, "CATALOG", (bob,))
-
-    from boardmodeler.ui.setup_dialog import SetupDialog
-
-    page = SetupDialog()
-    qtbot.addWidget(page)
-    page.show()
-    qtbot.waitExposed(page)
-
-    assert page.provider_combo is None
-    assert page.key_label.text() == "BOB API KEY"
-    assert page.model_edit.isVisible() is False
-    assert page.restricted_note is not None
-    assert "IBM Bob API only" in page.restricted_note.text()
-    assert page.size() == page.content_size()
-    assert not page.scroll_area.verticalScrollBar().isVisible()
-
-    from boardmodeler.ui.model_maker import ModelMakerWindow
-
-    window = ModelMakerWindow()
-    qtbot.addWidget(window)
-    assert window.windowTitle().endswith("· IBM Bob only")
-
-
 def test_an_unknown_provider_in_the_config_is_reported_never_replaced(
     isolated_config: Path,
 ) -> None:
@@ -269,9 +283,10 @@ def test_a_config_naming_another_provider_is_repairable_from_setup(
     from boardmodeler import agent_providers
     from boardmodeler.config import load_config, save_config
 
-    bob = agent_providers.by_id("bob")
-    assert bob is not None
-    monkeypatch.setattr(agent_providers, "CATALOG", (bob,))
+    # A one-entry catalog stands in for a restricted build; the general catalog itself
+    # always offers a choice, so the single-provider page needs a switched-in catalog.
+    only_entry = agent_providers.default_provider()
+    monkeypatch.setattr(agent_providers, "CATALOG", (only_entry,))
 
     config = load_config()
     config.agent_provider = "another-build-provider"
@@ -286,12 +301,12 @@ def test_a_config_naming_another_provider_is_repairable_from_setup(
     assert page.provider_combo is None, "one catalog entry means no provider row"
     assert page.use_note is not None, "the page offers the provider this build uses"
     only = agent_providers.only_provider()
-    assert only is not None and only.id == agent_providers.default_provider().id
+    assert only is not None and only.id == only_entry.id
 
     page.use_note.click()
     page._save()
 
-    assert load_config().agent_provider == agent_providers.default_provider().id
+    assert load_config().agent_provider == only_entry.id
 
 
 # --------------------------------------------------------------------------- #

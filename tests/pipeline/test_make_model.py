@@ -10,7 +10,6 @@ judges". No test reaches the network.
 from __future__ import annotations
 
 import json
-import shutil
 import threading
 import time
 from collections import Counter
@@ -18,11 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from boardmodeler.authoring.backends import (
-    BOB_CREDENTIALS_UNAVAILABLE,
-    BOB_NOT_INSTALLED,
-    ScriptedBackend,
-)
+from boardmodeler.authoring.backends import ScriptedBackend
 from boardmodeler.authoring.spec import load_tps54320_spec
 from boardmodeler.domain.enums import ProviderKind
 from boardmodeler.domain.records import Condition, ProviderIdentity, Requirement
@@ -40,7 +35,6 @@ from boardmodeler.providers.base import (
     ProviderHealth,
 )
 from boardmodeler.providers.registry import ProviderSelection
-from boardmodeler.security.credentials import Credential, SecretSource
 from boardmodeler.simulation.ltspice import LtspiceInstall
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "regulator" / "tps54320"
@@ -352,57 +346,7 @@ def test_scenario_c_missing_ltspice_is_blocked_and_never_runs_the_agent(
 
 
 # --------------------------------------------------------------------------- #
-# (d) Bob without a key: BLOCKED with Bob's own reason, verbatim, no fallback
-
-
-def _hide_bob(monkeypatch: pytest.MonkeyPatch) -> None:
-    from boardmodeler.authoring import backends
-
-    monkeypatch.setattr(
-        backends.shutil, "which", lambda name: None if name == "bob" else shutil.which(name)
-    )
-    monkeypatch.delenv("BOB_API_KEY", raising=False)
-    monkeypatch.delenv("BOARDMODELER_BOB_SHELL_API_KEY", raising=False)
-
-
-def test_scenario_d_bob_shell_not_installed_is_blocked_verbatim(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    _hide_bob(monkeypatch)
-    monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
-
-    result, events, _wall = run(tmp_path, backend_name="bob")
-
-    assert result.status == "BLOCKED"
-    assert BOB_NOT_INSTALLED in result.detail
-    author = [event for event in result.stages if event.stage == "author"]
-    assert author[-1].detail == BOB_NOT_INSTALLED
-    # No silent substitution: nothing was authored and no harness turn ran.
-    assert judge_events(events) == []
-    assert result.lib_path is None
-
-
-def test_scenario_d_bob_without_a_credential_is_blocked_verbatim(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    from boardmodeler.authoring import backends
-
-    monkeypatch.setattr(backends.shutil, "which", lambda name: "bob.exe" if name == "bob" else None)
-    monkeypatch.delenv("BOB_API_KEY", raising=False)
-    monkeypatch.delenv("BOARDMODELER_BOB_SHELL_API_KEY", raising=False)
-    monkeypatch.setattr(
-        backends,
-        "get_credential",
-        lambda name: Credential(
-            name=name, value=None, source=SecretSource.MISSING, detail="no credential stored"
-        ),
-    )
-    monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
-
-    result, _events, _wall = run(tmp_path, backend_name="bob")
-
-    assert result.status == "BLOCKED"
-    assert BOB_CREDENTIALS_UNAVAILABLE in result.detail
+# (d) an unknown backend name is refused by name, never substituted
 
 
 def test_an_unknown_backend_name_is_blocked_rather_than_substituted(
@@ -1318,36 +1262,20 @@ def test_a_capped_run_with_every_row_measured_wrong_is_fail(
     assert failed.status == "FAIL" and failed.measured == "v_fb = 0.5 V"
 
 
-def test_the_bob_backend_receives_the_turn_timeout(tmp_path: Path) -> None:
-    from boardmodeler.authoring.backends import BobShellBackend
-
-    request = make_request(tmp_path, backend_name="bob", turn_timeout_s=42.5, team_id="team-9")
-    backend = engine.build_backend(request)
-    assert isinstance(backend, BobShellBackend)
-    assert backend.timeout_s == 42.5
-    assert backend.team_id == "team-9"
-
-    # The direct Bob CLI path stays unbounded: the caller's value is what it gets.
-    unlimited = engine.build_backend(make_request(tmp_path, backend_name="bob"))
-    assert isinstance(unlimited, BobShellBackend)
-    assert unlimited.timeout_s is None
-
-
-def test_the_default_api_backend_bounds_a_turn_even_for_the_bob_cli(
+def test_the_default_api_backend_bounds_a_turn(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     from boardmodeler.authoring import api_backend as api_module
-    from boardmodeler.authoring.api_backend import DEFAULT_TIMEOUT_S
-    from boardmodeler.authoring.backends import BobShellBackend
+    from boardmodeler.authoring.api_backend import DEFAULT_TIMEOUT_S, ApiKeyBackend
     from boardmodeler.config import AppConfig
 
     monkeypatch.setattr(
-        api_module, "load_config", lambda path=None: AppConfig(agent_provider="bob")
+        api_module, "load_config", lambda path=None: AppConfig(agent_provider="deepseek")
     )
 
     backend = engine.build_backend(make_request(tmp_path, backend_name="api"))
 
-    assert isinstance(backend, BobShellBackend)
+    assert isinstance(backend, ApiKeyBackend)
     assert backend.timeout_s == DEFAULT_TIMEOUT_S
 
 
@@ -1355,35 +1283,17 @@ def test_an_explicit_turn_timeout_overrides_the_api_default(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     from boardmodeler.authoring import api_backend as api_module
-    from boardmodeler.authoring.backends import BobShellBackend
+    from boardmodeler.authoring.api_backend import ApiKeyBackend
     from boardmodeler.config import AppConfig
 
     monkeypatch.setattr(
-        api_module, "load_config", lambda path=None: AppConfig(agent_provider="bob")
+        api_module, "load_config", lambda path=None: AppConfig(agent_provider="deepseek")
     )
 
     backend = engine.build_backend(make_request(tmp_path, backend_name="api", turn_timeout_s=42.0))
 
-    assert isinstance(backend, BobShellBackend)
+    assert isinstance(backend, ApiKeyBackend)
     assert backend.timeout_s == 42.0
-
-
-def test_the_default_api_backend_still_honours_a_bob_team_id(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """``--backend api`` (the default) must not silently drop ``--team-id`` for Bob."""
-    from boardmodeler.authoring import api_backend as api_module
-    from boardmodeler.authoring.backends import BobShellBackend
-    from boardmodeler.config import AppConfig
-
-    monkeypatch.setattr(api_module, "load_config", lambda path=None: AppConfig())
-
-    backend = engine.build_backend(
-        make_request(tmp_path, backend_name="api", provider="bob", team_id="team-api")
-    )
-
-    assert isinstance(backend, BobShellBackend)
-    assert backend.team_id == "team-api"
 
 
 def test_the_api_backend_is_built_from_the_catalog_entry_and_the_config(

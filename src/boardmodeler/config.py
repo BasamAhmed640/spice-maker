@@ -17,7 +17,7 @@ import json
 import os
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from boardmodeler.domain import SCHEMA_VERSION
 from boardmodeler.domain.enums import ProviderKind
@@ -114,12 +114,38 @@ class AppConfig(BaseModel):
     #: ``authoring.api_backend``'s default. Reasoning-class models spend part of this
     #: budget before they write any file text, which is why it is generous and settable.
     agent_max_tokens: int | None = Field(default=None, ge=1)
-    #: Search the web for supporting material while a model is being made (setup page).
-    web_reinforcement: bool = True
+    #: The one switch that governs every request this product makes: the agent
+    #: provider's API and the part vendor's own site for supporting material. It is
+    #: SETUP's single checkbox, and ``security.network`` is the only reader, so no
+    #: surface can widen access on its own. ``False`` refuses a request before it is
+    #: built; the ``BOARDMODELER_NO_NETWORK`` environment variable pins it off with
+    #: the file ignored.
+    internet_access: bool = True
     default_project_dir: str | None = None
     log_level: str = "INFO"
     setup_complete: bool = False
+    #: The *default* the build window's FULL VERIFICATION checkbox opens with. It is
+    #: not a SETUP setting: whether one build is verified fully or structurally is a
+    #: per-build choice, and the choice belongs beside GO.
     full_verification: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_legacy_web_reinforcement(cls, data: object) -> object:
+        """Read the legacy ``web_reinforcement`` key as ``internet_access``.
+
+        A config file written before the switch was unified still holds the user's
+        choice, and ``extra="forbid"`` would otherwise refuse the whole file. The
+        new key always wins when both are present; the legacy name is dropped, so
+        the next save writes only the surviving spelling.
+        """
+        if not isinstance(data, dict) or "web_reinforcement" not in data:
+            return data
+        migrated = dict(data)
+        legacy = migrated.pop("web_reinforcement")
+        if "internet_access" not in migrated:
+            migrated["internet_access"] = bool(legacy)
+        return migrated
 
 
 def config_dir() -> Path:

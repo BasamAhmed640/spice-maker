@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from boardmodeler.agent_providers import AgentProvider, by_id
+from boardmodeler.build_flavor import BOB_ONLY
 
 CHECK_TIMEOUT_S = 15.0
 CHECK_PROMPT = "Connection check. Reply only with OK. Do not use tools or read files."
@@ -48,6 +49,13 @@ def verify_key(
 
 
 def _verify_bob(key: str, timeout_s: float, cancel: threading.Event | None) -> KeyVerification:
+    if not BOB_ONLY:
+        # Shared file, edition gate: this path runs a third-party CLI. Refuse before
+        # ``shutil.which``, before ``bob_environment`` and before ``run_bob_shell``.
+        return KeyVerification(
+            "unverified",
+            "The general edition does not include Bob Shell; enter a vendor API key instead.",
+        )
     from boardmodeler.authoring.backends import parse_result_object, run_bob_shell
 
     executable = shutil.which("bob")
@@ -84,12 +92,13 @@ def _verify_bob(key: str, timeout_s: float, cancel: threading.Event | None) -> K
     if process.timed_out or (cancel is not None and cancel.is_set()):
         return KeyVerification("unverified", "Check timed out; the saved key may still be valid.")
     payload = parse_result_object(process.stdout)
+    last_message = None if payload is None else payload.get("last_message")
     if (
         process.returncode == 0
         and payload
         and payload.get("status") == "success"
-        and isinstance(payload.get("last_message"), str)
-        and payload["last_message"].strip()
+        and isinstance(last_message, str)
+        and last_message.strip()
     ):
         return KeyVerification("verified", "IBM Bob answered the connection check.")
     # Inspect only to choose a fixed message. Never return stdout/stderr or a key fragment.

@@ -1,10 +1,16 @@
 """The model maker: part number + datasheet + save location in, judged model out.
 
 This window is the product and it holds only what a build needs: which part, which
-datasheet, where the model goes, a GO button, and the progress of the run. Settings that
-persist between sessions — the LTspice path, the agent's API key, the default model
-folder, the LTspice library location, the web-reinforcement switch — live in
+datasheet, where the model goes, whether that build is verified fully or structurally, a
+GO button, and the progress of the run. Settings that persist between sessions — the
+LTspice path, the agent's API key, the default model folder, the LTspice library
+location, the one INTERNET ACCESS switch — live in
 :mod:`boardmodeler.ui.setup_dialog`, reached from the SETUP button.
+
+A finished model is not a one-session artifact: OPEN MODEL… reopens a folder a previous
+run wrote and fills the window from what is really on disk (see
+:func:`boardmodeler.pipeline.make_model.load_model_summary`), so a model built yesterday
+can be inspected and re-verified today.
 
 The engine runs in a worker thread and reports the same stages the CLI prints, so the two
 surfaces cannot drift apart. Nothing here computes a verdict.
@@ -14,18 +20,25 @@ from __future__ import annotations
 
 import json
 import math
-import os
-import subprocess
 import sys
 import threading
 import time
 from dataclasses import replace
 from pathlib import Path
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor, QPainter, QPainterPath, QPen, QPolygonF
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QThread, QTimer, QUrl, Signal
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QDesktopServices,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPolygonF,
+)
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QCheckBox,
     QDialog,
     QFileDialog,
     QGridLayout,
@@ -45,7 +58,14 @@ from PySide6.QtWidgets import (
 )
 
 from boardmodeler.agent_providers import AgentProvider
-from boardmodeler.storage import local_path, model_dir, portable
+from boardmodeler.security.execution import (
+    PATH_VALUE,
+    WINDOWS_BASE_ENV,
+    CommandRefused,
+    CommandSpec,
+    command_line,
+)
+from boardmodeler.storage import app_root, local_path, model_dir, portable
 from boardmodeler.ui.file_dialogs import starting_directory
 from boardmodeler.ui.theme import CGA, RETRO_STYLESHEET
 
@@ -142,6 +162,94 @@ def _agent_availability() -> tuple[bool, str]:
 
 def _colour(value: str) -> QColor:
     return QColor(value)
+
+
+def _configured_full_verification() -> bool:
+    """The remembered full/sanity choice, as the window's checkbox opens with it."""
+    try:
+        from boardmodeler.config import load_config
+
+        return bool(load_config().full_verification)
+    except Exception:  # pragma: no cover - a broken config must not block the window
+        return False
+
+
+#: The environment a child CLI process needs from this one, and nothing else: the DLL
+#: loader's variables, this copy's config override, the documented simulator override,
+#: and the network pin (so a switched-off session cannot be re-enabled by a child).
+_CLI_ENV_ALLOWLIST: tuple[str, ...] = (
+    "BOARDMODELER_CONFIG",
+    "LTSPICE_EXE",
+    "BOARDMODELER_NO_NETWORK",
+    *WINDOWS_BASE_ENV,
+)
+
+#: The window's CLI invocations, written in full: the fixed part is a literal template
+#: (``command_line`` refuses anything that could have come from a field), and the only
+#: value the window ever supplies is the model directory, in a ``PATH_VALUE`` slot where
+#: it can never be read as a flag.
+_CLI_TAIL_DOCTOR: tuple[str, ...] = tuple(command_line(("doctor", "--json")))
+_CLI_TAIL_MODEL_TEST: tuple[str, ...] = (
+    *command_line(("model", "test", "--out")),
+    PATH_VALUE,
+    *command_line(("--json",)),
+)
+
+_DOCTOR_SPEC = CommandSpec(
+    name="boardmodeler-doctor",
+    executable=Path(sys.executable),
+    argv_tail=_CLI_TAIL_DOCTOR,
+    timeout_s=300.0,
+    max_output_bytes=4 << 20,
+    env_allowlist=_CLI_ENV_ALLOWLIST,
+)
+
+_MODEL_TEST_SPEC = CommandSpec(
+    name="boardmodeler-model-test",
+    executable=Path(sys.executable),
+    argv_tail=_CLI_TAIL_MODEL_TEST,
+    # A harness run is N probes at up to two minutes each; the cap is generous because
+    # being killed mid-verification would be worse than waiting for an honest answer.
+    timeout_s=1800.0,
+    max_output_bytes=16 << 20,
+    env_allowlist=_CLI_ENV_ALLOWLIST,
+)
+
+
+def _cli_command(argv: list[str], *, out_dir: Path | None) -> tuple[CommandSpec, tuple[str, ...]]:
+    """``(spec, value tail)`` for one of this window's two CLI invocations, or refuse.
+
+    The caller passes what it wants as a plain argv list; only the two commands written in
+    ``_CLI_TAIL_DOCTOR``/``_CLI_TAIL_MODEL_TEST`` are accepted, and a ``model test`` value
+    must be the directory the window is actually showing. Anything else is refused before
+    a process exists, with the policy's own stable code.
+    """
+    tokens = [str(item) for item in argv]
+    if tokens == list(_CLI_TAIL_DOCTOR):
+        return _DOCTOR_SPEC, ()
+    wants_model_test = (
+        tokens[:3] == ["model", "test", "--out"] and tokens[-1:] == ["--json"] and len(tokens) == 5
+    )
+    if wants_model_test and out_dir is not None and tokens[3] == str(out_dir):
+        return _MODEL_TEST_SPEC, (str(out_dir),)
+    raise CommandRefused(
+        "argument_not_allowed",
+        f"this window runs only {list(_CLI_TAIL_DOCTOR)!r} and {list(_CLI_TAIL_MODEL_TEST)!r}; "
+        f"got {tokens!r}",
+    )
+
+
+def _run_command(spec: CommandSpec, argv: tuple[str, ...], *, cwd: Path, root: Path) -> object:
+    """Run one sanctioned child process through the repository's only spawn path.
+
+    A module-level function on purpose: this is the single place the window starts a
+    process, so the GUI sweep (``tools/gui_sweep.py``) and tests can replace this one name
+    instead of patching ``subprocess``. Everything about *what* may run lives in the
+    spec; this only hands it to :func:`boardmodeler.security.execution.run`.
+    """
+    from boardmodeler.security import execution
+
+    return execution.run(spec, argv=argv, cwd=cwd, root=root)
 
 
 class HourglassWidget(QWidget):
@@ -413,7 +521,7 @@ class ModelMakerWindow(QMainWindow):
     def _build_top_row(self) -> QHBoxLayout:
         row = QHBoxLayout()
         setup = QPushButton("SETUP")
-        setup.setToolTip("LTspice path, agent key, model folder, web reinforcement")
+        setup.setToolTip("LTspice path, agent key, model folder, INTERNET ACCESS")
         setup.clicked.connect(self._open_setup)
         check = QPushButton("CHECK ENVIRONMENT")
         check.setToolTip("Where LTspice, the reader backend and the agent key stand")
@@ -464,6 +572,18 @@ class ModelMakerWindow(QMainWindow):
         self.cancel_button.setEnabled(False)
         row.addWidget(self.go_button, 3)
         row.addWidget(self.cancel_button, 1)
+        # The full/sanity choice is a per-build decision, so it lives beside GO rather than
+        # in SETUP. The persisted setting is only the default it opens with; the build uses
+        # the box itself, and the box is what changes the setting back.
+        self.full_check = QCheckBox("FULL VERIFICATION")
+        self.full_check.setToolTip(
+            "On: plan test circuits and run LTspice verification for this build (slower). "
+            "Off: create the model and check its structure locally; electrical accuracy "
+            "remains unverified. Remembered for the next build."
+        )
+        self.full_check.setChecked(_configured_full_verification())
+        self.full_check.toggled.connect(self._full_verification_toggled)
+        row.addWidget(self.full_check)
         # The hourglass sits immediately beside the clock it belongs to, and both are driven
         # by the same two places: _set_busy starts them on GO and stops them on every exit.
         self.hourglass = HourglassWidget()
@@ -526,6 +646,15 @@ class ModelMakerWindow(QMainWindow):
 
     def _build_result_actions(self) -> QHBoxLayout:
         row = QHBoxLayout()
+        # Reopening is a results action like the others, and it is always available:
+        # a model built in an earlier session is exactly what this button is for.
+        self.open_model_button = QPushButton("OPEN MODEL…")
+        self.open_model_button.setToolTip(
+            "Reopen a model folder that is already on disk: its recorded rows, status and "
+            "files are read back from that folder, not from this session's memory."
+        )
+        self.open_model_button.clicked.connect(self._open_model)
+        row.addWidget(self.open_model_button)
         self.open_button = QPushButton("Open model folder")
         self.open_button.clicked.connect(self._open_folder)
         self.install_button = QPushButton("Install into LTspice")
@@ -652,7 +781,6 @@ class ModelMakerWindow(QMainWindow):
         out_dir.mkdir(parents=True, exist_ok=True)
 
         subckt = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in part).upper()
-        from boardmodeler.config import load_config
 
         request = MakeModelRequest(
             part=part,
@@ -660,7 +788,7 @@ class ModelMakerWindow(QMainWindow):
             datasheet=datasheet,
             out_dir=out_dir,
             backend_name="api",
-            verification="full" if load_config().full_verification else "sanity",
+            verification="full" if self.full_check.isChecked() else "sanity",
             allow_remote=True,
             # The configured id as written, so ``build_api_backend`` refuses a provider
             # this build lacks instead of another provider answering with the wrong key.
@@ -724,30 +852,116 @@ class ModelMakerWindow(QMainWindow):
             "from the model folder.",
         )
 
+    def _full_verification_toggled(self, checked: bool) -> None:
+        """Remember the choice for the next session; the build uses the box itself.
+
+        Persisting must never raise inside a Qt slot (a broken or read-only config is a
+        normal situation), so a failed write is reported on the status line's tooltip and
+        nothing else changes.
+        """
+        try:
+            from boardmodeler.config import load_config, save_config
+
+            config = load_config()
+            config.full_verification = bool(checked)
+            save_config(config)
+        except Exception as exc:
+            self.status_label.setToolTip(
+                f"FULL VERIFICATION could not be saved as the default: {type(exc).__name__}: {exc}"
+            )
+
+    def _open_model(self) -> None:
+        """Pick a finished model folder and fill the window from what it holds."""
+        directory = QFileDialog.getExistingDirectory(
+            self,
+            "Open a built model folder",
+            # Same rule as every other dialog here: a stale or file-shaped path must not
+            # decide where Qt opens.
+            starting_directory(self.out_edit.text()),
+        )
+        if directory:
+            self.open_model_path(Path(directory))
+
+    def open_model_path(self, directory: Path) -> bool:
+        """Fill the window from a built model folder; ``True`` when it was one.
+
+        A fresh build and a reopened one go through the *same* renderer:
+        :meth:`_on_result` is what sets the status line, the row table, `Open model folder`
+        and the results actions, so the two paths cannot drift apart. A folder that is not
+        a model — or whose ``results.json`` cannot be read — is refused with its reason
+        rather than shown as an empty model, and no row is invented.
+        """
+        from boardmodeler.pipeline.make_model import RESULTS_NAME, load_model_summary
+
+        summary = load_model_summary(directory)
+        if not summary.ok:
+            QMessageBox.warning(
+                self, "Not a model folder", summary.reason or f"{directory} is not a model"
+            )
+            return False
+        self._out_dir = summary.out_dir
+        self.part_edit.setText(summary.part or "")
+        if summary.datasheet is not None:
+            self.datasheet_edit.setText(str(summary.datasheet))
+        self.out_edit.setText(str(summary.out_dir))
+        if summary.result is not None:
+            self._on_result(summary.result)
+            return True
+        # The model files are there but the recorded verdict is not: show the files and
+        # say exactly what could not be read, with the row table left empty.
+        self._result = None
+        self.rows.setRowCount(0)
+        self.status_label.setText(
+            f"reopened {summary.part or summary.out_dir.name} — {summary.results_problem or f'no readable {RESULTS_NAME}'}"[
+                :200
+            ]
+        )
+        self.status_label.setToolTip(summary.results_problem or "")
+        self.status_label.setStyleSheet("color: #ffff55; font-family: Consolas; font-size: 10pt;")
+        self.again_button.setText("Run tests again")
+        self.again_button.setEnabled(True)
+        self.open_button.setEnabled(True)
+        self.install_button.setEnabled(summary.lib_path is not None)
+        return True
+
     def _open_folder(self) -> None:
+        """Show the model folder in the desktop's file manager.
+
+        ``QDesktopServices`` is Qt's supported way to do this and needs no child
+        process at all, on any platform — so there is nothing to sanction: the earlier
+        darwin/linux branches spawned ``open``/``xdg-open``, which the repository's one
+        spawn policy would have had to vouch for on two platforms Qt already handles.
+        """
         if self._out_dir is None:
             return
-        path = str(self._out_dir)
-        if sys.platform.startswith("win"):
-            os.startfile(path)
-        elif sys.platform == "darwin":
-            subprocess.run(["open", path], check=False)
-        else:
-            subprocess.run(["xdg-open", path], check=False)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(self._out_dir)))
 
     def _run_cli(self, argv: list[str]) -> None:
-        """Reuse the CLI for the follow-up actions so both surfaces behave identically."""
+        """Reuse the CLI for the follow-up actions so both surfaces behave identically.
+
+        The child is started through :func:`_run_command` (which is
+        ``security.execution.run``): the executable is pinned to this interpreter, the
+        arguments must match a template written above, and the environment is built from
+        an allowlist rather than inherited whole.
+        """
         try:
-            completed = subprocess.run(
-                [sys.executable, "-m", "boardmodeler.cli", *argv],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-        except OSError as exc:
-            QMessageBox.warning(self, "Command failed", str(exc))
+            spec, tail = _cli_command(list(argv), out_dir=self._out_dir)
+        except CommandRefused as exc:
+            QMessageBox.warning(self, "Command not allowed", exc.detail)
             return
-        message = completed.stdout.strip() or completed.stderr.strip() or "no output"
+        root = Path(self._out_dir) if self._out_dir is not None else app_root()
+        try:
+            completed = _run_command(spec, tail, cwd=root, root=root)
+        except Exception as exc:  # a refused or failed run is reported, never raised
+            QMessageBox.warning(self, "Command failed", f"{type(exc).__name__}: {exc}")
+            return
+        stdout = str(getattr(completed, "stdout", "") or "")
+        stderr = str(getattr(completed, "stderr", "") or "")
+        message = stdout.strip() or stderr.strip() or "no output"
+        if getattr(completed, "truncated", False):
+            # A bounded run that hit its cap is not a clean one, and the shortened text is
+            # not the whole report; say so instead of passing it off as complete.
+            message += "\n\n(the CLI wrote more than this window reads; the output was truncated)"
         if list(argv[:2]) == ["doctor", "--json"]:
             # The report goes to its own page, whole: this used to be a message box showing
             # the *last* 4000 characters, which hid the head of the report and could not be

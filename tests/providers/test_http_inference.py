@@ -550,10 +550,3 @@ def test_a_provider_outside_the_catalog_declares_no_vendor_host() -> None:
     assert refused is False
     assert reason.startswith("provider_not_in_catalog:")
     assert "inference.example.invalid" in reason
-
-
-def test_a_cli_provider_declares_no_http_endpoint() -> None:
-    allowed, reason = endpoint_is_vendor("bob", "https://api.deepseek.com/v1")
-
-    assert allowed is False
-    assert reason.startswith("provider_has_no_http_endpoint:")

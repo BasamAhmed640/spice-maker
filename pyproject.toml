@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "boardmodeler"
-version = "1.4.0"
+version = "1.5.0"
 description = "Spice Maker: datasheet-grounded LTspice model authoring judged by real simulator runs"
 readme = "README.md"
 requires-python = ">=3.14,<3.15"
@@ -47,6 +47,8 @@ markers = [
     "ltspice: requires the local LTspice executable",
     "network: requires outbound network egress",
     "gui: requires a Qt platform plugin",
+    "installer: drives the shipped Install.exe and the release ZIP journey",
+    "slow: minutes of wall clock or gigabytes of disk; opt in explicitly",
 ]
 filterwarnings = ["error::DeprecationWarning:boardmodeler.*"]
 

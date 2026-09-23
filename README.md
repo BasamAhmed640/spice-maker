@@ -1,5 +1,11 @@
 # Spice Maker
 
+**1.5.0: containment, one network switch, and models you can reopen.** This edition now ships **no CLI agent at all** — IBM Bob lives only in the separate Bob-only build, so nothing in this copy installs or executes a third-party agent, and every provider is a plain HTTPS request to the host its vendor documents. Egress has exactly **one control**: SETUP's `INTERNET ACCESS`, which governs the provider API and the part vendor's own site for supporting material; with it off the app sends nothing and refuses a build with that reason (proved by a test that runs the refusal path behind a socket tripwire).
+
+Every child process this program starts now goes through one policy module (`security/execution.py`): an absolute allowlisted executable, no shell, an argv shaped so no string from an agent, a datasheet or a filename can land in a flag position, a mandatory timeout, bounded output, and an **allowlisted child environment that is never a copy of the parent's**. That last point is what keeps your agent key away from the simulator: LTspice runs with fifteen OS variables and nothing else, so it cannot see `DEEPSEEK_API_KEY` or any other secret in your shell. The simulator is also still launched without `-I` or `-ini` — both were re-measured on LTspice 26.0.0 and both make it open its GUI window instead of running in batch (a fresh *or* seeded private settings file does it; a redirected `APPDATA` does too), which is why the boundary is the process environment rather than a private profile. A build is no longer a one-session artifact: **OPEN MODEL…** in the window and `boardmodeler model open --out DIR [--verify]` reopen a finished model directory from disk, show its recorded status and rows, and re-run verification on demand.
+
+Testing followed the same rule — the graded claims are commands, not prose. `tools/gui_sweep.py` clicks every button in all five windows with dialogs, subprocesses and config paths sandboxed (it fails on any exception, traceback or stuck modal, and reports 0 processes spawned), `tools/verify_release_zip.py` drives the whole journey the owner asked for — download the GitHub ZIP, extract it, run `Install.exe --silent`, check the in-folder `.venv`, set the LTspice path, build a model with real simulator runs, then package a fresh ZIP — and a source-level meta-test fails if any `subprocess` call site in `src/` bypasses the policy module. [What changed and what was measured](docs/STATUS.md).
+
 **1.4.0: a model build no longer fails on its own clock.** A full-mode build used to fund its retries from what was left of one turn deadline, so a slow reasoning-class model left its own retry seconds to run in and that clock failure was published as the model's verdict. A retry now requires a viable budget, budget exhaustion is its own reported condition, and the supporting-material search declines immediately rather than spending an allowance it cannot use. Measured on the same datasheet and provider: cold 2828.7 s with 4 PASS rows, warm 1559.1 s with 34 PASS rows, 4 extraction cache hits, the model published both times. The published status is still `UNKNOWN` — the honest label for a partly verified model, because 34 simulator-observed PASS rows out of the testable set is not measured accuracy. [Defect remediation](docs/STATUS.md).
 
 The rest of 1.4.0 is containment and usability. Credentials are a plain local file in this folder (`data/credentials.json`) with no DPAPI, no registry entry and no Credential Manager entry — **weaker at rest than what it replaced**, because anyone who can read the folder can read the key. LTspice is configured, never searched: first launch does not probe install locations, and discovery runs only on SETUP's FIND or `doctor --find-ltspice`. Outbound inference is pinned to the selected provider's documented host and refused before any request is sent, and the supporting-material search reads only the part vendor's sites and gives up immediately with a stated reason. The model window and SETUP are resizable, the doctor report is a scrollable view showing the whole report (it used to reach only its last 4000 characters), and an hourglass beside the timer animates only while a build runs. The installer provisions a real in-folder `.venv` from vendored wheels with no network access at install time, writes `Start.cmd`, `Boardmodeler.cmd` and a folder-local shortcut, and leaves an existing copy of the app untouched; that `.venv` has no Qt, so window-opening commands (`ui`, `setup`) go through `app\SpiceMaker.exe`. [Storage and fresh-start instructions](docs/PORTABLE_STORAGE.md).
@@ -33,10 +39,11 @@ final duration. See [what the agents and simulator do](docs/AGENT_WORKFLOW.md).
 selected. Extract the ZIP, open the extracted repository folder, and double-click
 **Install.exe** beside this README. The installer is included in the ZIP.
 
-The tracked **Install.exe** is still stamped 1.3.0 — it fixes the QtWidgets startup crash
-and keeps the animated pepper setup — while the source tree is 1.4.0. A 1.4.0 installer
-rebuild is pending, so the installer in this ZIP is the verified 1.3.0 build. Python is
-bundled; LTspice and, when using IBM Bob, Bob Shell are separate prerequisites. See INSTALL.txt for instructions and SHA256SUMS.txt for the installer hash.
+The tracked **Install.exe** is the verified 1.5.0 build: its file version is 1.5.0, and the
+hash in SHA256SUMS.txt is the SHA256 of the installer inside
+`releases/SpiceMaker-1.5.0-Windows-x64.zip`. Python is bundled; LTspice is a separate
+prerequisite; this edition installs no CLI agent. See INSTALL.txt for instructions and
+SHA256SUMS.txt for the installer hash.
 
 **Give it a datasheet and a part number; an agent authors an LTspice model. The GUI now defaults to local structural checks. Full simulation verification is optional. You get a `.lib`, a symbol and a card that states what was checked and what remains unverified.** That is the product. Everything below the fold is
 supporting machinery, and the board/circuit/UI layers date from an earlier, wider spec.
@@ -54,13 +61,12 @@ uv run boardmodeler model install --out build/tps54320 --user-lib --apply
 ```
 
 **Before the first run:** open **SETUP** in the window and paste an agent API key — that is
-the whole authentication story; there is no login anywhere in this application. **IBM Bob** is
-the default provider and needs Bob Shell installed
-(`powershell -c "irm -Uri https://bob.ibm.com/download/bobshell.ps1 | iex"`, Node ≥ 24) plus a key from
-bob.ibm.com → API keys with **Scope = Inference** (an *Inference* key needs no team id; a
-*general* key does). The same row also takes a plain vendor key from OpenAI, Anthropic, Google,
-DeepSeek, OpenRouter, xAI, Groq, Mistral or OpenCode Zen or OpenCode Go, and those run over HTTP with no
-CLI and no extra install. Only the selected key is kept, as a plain local file in this folder
+the whole authentication story; there is no login anywhere in this application. **DeepSeek** is
+the default provider. Every provider this edition accepts — OpenAI, Anthropic, Google,
+DeepSeek, OpenRouter, xAI, Groq, Mistral, OpenCode Zen and OpenCode Go — is a plain HTTPS
+request to the host that vendor documents: no CLI agent is installed or executed, and no
+agent tool call runs on this machine. Bob exists only in the separate Bob-only edition. Only
+the selected key is kept, as a plain local file in this folder
 (`data/credentials.json`) — never in a config file, a manifest or a log line. Nothing is bound to
 Windows and the file is **not encrypted**: anyone who can read this folder can read the key, so keep
 the copy private. Setup is one page and holds only what persists: the LTspice
@@ -85,14 +91,14 @@ high-speed channel/protocol validation remains external. See
 OpenCode **Go (subscription)** and **Zen (pay as you go)** are separate provider choices.
 Select Go for a Go subscription; its endpoint is `/zen/go/v1`, and Zen credit is never
 used as an automatic fallback. Both choices use the existing OpenCode credential slot.
-The Bob edition continues to accept only IBM Bob.
+Bob exists only in the separate Bob-only edition, which accepts IBM Bob alone.
 
 Extraction, model authoring and JSON repair use the selected provider's highest
 configured reasoning setting: `max` for DeepSeek, OpenAI, Claude Opus and OpenRouter;
 `high` for Gemini; `xhigh` for Grok 4.6. OpenCode's default DeepSeek model uses `max`.
 An exhausted thinking budget is reported without silently disabling thinking. Models
-without an exposed reasoning control (including the current Groq/Mistral defaults) and
-Bob Shell retain their provider-controlled behavior; they cannot be labeled max.
+without an exposed reasoning control (including the current Groq/Mistral defaults)
+retain their provider-controlled behavior; they cannot be labeled max.
 These settings apply to the documented default models and compatible overrides.
 
 ## Install
@@ -101,21 +107,23 @@ Use **Code → Download ZIP** on **main**. Extract the archive, then double-clic
 **Install.exe** in the extracted repository folder. The pepper animation plays during
 setup. The same folder contains INSTALL.txt and SHA256SUMS.txt.
 
-Open SETUP once to select LTspice and save your API key. Python is bundled; LTspice and,
-when using Bob, Bob Shell must be installed separately. This installer is unsigned.
+Open SETUP once to select LTspice and save your API key. Python is bundled; LTspice must be
+installed separately; this edition installs and runs no CLI agent. This installer is unsigned.
 
-To rebuild, run `installer\build.ps1 -Version 1.4.0`; see
+To rebuild, run `installer\build.ps1 -Version 1.5.0`; see
 [installer details](installer/README.md). The build refreshes the root installer,
 instructions and checksum so committing those files updates Code → Download ZIP.
 
 ## Two builds of one product
 
-The agent provider list is data (`src/boardmodeler/agent_providers.py`), so a restricted
-build is selected by `build_flavor.BOB_ONLY`, with a restricted catalog (D-015):
+The agent provider list is data (`src/boardmodeler/agent_providers.py`), so a build ships the
+catalog it sells, selected by `build_flavor.BOB_ONLY` (D-015). This repository is the general
+edition: its catalog holds HTTPS API-key providers only, and no code path here can start a
+local agent CLI. Bob is a separate product, built from the `spice-maker-bob` repository.
 
 |Build|Accepts|Use it for|
 |---|---|---|
-|`spice-maker` (this repository)|Bob **and** every vendor key in the catalog|Trying providers, comparing models, day-to-day work|
+|`spice-maker` (this repository)|The vendor HTTPS API keys in the catalog (default: DeepSeek)|Trying providers, comparing models, day-to-day work|
 |`spice-maker-bob`|The IBM Bob API only|The Bob-native workflow: no provider row on SETUP, `BOB API KEY` only|
 
 What each piece guarantees:
@@ -244,7 +252,7 @@ requirement with no dynamic test in `coverage.json`.
 |`src/boardmodeler/models/`|Vendor-original store, behavioural templates, capability probes, symbol generation|
 |`src/boardmodeler/requirements/`|Requirement extraction, validation, source-consistency review|
 |`src/boardmodeler/documents/`|PDF text/page extraction, document store, OCR interface, chunking|
-|`src/boardmodeler/providers/`|Fixture / HTTP inference / Bob providers behind one protocol|
+|`src/boardmodeler/providers/`|Fixture and HTTP inference providers behind one protocol|
 |`src/boardmodeler/pipeline/`|Stage chain, baseline freeze, bounded repair, child-process worker|
 |`src/boardmodeler/reporting/`|Export, model card, HTML report|
 |`src/boardmodeler/security/`|Credentials, path guards, subprocess guard, data policy|

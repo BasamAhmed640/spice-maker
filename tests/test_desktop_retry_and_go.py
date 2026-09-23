@@ -89,7 +89,7 @@ def test_permission_update_does_not_allow_other_metadata_changes(tmp_path: Path)
     assert store.get(original.doc_id) == original
 
 
-@pytest.mark.skipif(by_id("opencode_go") is None, reason="Bob-only catalog")
+@pytest.mark.skipif(by_id("opencode_go") is None, reason="OpenCode Go is absent from this catalog")
 def test_go_uses_subscription_endpoint_max_reasoning_and_stable_session(tmp_path: Path):
     sent = []
     replies = ["not json", json.dumps({"files": {"divider.lib": "* synthetic fixture\n.end\n"}})]
@@ -119,7 +119,7 @@ def test_go_uses_subscription_endpoint_max_reasoning_and_stable_session(tmp_path
     assert by_id("opencode").endpoint == "https://opencode.ai/zen/v1"
 
 
-@pytest.mark.skipif(by_id("opencode_go") is None, reason="Bob-only catalog")
+@pytest.mark.skipif(by_id("opencode_go") is None, reason="OpenCode Go is absent from this catalog")
 def test_go_credit_error_never_falls_back_to_zen(tmp_path: Path):
     sent = []
 

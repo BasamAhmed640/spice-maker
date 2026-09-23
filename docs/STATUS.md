@@ -1,4 +1,292 @@
-# 1.4.0 source; 1.3.0 installer verification complete
+## 2026-09-22 — 1.5.0: containment, safe agent deployment, reopenable models, real end-to-end proof
+
+Second remediation round, from the owner's list: safety first (no rogue agent, one internet
+box, excessively safe commands, no access to Windows secrets, the copy owns its interpreter),
+Bob removed from this edition, a model that can be reopened and re-verified, and testing of
+the whole journey "from downloading to generating a new zip, extracting, doing the
+install.exe, setting the path to ltspice and generating a new spice model". Plan and goal list:
+`docs/PLAN-1.5.0.md`; decisions: D-027…D-032.
+
+Baseline before any edit: `main` @ `b98869d`, `uv run pytest -q -m "not ltspice"` →
+**1348 passed, 5 skipped** in 39.5 s. Nothing was committed or pushed during the work.
+
+| Grader's line | Evidence | Result |
+|---|---|---|
+| GUI buttons work | `uv run python tools/gui_sweep.py --json build/gui-sweep.json` | **PASS** — see §C1 |
+| Install.exe works for the newest version | `installer/build.ps1 -Version 1.5.0` + `tools/verify_release_zip.py` | **NOT MET ON THIS MACHINE** — the 1.5.0 artefact is built and consistent, but this machine's Smart App Control blocks the newly built unsigned binary from launching. Evidence and remedies in §C3. |
+| Buttons work | `uv run pytest -q tests/gui/test_button_sweep.py` | **PASS** — see §C1 |
+| safety (adherence) | §A1–§A5 below, each with the command that proves it | see per goal |
+| functionality (adherence) | §C2 reopen, §C3 end-to-end, `uv run pytest -q` | see per goal |
+
+### A1 — Bob is unreachable in this edition (owner: "Remove Bob from non bob version", "should not allow rogue agents")
+
+The general edition no longer has an IBM Bob provider row, a Bob Shell backend it can
+construct, a `--backend bob`, a `--team-id`, a Bob key check, or a Bob installer/README
+claim. The shared symbols the Bob-only edition needs stay in the tree behind a
+`build_flavor.BOB_ONLY` guard that runs before a key is read, before argv exists and before
+any process is created (D-027) — deleting them would break `spice-maker-bob`, whose
+`api_backend.py`/`make_model.py` construct `BobShellBackend` directly. The sibling checkout
+was never edited (`git -C ../spice-maker-bob status` → clean).
+
+```
+uv run python -c "from boardmodeler.cli import main; main()" doctor --json | grep -ci bob   → 0
+uv run python -c "from boardmodeler.cli import main; main()" model build --part X --out D --backend bob
+  → exit 2, "invalid choice: 'bob' (choose from api, scripted, fixture)", no Traceback
+uv run pytest -q tests/test_edition_bob_absent.py -v   → 11 passed
+```
+
+### A2 — one switch for internet access (owner: "change to only one box for internet access")
+
+`AppConfig.internet_access` is the single source of truth; SETUP shows exactly one
+`INTERNET ACCESS` checkbox and nothing else that governs egress; `FULL VERIFICATION` moved
+to the build window because it is a per-build choice (D-028). With the switch off,
+`security/network.require_network` refuses with `internet_access_off` before a request is
+built, and `BOARDMODELER_NO_NETWORK` forces it off regardless of the file.
+
+```
+uv run pytest -q tests/security/test_network_off.py tests/ui/test_setup_dialog.py -v
+  → the socket tripwire records ZERO connect attempts with the switch off, and the refusal
+    the user sees names the SETUP switch; SETUP exposes exactly one network control
+```
+
+### A3 — one execution policy (owner: "Bash commands that are run need to be excessively safe")
+
+Every spawn in `src/` passes `security/execution.py` first: absolute allowlisted executable,
+no shell form, values kept out of flag positions, cwd pinned to a declared root, mandatory
+positive timeout, bounded capture, allowlisted child environment (D-029). Callers that own a
+process loop (the simulator watchdog, the worker's streamed progress) call `validate()` and
+are named in an allowlist that a **meta-test** keeps honest in both directions.
+
+```
+uv run pytest -q tests/security/test_execution.py -v
+  → refusals are proved to happen before any spawn (an asserting tripwire replaces Popen);
+    a real timeout kills the child tree; a 16 MiB flood returns truncated=True;
+    the AST meta-test fails if any subprocess call site in src/ is unallowlisted
+```
+
+### A4 — the simulator cannot see your API keys (owner: "NEVER HAVE ACCESS TO MY WINDOWS API KEY")
+
+Two independent audits (registry/DPAPI/keyring/machine-GUID/license-query, and every write
+outside the copy) found no Windows secret access, and that guards stay covered by
+`tests/security/` and `tests/test_portable_storage.py`. New in 1.5.0: the simulator is
+spawned with an **allowlisted environment** — fifteen OS variables plus a private `TEMP`
+inside the copy — so the agent key in the parent environment is not visible to LTspice or to
+anything it spawns.
+
+```
+uv run pytest -q tests/ltspice/test_child_environment.py -v
+  → a poisoned parent environment (DEEPSEEK_API_KEY=sk-…) yields a child env without it;
+    credential-shaped names are refused even if allowlisted; a source guard fails if the
+    simulator's spawn stops passing env=…; and a REAL LTspice run still succeeds
+uv run python -c "…smoke_test(…)"  → pass, V(out)@1 ms = 0.632119 V (0.019% dev., tol ±2%)
+```
+
+Not done, and measured rather than assumed: a private LTspice settings file is **refused**.
+With `-ini <path>` (missing / minimal / a copy of the user's own `LTspice.ini`) and with
+`APPDATA` redirected, LTspice 26.0.0 opens its GUI window (`LTspice - [<ini stem>]`, seen
+through `EnumWindows`) and never exits, so a batch run hangs (D-030). The user's
+`%APPDATA%\LTspice.ini` was byte-unchanged in the seeded test.
+
+### A5 — the copy owns its interpreter (owner: "should set up its own virtual environment")
+
+The installer already builds `<copy>\.venv` from a vendored CPython 3.14 runtime and pinned
+wheels with `--no-index` (no network), and the frozen app carries the GUI. New in 1.5.0:
+`setup --json` works **inside that Qt-free `.venv`** — it used to raise
+`ModuleNotFoundError: No module named 'PySide6'`. The settings descriptions moved to a
+Qt-free module (D-032).
+
+```
+PySide6 made unimportable, then cli.main(["setup", "--json"])
+  → exit 0, settings printed, "PySide6 in sys.modules" → False
+<extracted copy>\.venv\Scripts\python.exe -m boardmodeler.cli doctor --json  → in §C3
+```
+
+### B1 — a built model can be reopened and re-verified (owner: "no ability to reopen a spice model … rerun verifications")
+
+`model open --out DIR [--verify]` and the window's `OPEN MODEL…` read a model directory that
+exists on disk (library, symbol, card, `results.json`, spec, manifest) and refuse with
+`not_a_model_directory` rather than guessing (D-031). Manual check on a model built in a
+**previous session**:
+
+```
+uv run python -c "…" model open --out build/datasheet-suite/ucc28251 --json
+  → ok=true, part UCC28251, status UNKNOWN, counts PASS 34 / FAIL 6 / UNKNOWN 84 / N/A 174,
+    and the requirement rows with their page numbers
+uv run pytest -q tests/e2e/test_reopen_model.py -v   → build offline, drop in-process state,
+    reopen from disk, re-verify
+```
+
+### C1 — every button, clicked (owner: "all buttons work and dont cause errors")
+
+`tools/gui_sweep.py` constructs every reachable surface (model maker, SETUP, doctor view,
+dormant board window, settings), clicks every button/checkbox with file dialogs, message
+boxes, the worker client, subprocesses and config paths sandboxed, records Qt messages and
+tracebacks, and reports a JSON artefact. It fails on any click exception, any captured
+traceback, or an enabled button with no observable effect.
+
+```
+uv run python tools/gui_sweep.py --json build/gui-sweep.json     → exit 0; report written
+uv run pytest -q tests/gui/test_button_sweep.py -v               → passed, 1 skipped
+    (the skip names BOARDMODELER_GUI_SWEEP_FULL=1 and its cost; never silent)
+```
+
+Side-effect evidence recorded by the sweep: 0 child processes spawned before/after
+(`psutil`), `data/config.json` mtime unchanged, no `credentials.json`/`models/` created,
+10 file dialogs answered inside the sandbox, 2 modals rejected, `DEEPSEEK_API_KEY` removed
+and restored.
+
+### C2 — the whole stated journey, as one recorded run (owner: the verification desire)
+
+`tools/verify_release_zip.py` implements the owner's list as ordered, independently
+reported stages: **download** the GitHub Code→Download ZIP (`codeload`), **extract**,
+**Install.exe --silent --no-launch**, **environment** (in-folder `.venv` runs; nothing
+written to `%APPDATA%`/`%LOCALAPPDATA%`), **ltspice-path** (written through the copy's own
+python and read back), **model** (real build in the copy, then re-judged), **zip** (a fresh
+release ZIP), and cleanup. Each stage records status, seconds, the exact command, the output
+tail and hashes; `verdict` is `PASS` only when nothing FAILed **and** nothing was skipped,
+with `skipped_stages` listed separately.
+
+```
+uv run python tools/verify_release_zip.py --source releases --report build/release-verify.json \
+    --markdown build/release-verify.md
+BOARDMODELER_INSTALLER_TESTS=1 uv run pytest -q tests/e2e -v
+```
+
+Stage 7 (a fresh release ZIP) requires the installer build and reports
+`SKIP(requires installer build; pass --build-zip)` rather than faking an artefact;
+the 1.5.0 build itself is §C3. Defects this harness found and reported, all now fixed:
+`setup --json` crashing in the Qt-free `.venv` (§A5); a regression where a spawn `OSError`
+escaped the execution policy instead of being reported as data (`WinError 216` on a
+non-executable candidate — `tests/test_ltspice_explicit_only.py`); and an
+`--sanity --requirements` offline build refused twice over, which is why the model stage
+uses a datasheet and the committed reviewed fixture pair (the remaining limitation is
+recorded under "Not verified" below).
+
+### C3 — 1.5.0 installer build
+
+```
+installer/build.ps1 -Version 1.5.0
+```
+
+| Step | Observed |
+|---|---|
+| version guard | installer version must equal source and `pyproject.toml`; all three are 1.5.0 |
+| vendored environment | in-folder CPython 3.14 + pinned wheels; the installer never uses the network |
+| frozen GUI | `verify_gui.py` launches `dist\SpiceMaker\SpiceMaker.exe`, screenshots it, closes it |
+| installer | `Install.exe` compiled with `csc.exe`, version 1.5.0, committed for Code → Download ZIP |
+| portable verification | `verify_portable.py`: install, update, fresh-copy isolation, concurrent installs |
+| artefacts | `releases/SpiceMaker-1.5.0-Windows-x64.zip`, `releases/Setup.exe`, `SHA256SUMS.txt` |
+| frozen GUI (real window) | `verify_gui.py` → `"status": "PASS"`; then launched on the real desktop and driven through SETUP (below) |
+
+**The installer could not be launched on this machine, and that is reported as a failure, not
+smoothed over.** `build.ps1` stopped at `verify_portable.py` with
+`OSError: [WinError 4551] An Application Control policy has blocked this file`. Measured to
+establish that the artefact is sound and the gate is this machine's policy:
+
+| Launched | Result |
+|---|---|
+| freshly compiled 1.5.0 `Install.exe` | blocked — `exit 126` / `WinError 4551`, 5 attempts over ~20 min |
+| 1.4.0 installer extracted from the released ZIP | **exit 0** (installed) |
+| a renamed copy of those same 1.4.0 bytes | **exit 0** — the gate is the binary's reputation, not its name or path |
+| freshly frozen `app\SpiceMaker.exe` from the same 1.5.0 build | launched, and `verify_gui.py` reported PASS with a screenshot |
+| installer manifest | `<requestedExecutionLevel level="asInvoker" uiAccess="false">`; AppLocker's decision log has no entry for these attempts |
+
+So the release artefacts are complete and internally consistent (`Install.exe` sha256
+`333914df150883224d83070bf7430d0907a6e329baa0d667bbb44f217b513edd` appears in
+`SHA256SUMS.txt` and inside the ZIP, and `Read me.txt` names 1.5.0), the application itself
+runs here, and the packaged journey is verified only up to the point where the policy stops
+it: `tools/verify_release_zip.py` reported `archive PASS, extract PASS, install FAIL
+(WinError 4551)` with every later stage skipped for that reason. The way to make a new build
+launchable on such a machine is to sign it or to approve it once in Windows Security
+(`installer/README.md`, "Smart App Control").
+
+### C4 — the real agent path, measured at 1.5.0
+
+A live build was run through the product path with a real provider and the owner's own
+datasheet (`--backend api --provider opencode_go --model deepseek-v4.1-flash --sanity`,
+LM358, datasheet from `~/Downloads`):
+
+```
+status   UNKNOWN   detail "Sanity checked; electrical accuracy unverified"
+counts   42 UNKNOWN (0 PASS claimed)
+stages   read ok → extract ok → bind ok → author (progress frames) → judge ok → save ok
+files    LM358.lib (2433 B), LM358.asy, MODEL_CARD.md, example.cir, harness-report.json, spec/
+```
+
+The published library is a real behavioural subcircuit whose own header lists what is not
+modelled (temperature drift, PSRR/CMRR/noise, load-dependent swing, current limits). One
+honest caveat recorded at the time: `deepseek` was tried first and answered
+`HTTP 402 Insufficient Balance`, so the completed run used the `opencode_go` account with
+the documented alias (`OPENCODE_API_KEY`); the temporary `DEEPSEEK_API_KEY`-only run is not
+counted as a result.
+
+### C5 — two defects found by running the real path, and fixed
+
+Neither was reachable from the test suite (which is exactly the gap the owner named), and
+both are about failing honestly:
+
+1. **`attributeerror` where a refusal belonged.** `pipeline/make_model._page_lookup` caught
+   *every* exception while reading the datasheet and returned a bare `None`; the reviewed-row
+extractor (`authoring/lm358_reference.records`) then died with
+   `AttributeError: 'NoneType' object has no attribute 'index'`, which reads like a crash
+   rather than "this page could not be read". It now records the cause and the caller stops
+   with a named refusal: `datasheet_page_unreadable: … page 9 … yielded no usable text
+   (page 9 has no extractable text (an image-only page needs OCR)); install OCR or supply
+   --requirements`. Verified by `tests/pipeline` (118 passed) and by the successful C4 run.
+2. **`setup --json` crashed in the Qt-free `.venv`** (A5): fixed by moving the
+   settings-as-data helpers into `settings_summary.py`, proved with PySide6 made unimportable.
+   `--sanity --requirements` (offline, no datasheet) is still refused with its own reason;
+   that is pre-existing behaviour, documented rather than silently worked around.
+
+### Test suite at this revision
+
+```
+uv run ruff check .                 → All checks passed!
+uv run ruff format --check .        → 255 files already formatted
+uv run pytest -q -m "not ltspice"   → 1510 passed, 8 skipped, 164 deselected (60 s)
+uv run pytest -q tests/ltspice tests/security tests/test_ltspice_explicit_only.py
+                                    → 217 passed
+```
+
+### Not verified, or verified only partly — stated rather than smoothed
+
+* **A live provider build is not re-measured here.** The model stages of §C2 use the
+  committed reviewed fixture pair (`origin=TEST_FIXTURE`) plus real LTspice runs, because
+  they must be hermetic and repeatable. The 1.4.0 measurements for the real API path
+  (cold 2828.7 s / warm 1559.1 s, 4 then 34 PASS rows, model published) stand as recorded;
+  they were not re-taken at 1.5.0.
+* **`--sanity` with `--requirements` (no datasheet) is refused** (`cli.py`: "--sanity requires
+  --datasheet", then the pin-map requirement in `authoring/sanity.py`). This is a pre-existing
+  behaviour, not a 1.5.0 regression; it is why the harness's model stage supplies a datasheet.
+* **Model accuracy is not claimed anywhere.** The reopened model above reports `UNKNOWN` with
+  34 PASS rows out of the testable set — the honest label, unchanged by this round.
+* **The installer is unsigned.** A freshly built unsigned `Install.exe` can be blocked by
+  Smart App Control until it has reputation or a signature; the harness records the outcome
+  instead of retrying blindly.
+* **The 1.5.0 installer is not launch-verified on this machine** (Smart App Control,
+  `WinError 4551`) — see §C3 for the measurements that separate "the artefact is broken" from
+  "this machine's policy refuses new unsigned binaries". Until it is signed or approved, the
+  right claim is "the installer is built, hashed and consistent; installing *this* binary has
+  not been demonstrated here", which is what this file says.
+* **Analyzer advisories are not the gate, and this class is general.** pi-lens'
+  `unchecked-throwing-call-python` (and the type-checker's `reportArgumentType`) re-fire on
+  pre-existing typed-Python call sites across `authoring/api_backend.py` (178/194/295/315),
+  `pipeline/make_model.py` (1504/1521/1668/1802/1858/2028/2179), `providers/agent.py`
+  (74/81/98/214/229/282/326/334/379/498), `ui/settings.py`, `authoring/backends.py` and
+  `ui/worker_client.py`. Each was checked against `HEAD` rather than assumed: the flagged
+  statements exist verbatim there, or sit outside this session's diff hunks (`agent.py`'s only
+  changed lines are 20 and 184-189; `api_backend.py`'s are ~73, 1087-1092 and 1117), and the
+  conversions are `isinstance`-guarded or wrapped in `try/except (TypeError, ValueError)` in
+  the same expression. Four were recorded as `false-positive` dispositions and two conversion
+  lines carry an explicit `# pyright: ignore[reportArgumentType]` with the reason.
+  The repository's gate is `ruff` + `pytest` (`.github/workflows/ci.yml`), and reshaping
+  guarded runtime validation to satisfy a checker that does not gate would have been the
+  worse change.
+* **`docs/STATUS.md` numbers above are from a tree that several agents were still editing.**
+  Anything measured while another writer was active carries a note saying so; the final gate
+  below was run on the settled tree.
+
+
 
 Installer run 35572961840 and source CI 35572962215 passed for `2da3893c25f5472b6d9efd776c95ae8c265d444a`.
 The actual installer passed GUI startup, first-launch setup, same-folder data preservation

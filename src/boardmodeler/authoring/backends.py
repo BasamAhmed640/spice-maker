@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
+from boardmodeler.build_flavor import BOB_ONLY
 from boardmodeler.security.credentials import env_var_name, get_credential, redact
 from boardmodeler.security.subprocess_guard import GuardedProcess, check_argv
 
@@ -284,6 +285,12 @@ class BobShellBackend:
     then ``BOARDMODELER_BOB_SHELL_API_KEY``) and then as a plain ``BOB_API_KEY``
     environment variable. It is only ever placed in the child *environment*.
 
+    This shared file serves both editions, so construction is edition-gated: the
+    Bob-only edition (``BOB_ONLY`` true) builds it as before, and a general build
+    raises before a key is read or an argv is built. Keeping the class here makes
+    the shared module syncable; the gate is what makes it unreachable in a general
+    build.
+
     ``timeout_s`` is ``None`` by default: the agent runs until it is done and the
     build stops on its own progress rule instead of a clock. A caller that wants
     one invocation bounded passes a positive number, and the runner's timeout
@@ -300,6 +307,13 @@ class BobShellBackend:
         runner: ProcessRunner | None = None,
         timeout_s: float | None = None,
     ) -> None:
+        if not BOB_ONLY:
+            # First statement on purpose: no credential lookup, no shutil.which, no
+            # subprocess_guard, no Popen before the refusal.
+            raise RuntimeError(
+                "the general edition does not include Bob Shell; this backend runs a "
+                "third-party CLI agent and is only constructible in the Bob-only edition"
+            )
         if timeout_s is not None and timeout_s <= 0:
             raise ValueError(f"timeout_s must be > 0 or None, got {timeout_s}")
         self.team_id = team_id

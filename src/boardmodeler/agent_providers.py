@@ -2,18 +2,14 @@
 
 The list is **data, not code**. A build ships the catalog it sells, and every consumer
 (the setup page's provider row, the backend factory, ``doctor``) reads the catalog
-instead of naming a provider itself. The Bob-only build sets ``build_flavor.BOB_ONLY``,
-which filters :data:`CATALOG` down to the Bob entry rather than forking the code: with a
-single entry the setup page shows no provider row and keeps the ``BOB API KEY`` label,
-and the backend factory can only ever return Bob.
+instead of naming a provider itself. This general edition ships HTTPS API-key entries
+only: the key travels in a request to the host that provider documents, and no entry
+names a local process. Bob exists only in the separate Bob-only edition, which has its
+own copy of this file; nothing here can select or run a CLI agent.
 
 Every entry declares the transport it needs (``wire``), so an unsupported shape is
 refused with a reason instead of being coerced:
 
-``bob-shell``
-    The Bob CLI (Bob Shell), the documented consumer of a Bob *Inference* API key: the
-    key is passed to the child process through ``BOB_API_KEY``, never in argv. No login
-    step, no endpoint in this file. ``https://bob.ibm.com/docs/shell/getting-started/install-and-setup``
 ``openai``
     ``POST <endpoint>/chat/completions``, ``Authorization: Bearer <key>`` — the shape
     OpenAI documents and several vendors implement. OpenCode Zen is the same shape on
@@ -36,8 +32,6 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from urllib.parse import urlsplit
 
-from boardmodeler.build_flavor import BOB_ONLY
-
 __all__ = [
     "CATALOG",
     "DEFAULT_PROVIDER_ID",
@@ -51,9 +45,10 @@ __all__ = [
     "vendor_host",
 ]
 
-#: Wires this build knows how to speak. A catalog entry naming anything else is a
-#: build defect, and ``by_id``/``require`` say so instead of picking a fallback.
-WIRES: tuple[str, ...] = ("bob-shell", "openai", "anthropic", "google")
+#: Wires this build knows how to speak: every one is an HTTPS request to a vendor's own
+#: documented host. A catalog entry naming anything else is a build defect, and
+#: ``by_id``/``require`` say so instead of picking a fallback.
+WIRES: tuple[str, ...] = ("openai", "anthropic", "google")
 
 
 @dataclass(frozen=True)
@@ -66,7 +61,7 @@ class AgentProvider:
     ``BOARDMODELER_<CREDENTIAL>_API_KEY``); ``env_aliases`` are additional plain
     environment variables the same key is read from, for people who already export
     the vendor's own variable. ``key_label`` and ``key_hint`` are the setup page's
-    label and hint, so a Bob-only build keeps exactly today's wording.
+    label and hint, so a build with one provider keeps that provider's own wording.
     """
 
     id: str
@@ -100,8 +95,12 @@ class AgentProvider:
 
     @property
     def uses_cli(self) -> bool:
-        """Whether the key is consumed by a local CLI process rather than HTTP."""
-        return self.wire == "bob-shell"
+        """Whether the key would be consumed by a local CLI process rather than HTTP.
+
+        False for every entry this edition ships; the distinction stays because the
+        key-check dispatcher reads it and the Bob edition's own catalog uses it.
+        """
+        return self.wire not in WIRES
 
     @property
     def model_editable(self) -> bool:
@@ -109,19 +108,10 @@ class AgentProvider:
         return not self.uses_cli
 
 
-#: The providers a build accepts, default first. ``build_flavor.BOB_ONLY`` filters
-#: this tuple for a restricted build; nothing else in the code names a provider.
+#: The providers a build accepts, default first; nothing else in the code names a
+#: provider. Every entry here is HTTPS: a general-edition user cannot make the app run
+#: a local agent process.
 CATALOG: tuple[AgentProvider, ...] = (
-    AgentProvider(
-        id="bob",
-        label="IBM Bob",
-        wire="bob-shell",
-        credential="bob_shell",
-        key_label="BOB API KEY",
-        key_hint="bob.ibm.com → API keys → Scope = Inference  ·  used by the Bob CLI",
-        docs="https://bob.ibm.com/docs/shell/getting-started/install-and-setup",
-        env_aliases=("BOB_API_KEY",),
-    ),
     AgentProvider(
         id="deepseek",
         label="DeepSeek",
@@ -289,12 +279,10 @@ CATALOG: tuple[AgentProvider, ...] = (
     ),
 )
 
-if BOB_ONLY:
-    CATALOG = tuple(entry for entry in CATALOG if entry.id == "bob")
 
-
-#: The provider a build expects when the user has not chosen one. Bob, always.
-DEFAULT_PROVIDER_ID = "bob"
+#: The provider a build expects when the user has not chosen one: the catalog's first
+#: entry, so the default follows the catalog instead of naming a provider twice.
+DEFAULT_PROVIDER_ID = CATALOG[0].id
 
 
 def ids() -> tuple[str, ...]:
@@ -381,9 +369,10 @@ def endpoint_is_vendor(provider: str | None, url: str) -> tuple[bool, str]:
     A provider id outside the catalog declares no vendor host at all, so the
     only destination it may reach is a loopback one (a local fixture or test
     server, which is not internet egress); a public destination is refused
-    rather than guessed. A CLI provider (``bob``) has no HTTP endpoint and is
-    refused for any URL. The reason names the provider, the expected host and
-    the documentation it came from, so a refusal is reported instead of retried.
+    rather than guessed. An entry with no HTTP endpoint (a wire this edition
+    does not serve as HTTPS) is refused for any URL. The reason names the
+    provider, the expected host and the documentation it came from, so a refusal
+    is reported instead of retried.
     """
     host = vendor_host(url)
     if host is None:

@@ -71,7 +71,6 @@ from boardmodeler.authoring.backends import (
     AuthorBackend,
     AuthorRequest,
     AuthorResult,
-    BobShellBackend,
     UnavailableBackend,
     stdout_tail,
 )
@@ -176,7 +175,11 @@ def _number(value: object, name: str) -> float:
     setting was wrong.
     """
     try:
-        return float(value)
+        # ``value`` is untyped on purpose: a config file, the CLI and a JSON payload all
+        # hand these in, and the conversion below is what validates them. The checker
+        # reads the annotation rather than the try/except, so it is told to skip this
+        # line (no behaviour is changed; the ValueError contract is the next line).
+        return float(value)  # pyright: ignore[reportArgumentType]
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{name} must be a number, got {value!r}") from exc
 
@@ -192,7 +195,9 @@ def _positive_float(value: object, name: str) -> float:
 def _non_negative_int(value: object, name: str) -> int:
     """``value`` as an int of at least zero, or a ``ValueError``."""
     try:
-        number = int(value)
+        # Same reasoning as ``_number``: the annotation is ``object`` because the input
+        # is whatever a settings file or a request carried, and this line validates it.
+        number = int(value)  # pyright: ignore[reportArgumentType]
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{name} must be a whole number, got {value!r}") from exc
     if number < 0:
@@ -1085,11 +1090,12 @@ def build_api_backend(
     Resolution is explicit and never falls back: an explicit ``provider_id``, else
     ``config.agent_provider``, else :func:`boardmodeler.agent_providers.default_provider`.
     A provider id this build does not accept returns an unavailable backend naming
-    the ids it does — never another provider. ``bob`` is the Bob CLI, whose key is
-    read by the child process, so it yields a
-    :class:`~boardmodeler.authoring.backends.BobShellBackend` of its own (``model``
-    and ``max_tokens`` do not apply to it; ``team_id`` is passed to it). ``model``
-    follows the same order:
+    the ids it does — never another provider. This edition's catalog serves HTTPS
+    wires only, so a provider on any other wire is refused with that reason instead
+    of being coerced. ``team_id`` is accepted because callers are shared with the
+    Bob-only edition, which keeps its own copy of this file and passes it to its CLI
+    backend; this edition has no CLI provider to pass it to. ``model`` follows the
+    same order:
     explicit, ``config.agent_model``, the provider's documented default; so does
     ``max_tokens`` (explicit, ``config.agent_max_tokens``, and
     :data:`MAX_OUTPUT_TOKENS` inside the backend when neither is set).
@@ -1114,7 +1120,11 @@ def build_api_backend(
             f"use one of {accepted}",
         )
     if provider.wire not in HTTP_WIRES:
-        return BobShellBackend(team_id=team_id, timeout_s=timeout_s)
+        return UnavailableBackend(
+            provider.id,
+            f"api_wire_unavailable: provider {provider.id!r} uses wire {provider.wire!r}, "
+            f"which this edition does not serve; it speaks {', '.join(HTTP_WIRES)}",
+        )
     resolved_model = model or str(config.agent_model or "").strip() or None
     resolved_tokens = max_tokens if max_tokens is not None else config.agent_max_tokens
     return ApiKeyBackend(

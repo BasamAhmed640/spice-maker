@@ -8,23 +8,35 @@ pytest.importorskip("PySide6")
 pytestmark = pytest.mark.gui
 
 
-def test_full_verification_is_opt_in_and_saved(qtbot, tmp_path, monkeypatch):
+def test_full_verification_is_a_window_choice_and_remembered(qtbot, tmp_path, monkeypatch):
+    """The per-build choice lives in the window now, and the config only remembers it.
+
+    It used to be SETUP's second checkbox; the repository's own rule puts per-build
+    choices in the build window, so the box sits beside GO and writes the default the
+    next build opens with.
+    """
     from boardmodeler.config import AppConfig
-    from boardmodeler.ui import setup_dialog as setup
+    from boardmodeler.ui import model_maker as ui
 
     config = AppConfig()
-    saved = []
-    monkeypatch.setattr(setup, "load_config", lambda: config)
-    monkeypatch.setattr(setup, "portable", lambda: False)
+    saved: list[AppConfig] = []
+    monkeypatch.setattr("boardmodeler.config.load_config", lambda *a, **k: config)
     monkeypatch.setattr(
-        setup, "save_config", lambda value: saved.append(value) or tmp_path / "config.json"
+        "boardmodeler.config.save_config", lambda value, path=None: saved.append(value)
     )
-    dialog = setup.SetupDialog()
-    qtbot.addWidget(dialog)
-    assert not dialog.full_verification_check.isChecked()
-    dialog.full_verification_check.setChecked(True)
-    dialog._save()
-    assert saved[0].full_verification is True
+    # The window reads the persisted default when it is built; go through a real one so
+    # "opens with the remembered value" is what is being tested.
+    config.full_verification = True
+    window = ui.ModelMakerWindow()
+    qtbot.addWidget(window)
+    assert window.full_check.text() == "FULL VERIFICATION"
+    assert window.full_check.isChecked() is True
+
+    window.full_check.setChecked(False)
+    assert saved and saved[-1].full_verification is False
+
+    window.full_check.setChecked(True)
+    assert saved[-1].full_verification is True
 
 
 def test_quick_result_is_unverified_and_full_action_uses_worker(qtbot, tmp_path, monkeypatch):
@@ -54,4 +66,44 @@ def test_quick_result_is_unverified_and_full_action_uses_worker(qtbot, tmp_path,
     persisted = MakeModelResult(
         "UNKNOWN", "quick", "TEST", tmp_path, None, None, None, (), {}, (), request
     )
-    assert MakeModelResult.from_json(persisted.to_json()).request.verification == "sanity"
+    restored = MakeModelResult.from_json(persisted.to_json())
+    assert restored.request is not None
+    assert restored.request.verification == "sanity"
+
+
+def test_go_passes_the_windows_verification_choice(qtbot, tmp_path, monkeypatch):
+    """What GO sends is the box's state, not a setting read from the config file."""
+    from boardmodeler.pipeline.make_model import MakeModelRequest
+    from boardmodeler.ui import model_maker as ui
+
+    datasheet = tmp_path / "part.pdf"
+    datasheet.write_bytes(b"%PDF-1.4\n")
+    monkeypatch.setattr(
+        "boardmodeler.config.load_config", lambda *a, **k: _config_with(full_verification=False)
+    )
+    monkeypatch.setattr("boardmodeler.config.save_config", lambda value, path=None: None)
+    monkeypatch.setattr(ui, "_agent_availability", lambda: (True, "ok"))
+    monkeypatch.setattr(ui, "_configured_provider", lambda: None)
+    monkeypatch.setattr(ui, "_configured_provider_id", lambda: "")
+    started: list[MakeModelRequest] = []
+
+    window = ui.ModelMakerWindow()
+    qtbot.addWidget(window)
+    monkeypatch.setattr(window, "_start", started.append)
+    window.part_edit.setText("TPS54320")
+    window.datasheet_edit.setText(str(datasheet))
+
+    window.full_check.setChecked(False)
+    window.go_button.click()
+    assert started[-1].verification == "sanity"
+
+    window.full_check.setChecked(True)
+    window.go_button.click()
+    assert started[-1].verification == "full"
+
+
+def _config_with(**values):
+    """An :class:`AppConfig` with overrides, for the two tests above."""
+    from boardmodeler.config import AppConfig
+
+    return AppConfig(**values)

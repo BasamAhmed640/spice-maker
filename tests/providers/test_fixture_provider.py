@@ -32,7 +32,6 @@ from boardmodeler.providers.base import (
 from boardmodeler.providers.fixture import FixtureProvider
 from boardmodeler.providers.registry import build_provider, select_provider
 from boardmodeler.security import credentials
-from boardmodeler.security.policy import DataPolicy
 
 SNIPPET_TEXT = "the input range is 4.5 V to 60 V"
 
@@ -237,33 +236,6 @@ def test_select_provider_defaults_to_fixture_when_ordered_first(
     assert "FIXTURE" in selection.detail
 
 
-def test_select_provider_bob_direct_without_credentials(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv("BOB_API_KEY", raising=False)
-    monkeypatch.delenv("BOARDMODELER_BOB_DIRECT_API_KEY", raising=False)
-    monkeypatch.setattr(credentials, "_read_saved", lambda: None)
-
-    with pytest.raises(ProviderError) as info:
-        select_provider(AppConfig(), requested=ProviderKind.BOB_DIRECT, allow_bob_shell=False)
-    assert info.value.code == "bob_credentials_unavailable"
-    assert "BOB_API_KEY" in info.value.detail
-
-
-def test_select_provider_bob_shell_requires_policy_and_switch() -> None:
-    with pytest.raises(ProviderError) as info:
-        select_provider(
-            AppConfig(data_policy=DataPolicy(allow_bob_shell=True)),
-            requested=ProviderKind.BOB_SHELL,
-            allow_bob_shell=False,
-        )
-    assert info.value.code == "bob_shell_not_allowed"
-
-    with pytest.raises(ProviderError) as info:
-        select_provider(AppConfig(), requested=ProviderKind.BOB_SHELL, allow_bob_shell=True)
-    assert info.value.code == "bob_shell_not_allowed"
-
-
 def test_select_provider_rejects_unknown_kind_strings() -> None:
     with pytest.raises(ProviderError) as info:
         select_provider(AppConfig(), requested="telepathy", allow_bob_shell=False)
@@ -273,15 +245,14 @@ def test_select_provider_rejects_unknown_kind_strings() -> None:
 def test_walk_reports_every_rejection_when_nothing_is_usable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("BOB_API_KEY", raising=False)
-    monkeypatch.delenv("BOARDMODELER_BOB_DIRECT_API_KEY", raising=False)
+    """The general edition refuses the legacy Bob kinds before building any provider."""
     monkeypatch.setattr(credentials, "_read_saved", lambda: None)
     config = AppConfig(provider_order=[ProviderKind.BOB_DIRECT, ProviderKind.HTTP_INFERENCE])
 
     with pytest.raises(ProviderError) as info:
         select_provider(config, requested=None, allow_bob_shell=False)
     assert info.value.code == "no_provider_available"
-    assert "BOB_DIRECT: bob_credentials_unavailable" in info.value.detail
+    assert "BOB_DIRECT: bob_not_in_this_edition" in info.value.detail
     assert "HTTP_INFERENCE: endpoint_not_configured" in info.value.detail
 
 

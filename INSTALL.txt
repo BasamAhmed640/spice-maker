@@ -1,4 +1,4 @@
-﻿Spice Maker 1.4.0 for Windows x64
+﻿Spice Maker 1.5.0 for Windows x64
 
 Extract this zip, then double-click Install.exe. The pepper animation plays during setup.
 Setup unpacks the application into app/ and the Python runtime it is built from into env/,
@@ -15,7 +15,7 @@ models/ and .venv/. Copies in different folders never read or change each other;
 editions in separate folders.
 The .venv command line environment has no Qt, so commands that open a window (ui, setup) are
 served by the bundled app: use Start.cmd, or app\SpiceMaker.exe --cli <command>.
-LTspice and (for IBM Bob) Bob Shell must be installed separately.
+LTspice must be installed separately; this edition runs no CLI agent.
 The API key stays inside this extracted folder; no account login is needed in this app.
 GO sends the selected datasheet and model text to the chosen provider.
 This build is unsigned. Check the publisher/source and the SHA256 before running it.

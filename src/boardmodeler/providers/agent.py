@@ -17,6 +17,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from boardmodeler.authoring.backends import AuthorBackend, AuthorRequest
+from boardmodeler.build_flavor import BOB_ONLY
 from boardmodeler.domain.enums import ProviderKind
 from boardmodeler.domain.records import ProviderIdentity
 from boardmodeler.providers.base import (
@@ -180,9 +181,12 @@ class AgentExtractionProvider:
 
     def identity(self) -> ProviderIdentity:
         entry = getattr(self.backend, "provider", None)
+        # Only the Bob edition can wrap a backend that has no HTTP provider entry;
+        # this edition's authoring wires are all HTTPS, so the label stays HTTP there.
+        cli_backend = entry is None and BOB_ONLY
         return ProviderIdentity(
             provider=self.backend.name,
-            kind=ProviderKind.BOB_SHELL if entry is None else ProviderKind.HTTP_INFERENCE,
+            kind=ProviderKind.BOB_SHELL if cli_backend else ProviderKind.HTTP_INFERENCE,
             model=(getattr(self.backend, "model", None) or getattr(entry, "model", None)),
             endpoint=getattr(entry, "endpoint", None),
             usage_units="tokens",

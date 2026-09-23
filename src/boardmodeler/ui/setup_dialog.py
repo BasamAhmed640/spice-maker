@@ -2,8 +2,13 @@
 
 Everything a model build does not need to be asked again each time lives here and only
 here: where LTspice is, which agent provider answers the API key, the key itself, the
-folder finished models land in, the LTspice user library and whether the web is searched
-for supporting material. The main window carries none of it.
+folder finished models land in, the LTspice user library and the one INTERNET ACCESS
+switch. The main window carries none of it.
+
+INTERNET ACCESS is deliberately the *only* control for egress on this page: it governs
+the agent provider's API and the part vendor's site together (see
+:mod:`boardmodeler.security.network`). Whether one build is verified fully or only
+structurally is a per-build choice, so it lives beside GO in the build window, not here.
 
 The agent rows are built from :mod:`boardmodeler.agent_providers`: a build whose catalog
 holds one provider shows no provider row at all and keeps that provider's own key label,
@@ -46,13 +51,29 @@ from PySide6.QtWidgets import (
 
 from boardmodeler import agent_providers
 from boardmodeler.agent_providers import AgentProvider
-from boardmodeler.config import AppConfig, config_path, load_config, save_config
+from boardmodeler.config import config_path, load_config, save_config
 from boardmodeler.security.key_verification import CHECK_TIMEOUT_S, KeyVerification, verify_key
-from boardmodeler.storage import app_root, library_dir, local_path, model_dir, portable
+from boardmodeler.storage import app_root, local_path, model_dir, portable
 from boardmodeler.ui.file_dialogs import starting_directory
 from boardmodeler.ui.theme import CGA, RETRO_STYLESHEET
 
-__all__ = ["SetupDialog", "configured_provider", "describe_settings", "ltspice_user_lib", "main"]
+__all__ = [
+    "SetupDialog",
+    "config_path",
+    "configured_provider",
+    "describe_settings",
+    "ltspice_user_lib",
+    "main",
+]
+
+#: The settings-as-data helpers live in a Qt-free module: the installer's ``.venv`` has
+#: no PySide6, so ``boardmodeler setup --json`` must not need this module to answer.
+from boardmodeler.settings_summary import (
+    configured_provider,
+    credential_file_label,
+    describe_settings,
+    ltspice_user_lib,
+)
 
 _HINT = f"color: {CGA['bright_cyan']}; font-family: Consolas; font-size: 9pt;"
 _STATUS = f"color: {CGA['grey']}; font-family: Consolas; font-size: 9pt;"
@@ -63,72 +84,15 @@ _STATUS = f"color: {CGA['grey']}; font-family: Consolas; font-size: 9pt;"
 MINIMUM_SIZE = QSize(560, 340)
 
 
-def ltspice_user_lib(home: Path | None = None) -> Path:
-    """The per-user LTspice library (never the installation directory)."""
-    if portable():
-        return library_dir()
-    base = home if home is not None else Path.home()
-    return base / "AppData" / "Local" / "LTspice" / "lib"
+def _moved_to_settings_summary() -> None:
+    """The four helpers that used to live here, kept as a marker for the move.
 
-
-def credential_file_label() -> str:
-    """Where the API key is saved, relative to this extracted folder when it is inside it.
-
-    Resolved, never hard-coded: the Bob edition writes a different file name, and the
-    page must not name a file that this build does not use.
+    ``ltspice_user_lib``, ``credential_file_label``, ``configured_provider`` and
+    ``describe_settings`` are imported from :mod:`boardmodeler.settings_summary` above
+    so existing imports of this module keep working. They were moved because this
+    module imports PySide6 at import time, and the shipped Qt-free ``.venv`` must still
+    be able to run ``boardmodeler setup --json``.
     """
-    from boardmodeler.security.credentials import credential_path
-
-    path = credential_path()
-    try:
-        return str(path.relative_to(app_root())).replace(os.sep, "/")
-    except ValueError:  # pragma: no cover - the credential file is always inside the copy
-        return str(path)
-
-
-def configured_provider(config: AppConfig) -> tuple[AgentProvider | None, str]:
-    """``(provider, reason)`` for ``config.agent_provider``; never another provider.
-
-    An id this build does not accept comes back as ``None`` plus the same
-    ``api_provider_unavailable`` text
-    :func:`boardmodeler.authoring.api_backend.build_api_backend` refuses with, so
-    the page, the window and the engine cannot disagree about the refusal. An
-    empty setting means this build's default provider.
-    """
-    wanted = str(config.agent_provider or "").strip()
-    if not wanted:
-        return agent_providers.default_provider(), ""
-    provider = agent_providers.by_id(wanted)
-    if provider is not None:
-        return provider, ""
-    accepted = ", ".join(repr(name) for name in agent_providers.ids()) or "none"
-    return None, (
-        f"api_provider_unavailable: {wanted!r} is not a provider this build accepts; "
-        f"use one of {accepted}"
-    )
-
-
-def describe_settings(config: AppConfig) -> dict[str, object]:
-    """The persisted settings as data, for ``boardmodeler setup --json`` and tests."""
-    from boardmodeler.security.credentials import describe_credential
-
-    provider, reason = configured_provider(config)
-    shown = provider or agent_providers.default_provider()
-    return {
-        "config_path": str(config_path()),
-        "ltspice_path": config.ltspice.path,
-        "model_dir": config.default_model_dir,
-        "web_reinforcement": config.web_reinforcement,
-        "ltspice_user_lib": str(ltspice_user_lib()),
-        # The id the config names, never a substitute; the flag says whether this
-        # build accepts it, so a caller sees the refusal instead of another provider.
-        "agent_provider": str(config.agent_provider or "").strip() or shown.id,
-        "agent_provider_accepted": provider is not None,
-        "agent_provider_problem": reason,
-        "agent_model": config.agent_model or shown.model,
-        "agent_api_key": describe_credential(shown.credential),
-        "accepted_providers": list(agent_providers.ids()),
-    }
 
 
 class SetupDialog(QDialog):
@@ -149,13 +113,13 @@ QScrollArea, QScrollArea > QWidget > QWidget {{ background: {CGA["black"]}; bord
 """
         )
         self._config = load_config()
-        self._provider, self._provider_problem = configured_provider(self._config)
+        provider, self._provider_problem = configured_provider(self._config)
         #: The id SAVE must write, or ``None`` while the configured id is left alone.
-        self._provider_choice: str | None = None if self._provider is None else self._provider.id
-        if self._provider is None:
-            # Something on this page must own the key row; the line below says whose
-            # key it is *not*, and SAVE keeps the configured id until the user picks.
-            self._provider = agent_providers.default_provider()
+        self._provider_choice: str | None = None if provider is None else provider.id
+        # Something on this page must own the key row; the line below says whose key it
+        # is *not*, and SAVE keeps the configured id until the user picks. The row always
+        # has a provider, so ``_provider`` is never optional.
+        self._provider: AgentProvider = provider or agent_providers.default_provider()
 
         # The page lives in a scroll area: the window is resizable (and maximisable) without
         # ever clipping a setting — at the small end the rows scroll, at the large end the
@@ -311,20 +275,22 @@ QScrollArea, QScrollArea > QWidget > QWidget {{ background: {CGA["black"]}; bord
         grid.addWidget(library, row, 1, 1, 3)
         row += 1
 
-        self.reinforce_check = QCheckBox(
-            "search the web for supporting material while making a model"
+        self.internet_check = QCheckBox("INTERNET ACCESS")
+        self.internet_check.setChecked(self._config.internet_access)
+        self.internet_check.setToolTip(
+            "Off: no request leaves this PC. On: GO may reach the agent provider's API "
+            "with your key, and the supporting-material stage may read the part vendor's "
+            "own site. This is the only network switch in the product; the build window's "
+            "FULL VERIFICATION box does not change it."
         )
-        self.reinforce_check.setChecked(self._config.web_reinforcement)
-        grid.addWidget(self.reinforce_check, row, 1, 1, 3)
-
-        row += 1
-        self.full_verification_check = QCheckBox("Full simulation verification (slower)")
-        self.full_verification_check.setChecked(self._config.full_verification)
-        self.full_verification_check.setToolTip(
-            "Off: create a model and check its structure locally. Electrical accuracy remains "
-            "unverified. On: also plan test circuits and run LTspice verification."
+        grid.addWidget(self.internet_check, row, 1)
+        self.internet_hint = QLabel(
+            "one switch for both: the agent provider's API and the part vendor's site "
+            "for supporting material"
         )
-        grid.addWidget(self.full_verification_check, row, 1, 1, 3)
+        self.internet_hint.setWordWrap(True)
+        self.internet_hint.setStyleSheet(_HINT)
+        grid.addWidget(self.internet_hint, row, 2, 1, 2)
 
         # --- actions ---------------------------------------------------------
         row = QHBoxLayout()
@@ -560,6 +526,20 @@ QScrollArea, QScrollArea > QWidget > QWidget {{ background: {CGA["black"]}; bord
 
     def _start_key_check(self, value: str) -> None:
         self._cancel_key_check()
+        from boardmodeler.security.network import internet_allowed
+
+        if not internet_allowed():
+            # The connection check is a request to the provider's API like any other, so
+            # the one switch governs it too — and saying so beats a check that silently
+            # never runs while the status line implies it did.
+            self.key_status.setText(
+                "Key saved — NOT CHECKED: INTERNET ACCESS is off in SETUP "
+                "(or BOARDMODELER_NO_NETWORK is set); nothing was sent."
+            )
+            self.key_status.setWordWrap(True)
+            self.key_status.setMaximumWidth(620)
+            self._fit_to_content()
+            return
         provider, model = self._provider, self.model_edit.text().strip() or None
         cancel = threading.Event()
         results = []
@@ -620,8 +600,7 @@ QScrollArea, QScrollArea > QWidget > QWidget {{ background: {CGA["black"]}; bord
     def _save(self) -> None:
         self._config.ltspice.path = self.ltspice_edit.text().strip() or None
         self._config.default_model_dir = self.model_dir_edit.text().strip() or None
-        self._config.web_reinforcement = self.reinforce_check.isChecked()
-        self._config.full_verification = self.full_verification_check.isChecked()
+        self._config.internet_access = self.internet_check.isChecked()
         if self._provider_choice is not None:
             self._config.agent_provider = self._provider_choice
             if self._provider.model_editable:
@@ -653,7 +632,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         prog="boardmodeler setup",
         description=(
             "Persistent settings: LTspice path, agent provider and API key, model folder, "
-            "web reinforcement"
+            "internet access"
         ),
     )
     parser.add_argument(

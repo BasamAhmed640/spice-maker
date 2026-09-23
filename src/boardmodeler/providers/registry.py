@@ -13,6 +13,10 @@ never by silently substituting echoed text. HTTP and Bob modules are imported
 lazily and must expose ``HttpInferenceProvider`` / ``BobDirectProvider`` /
 ``BobShellProvider`` constructed as ``Class(provider_config=<ProviderConfig>,
 name=<str>)``.
+
+This is a shared file: the Bob-only edition builds the Bob kinds as before, and a
+general build refuses them (``bob_not_in_this_edition``) before any of those
+modules is imported, so no Bob provider can be constructed here.
 """
 
 from __future__ import annotations
@@ -23,6 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from boardmodeler.build_flavor import BOB_ONLY
 from boardmodeler.config import AppConfig, ProviderConfig
 from boardmodeler.domain.enums import ProviderKind
 from boardmodeler.providers.base import Provider, ProviderError, ProviderHealth
@@ -39,6 +44,7 @@ __all__ = [
 DEFAULT_FIXTURE_DIR = Path("fixtures") / "providers"
 """Fixture location relative to the working directory; the pipeline sets this explicitly."""
 
+_BOB_KINDS: tuple[ProviderKind, ...] = (ProviderKind.BOB_DIRECT, ProviderKind.BOB_SHELL)
 _BOB_ENV_VAR = "BOB_API_KEY"
 _BOB_CREDENTIAL_NAMES: dict[ProviderKind, str] = {
     ProviderKind.BOB_DIRECT: "bob_direct",
@@ -146,6 +152,15 @@ def _check_requirements(
         return ProviderHealth(
             ok=True, code="ok", detail="fixture replay needs no credentials or network"
         )
+    if kind in _BOB_KINDS and not BOB_ONLY:
+        return ProviderHealth(
+            ok=False,
+            code="bob_not_in_this_edition",
+            detail=(
+                "Bob is only in the Bob-only edition; this general edition uses vendor "
+                "HTTPS API keys and runs no CLI agent"
+            ),
+        )
     _, provider_config = _entry_for_kind(config, kind)
 
     if kind is ProviderKind.HTTP_INFERENCE:
@@ -223,6 +238,12 @@ def build_provider(
             f"config.providers has no entry {name!r}; configured: {sorted(config.providers)}",
         )
 
+    if provider_config.kind in _BOB_KINDS and not BOB_ONLY:
+        raise ProviderError(
+            "bob_not_in_this_edition",
+            "Bob is only in the Bob-only edition; this general edition uses vendor "
+            "HTTPS API keys and runs no CLI agent",
+        )
     if provider_config.kind is ProviderKind.BOB_SHELL and not config.data_policy.allow_bob_shell:
         raise ProviderError(
             "bob_shell_not_allowed",

@@ -14,12 +14,13 @@ touching the rest of the document layer.
 from __future__ import annotations
 
 import shutil
-import subprocess
 import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
+
+from boardmodeler.security import execution
 
 __all__ = [
     "TESSERACT_FAILED",
@@ -40,6 +41,27 @@ TESSERACT_FAILED = "tesseract_failed"
 _LOCAL_TESSERACT_NAMES = ("tesseract", "tesseract.exe")
 _OCR_TIMEOUT_S = 120.0
 _ERROR_TAIL_CHARS = 400
+
+#: The engine's basename, named explicitly on the spec because the executable comes
+#: from settings and is not one of the tools the guard's allowlist knows. A named
+#: permission, not a directory: the user may have installed tesseract anywhere, so the
+#: policy's ``allowed_dirs`` would be the wrong check (and refusing every location but
+#: our own would make the feature unusable).
+_OCR_EXECUTABLE = "tesseract"
+
+#: What the OCR child may see: the OS basics it cannot start without, plus the engine's
+#: own documented variable for its language-data directory -- an installation whose
+#: tessdata is configured through the environment is a real configuration, and dropping
+#: it would turn a working engine into one that reports "no language data". Nothing
+#: else is inherited: the previous call site handed the child this process's whole
+#: environment, including the agent API key, for no benefit.
+_OCR_ENV_ALLOWLIST: tuple[str, ...] = (*execution.WINDOWS_BASE_ENV, "TESSDATA_PREFIX")
+
+#: A broken or wedged OCR binary can print without end, and every byte would be kept in
+#: this process's memory. 8 MiB is far above a page of recognized text (a dense A4 page
+#: is tens of kilobytes) and far below anything that would hurt; a capture that reaches
+#: it is reported as a failure rather than returned as a partial page.
+_OCR_MAX_OUTPUT_BYTES = 8 << 20
 
 
 @dataclass(frozen=True)
@@ -94,37 +116,82 @@ class TesseractOcr:
             engine=self.name,
         )
 
+    def _resolved_executable(self) -> Path:
+        """The engine as an absolute, existing path, or :class:`OcrFailed`.
+
+        The execution policy refuses a relative executable, because PATH and the current
+        directory would then decide what runs. A settings value that is a bare name is
+        therefore looked up once, here, in this process: the *absolute* result is what
+        the policy pins. A name that cannot be found fails exactly as the old
+        ``subprocess.run`` did -- an ``OSError``/``FileNotFoundError`` became
+        :class:`OcrFailed`, and it still does.
+        """
+        candidate = Path(self.path).expanduser()
+        if candidate.is_absolute():
+            return candidate
+        found = shutil.which(self.path)
+        if not found:
+            raise OcrFailed(f"could not run {self.path!r}: executable not found")
+        return Path(found)
+
     def page_text(self, image_png: bytes) -> str:
         """Run tesseract on ``image_png`` and return its text.
 
-        A non-zero exit, a missing binary, or a timeout raises
+        A non-zero exit, a missing binary, a timeout, or an output flood raises
         :class:`OcrFailed`; an engine that could not read the page never
         returns an empty string that could be mistaken for "no text here".
+
+        The call goes through :func:`boardmodeler.security.execution.run`: the engine
+        is the spec's executable (permitted by name through
+        ``extra_allowed_executables``, because the path comes from settings and may live
+        anywhere), the page image is a ``PATH_VALUE`` pinned inside the private scratch
+        directory the child also uses as its working directory, the 120 s timeout is
+        mandatory, and both streams are bounded. The child inherits
+        ``_OCR_ENV_ALLOWLIST`` and nothing else.
         """
         if not image_png:
             raise OcrFailed("refusing to OCR an empty image")
+        executable = self._resolved_executable()
         with tempfile.TemporaryDirectory(prefix="boardmodeler-ocr-") as scratch:
             image = Path(scratch) / "page.png"
             image.write_bytes(image_png)
+            # The scratch directory is both the scope a value may resolve in and the
+            # child's working directory, so the only path tesseract is given is the one
+            # this method just wrote -- the run root is deliberately not the copy, and
+            # the engine's own location is permitted by name instead.
+            spec = execution.CommandSpec(
+                name="tesseract-ocr",
+                executable=executable,
+                argv_tail=(execution.PATH_VALUE, "stdout"),
+                timeout_s=_OCR_TIMEOUT_S,
+                max_output_bytes=_OCR_MAX_OUTPUT_BYTES,
+                env_allowlist=_OCR_ENV_ALLOWLIST,
+                extra_allowed_executables=(_OCR_EXECUTABLE,),
+            )
             try:
-                # List argv only, no shell: the engine is a fixed binary and the
-                # only variable part is a path inside our own scratch directory.
-                completed = subprocess.run(
-                    [self.path, str(image), "stdout"],
-                    capture_output=True,
-                    timeout=_OCR_TIMEOUT_S,
-                    check=False,
-                    shell=False,
+                completed = execution.run(
+                    execution.CommandCall(spec=spec, argv=(str(image), "stdout")),
+                    cwd=scratch,
+                    root=scratch,
                 )
+            except execution.CommandRefused as exc:
+                # Same user-visible outcome as the old OSError path, with the policy's
+                # stable code and reason instead of a bare exception message.
+                raise OcrFailed(f"could not run {self.path!r}: {exc.detail}") from exc
             except OSError as exc:
                 raise OcrFailed(f"could not run {self.path!r}: {exc}") from exc
-            except subprocess.TimeoutExpired as exc:
-                raise OcrFailed(f"tesseract did not finish within {_OCR_TIMEOUT_S:.0f} s") from exc
+        if completed.timed_out:
+            raise OcrFailed(f"tesseract did not finish within {_OCR_TIMEOUT_S:.0f} s")
+        if completed.truncated:
+            raise OcrFailed(
+                f"tesseract produced more than {_OCR_MAX_OUTPUT_BYTES} bytes of output; "
+                "the capture is incomplete, so no text is reported"
+            )
         if completed.returncode != 0:
             raise OcrFailed(
                 f"tesseract exited with code {completed.returncode}: {_tail(completed.stderr)}"
             )
-        return completed.stdout.decode("utf-8", errors="replace").strip()
+        return completed.stdout.strip()
 
 
 class UnavailableOcrEngine:
@@ -190,8 +257,11 @@ def _not_found() -> OcrUnavailable:
     )
 
 
-def _tail(data: bytes | None) -> str:
-    text = (data or b"").decode("utf-8", errors="replace").strip()
+def _tail(data: bytes | str | None) -> str:
+    text = (
+        (data or b"").decode("utf-8", errors="replace") if isinstance(data, bytes) else (data or "")
+    )
+    text = text.strip()
     if len(text) <= _ERROR_TAIL_CHARS:
         return text or "(no output)"
     return "..." + text[-_ERROR_TAIL_CHARS:]

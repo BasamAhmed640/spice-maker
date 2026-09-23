@@ -65,6 +65,12 @@ try {
     $bundle = Join-Path $repo "build/download-$PackId"
     New-Item -ItemType Directory -Force -Path $bundle | Out-Null
     Copy-Item "$repo/Install.exe" "$bundle/Install.exe" -Force
+    # Edition-aware prerequisites: the general installer never claims a CLI agent is needed.
+    $prerequisites = if ($bobOnly) {
+        "LTspice and Bob Shell must be installed separately."
+    } else {
+        "LTspice must be installed separately; this edition runs no CLI agent."
+    }
     @"
 $Name $Version for Windows x64
 
@@ -83,7 +89,7 @@ models/ and .venv/. Copies in different folders never read or change each other;
 editions in separate folders.
 The .venv command line environment has no Qt, so commands that open a window (ui, setup) are
 served by the bundled app: use Start.cmd, or app\SpiceMaker.exe --cli <command>.
-LTspice and (for IBM Bob) Bob Shell must be installed separately.
+$prerequisites
 The API key stays inside this extracted folder; no account login is needed in this app.
 GO sends the selected datasheet and model text to the chosen provider.
 This build is unsigned. Check the publisher/source and the SHA256 before running it.

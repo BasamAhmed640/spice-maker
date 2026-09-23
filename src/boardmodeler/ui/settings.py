@@ -30,13 +30,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from boardmodeler.build_flavor import BOB_ONLY
 from boardmodeler.config import AppConfig, config_path, load_config, save_config
+from boardmodeler.domain.enums import ProviderKind
 from boardmodeler.security.credentials import set_credential
 from boardmodeler.simulation.ltspice import locate_outcome, smoke_test
 
 __all__ = ["SettingsDialog"]
-
-_PROVIDER_NAMES = ("fixture", "http_inference", "bob_direct", "bob_shell")
 
 
 class SettingsDialog(QDialog):
@@ -91,7 +91,15 @@ class SettingsDialog(QDialog):
 
         # ------------------------------------------------------------ provider
         self.provider = QComboBox(self)
-        self.provider.addItems(sorted(self._config.providers))
+        # The legacy provider row lists the shared config's provider entries. The Bob
+        # kinds are the Bob-only edition's; this edition offers no row that names them.
+        legacy_names = sorted(
+            name
+            for name, provider_config in self._config.providers.items()
+            if BOB_ONLY
+            or provider_config.kind not in (ProviderKind.BOB_DIRECT, ProviderKind.BOB_SHELL)
+        )
+        self.provider.addItems(legacy_names)
         self.provider.currentTextChanged.connect(self._provider_changed)
         self.endpoint = QLineEdit(self)
         self.endpoint.setPlaceholderText("https://... (verified vendor endpoint)")
@@ -117,19 +125,36 @@ class SettingsDialog(QDialog):
 
         # ------------------------------------------------------------- policy
         policy = self._config.data_policy
-        self.allow_remote = QCheckBox("Allow remote inference (documents must permit it)", self)
-        self.allow_remote.setChecked(bool(policy.allow_remote))
+        # The dormant surface is not a second way to widen access. SETUP's INTERNET
+        # ACCESS switch (``security.network``) is the product's one control for egress,
+        # so this box is disabled and shows the effective permission — it can only ever
+        # report a permission the master switch already granted.
+        from boardmodeler.security.network import internet_allowed
+
+        self.allow_remote = QCheckBox(
+            "Allow remote inference (controlled by SETUP's INTERNET ACCESS)", self
+        )
+        self.allow_remote.setChecked(bool(policy.allow_remote) and internet_allowed())
+        self.allow_remote.setEnabled(False)
+        self.allow_remote.setToolTip(
+            "Set by the INTERNET ACCESS switch in SETUP, not here: turn that switch on to "
+            "let documents permit remote inference. This page cannot widen access by itself."
+        )
         self.deny_unknown = QCheckBox("Refuse documents with unknown classification", self)
         self.deny_unknown.setChecked(bool(policy.deny_unknown_classification))
-        self.allow_bob_shell = QCheckBox("Allow Bob Shell (non-interactive tool execution)", self)
-        self.allow_bob_shell.setChecked(bool(policy.allow_bob_shell))
+        if BOB_ONLY:
+            self.allow_bob_shell = QCheckBox(
+                "Allow Bob Shell (non-interactive tool execution)", self
+            )
+            self.allow_bob_shell.setChecked(bool(policy.allow_bob_shell))
         self.cache_extraction = QCheckBox("Cache extraction by prompt hash", self)
         self.cache_extraction.setChecked(bool(policy.cache_extraction))
 
         policy_layout = QVBoxLayout()
         policy_layout.addWidget(self.allow_remote)
         policy_layout.addWidget(self.deny_unknown)
-        policy_layout.addWidget(self.allow_bob_shell)
+        if BOB_ONLY:
+            policy_layout.addWidget(self.allow_bob_shell)
         policy_layout.addWidget(self.cache_extraction)
         self.policy_summary = QLabel(policy.describe(), self)
         policy_layout.addWidget(self.policy_summary)
@@ -164,7 +189,7 @@ class SettingsDialog(QDialog):
 
     def values(self) -> dict[str, Any]:
         """Widget state for tests; never contains the secret's value."""
-        return {
+        values: dict[str, Any] = {
             "config_path": str(self._config_path),
             "ltspice_path": self.ltspice_path.text().strip(),
             "timeout_s": self.timeout.value(),
@@ -175,11 +200,13 @@ class SettingsDialog(QDialog):
             "secret_entered": bool(self.secret.text()),
             "allow_remote": self.allow_remote.isChecked(),
             "deny_unknown": self.deny_unknown.isChecked(),
-            "allow_bob_shell": self.allow_bob_shell.isChecked(),
             "cache_extraction": self.cache_extraction.isChecked(),
             "smoke": self._last_smoke,
             "credential": self._last_credential,
         }
+        if BOB_ONLY:
+            values["allow_bob_shell"] = self.allow_bob_shell.isChecked()
+        return values
 
     # ------------------------------------------------------------- ltspice
 
@@ -206,7 +233,9 @@ class SettingsDialog(QDialog):
             }
         else:
             workdir = Path(tempfile.mkdtemp(prefix="boardmodeler-settings-smoke-"))
-            result = smoke_test(install.path, workdir, timeout_s=float(self.timeout.value()))
+            # A QDoubleSpinBox.value() is already a float; the extra conversion the rule
+            # flagged was redundant, so the call no longer exists to throw.
+            result = smoke_test(install.path, workdir, timeout_s=self.timeout.value())
             observed = {
                 "status": result.status,
                 "detail": result.detail,
@@ -249,7 +278,7 @@ class SettingsDialog(QDialog):
     def build_config(self) -> AppConfig:
         config = self._config.model_copy(deep=True)
         config.ltspice.path = self.ltspice_path.text().strip() or None
-        config.ltspice.timeout_s = float(self.timeout.value())
+        config.ltspice.timeout_s = self.timeout.value()
         config.ltspice.lib_dir = self.lib_dir.text().strip() or None
         name = self.selected_provider_name()
         provider_config = config.providers.get(name)
@@ -258,7 +287,8 @@ class SettingsDialog(QDialog):
             provider_config.model = self.model_name.text().strip() or None
         config.data_policy.allow_remote = self.allow_remote.isChecked()
         config.data_policy.deny_unknown_classification = self.deny_unknown.isChecked()
-        config.data_policy.allow_bob_shell = self.allow_bob_shell.isChecked()
+        if BOB_ONLY:
+            config.data_policy.allow_bob_shell = self.allow_bob_shell.isChecked()
         config.data_policy.cache_extraction = self.cache_extraction.isChecked()
         return config
 

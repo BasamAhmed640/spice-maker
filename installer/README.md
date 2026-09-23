@@ -1,6 +1,6 @@
 # Animated portable installer
 
-Run `uv sync --frozen --all-extras`, then `installer/build.ps1 -Version 1.4.0`.
+Run `uv sync --frozen --all-extras`, then `installer/build.ps1 -Version 1.5.0`.
 The build vendors the in-folder Python environment (`vendor_env.py`, the only step that
 uses a package index), freezes the GUI, launches it to verify startup, then compiles
 `PortableInstaller.cs` using the .NET Framework compiler included with Windows.
@@ -80,11 +80,36 @@ after the second is installed, and asserts that no AppData, Start Menu, desktop 
 entry was created.
 
 **Smart App Control:** on a machine with Smart App Control enabled, a *freshly built*
-unsigned `Install.exe` is blocked when launched (`WinError 4551`, CodeIntegrity events
-3089/3077/3033) until the binary has reputation or is signed. The previously shipped binary
-still runs. That blocks `verify_portable.py` (and therefore `build.ps1`) on such a machine
-for a new build; the installer logic itself can still be exercised in-process from the same
-source (see `installer/README.md`, "Verification"), and signing the release is the real fix.
+unsigned `Install.exe` is blocked when launched (`WinError 4551`; AppLocker logs show no
+decision, so it is the reputation gate, not a path rule) until the binary has reputation or
+is signed.
+
+Measured on the owner's machine on 2026-09-22 while shipping 1.5.0, so the next person does
+not have to rediscover it:
+
+| Launched | Result |
+|---|---|
+| the freshly compiled 1.5.0 `Install.exe` | blocked, `exit 126` / `WinError 4551`, on 5 attempts across ~20 minutes |
+| the 1.4.0 installer extracted from the released ZIP | **exit 0**, installed |
+| a *renamed copy of those same 1.4.0 bytes* | **exit 0** — so the gate is the binary's reputation, not its name, its path or the act of copying |
+| the freshly frozen `app\SpiceMaker.exe` from the *same* 1.5.0 build | launched and rendered (`verify_gui.py` → `"status": "PASS"`, screenshot written) |
+| the installer's manifest | `<requestedExecutionLevel level="asInvoker">` — nothing here asks for elevation |
+
+Consequences, stated rather than worked around:
+
+* `build.ps1` stops at its `verify_portable.py` step on such a machine, because that step
+  launches the installer. Everything before it passes (vendored environment, frozen GUI,
+  compiled installer), and `build/finish-release.ps1` performs the packaging steps that
+  follow, so the release artefacts are complete — but a *verified install of the new binary*
+  has not happened and must not be claimed.
+* The way to make a new build launchable on such a machine is to **sign it** (a trusted
+  signature satisfies the policy) or to approve it once through Windows Security → App &
+  browser control. Turning Smart App Control off weakens the machine and is not this
+  project's decision to make.
+* The installer logic itself stays verifiable from source: `verify_portable.py`
+  installs two copies concurrently, checks each one's interpreter, base prefix, configuration
+  path, launchers and shortcut, asserts the first copy is byte-identical after the second is
+  installed, and asserts that no AppData, Start Menu, desktop or registry entry was created.
 
 The root `Install.exe` is committed intentionally so GitHub Code > Download ZIP contains
 the real installer. Releases also provide the same installer and a convenience ZIP.

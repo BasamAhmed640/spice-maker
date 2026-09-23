@@ -88,9 +88,18 @@ def _click_check_environment(window) -> None:
 
 
 def _stub_cli(monkeypatch, raw: str, returncode: int = 0) -> None:
+    """Answer for the window's one child-process seam, without starting anything.
+
+    The window runs its CLI through ``model_maker._run_command`` (which is
+    ``security.execution.run``): replacing that name is what keeps this test from
+    launching a real interpreter, and the returned object carries what ``_run_cli``
+    reads from a completed command.
+    """
     monkeypatch.setattr(
-        "boardmodeler.ui.model_maker.subprocess.run",
-        lambda *args, **kwargs: SimpleNamespace(stdout=raw, stderr="", returncode=returncode),
+        "boardmodeler.ui.model_maker._run_command",
+        lambda spec, argv=(), *, cwd=None, root=None: SimpleNamespace(
+            stdout=raw, stderr="", returncode=returncode, truncated=False
+        ),
     )
 
 

@@ -910,3 +910,137 @@ Evidence: `authoring/reinforce.py` (`MIN_AGENT_TURN_S`, `search_budget_too_small
 (`test_a_budget_too_small_for_one_turn_gives_up_without_spending_it`, whose stub
 backend must not be entered); two-sided manual check recorded in
 `docs/STATUS.md` §A5.
+
+## D-027 — Bob is edition-gated out of the general build; shared symbols stay (2026-09-22)
+
+The general edition must contain no path that installs, launches or authenticates a
+third-party CLI agent. Bob is therefore removed from `agent_providers.CATALOG` in this
+checkout (that file is edition-local and not synced), and every shared symbol that the
+Bob-only edition still needs — `BobShellBackend`, `run_bob_shell`, `bob_environment`,
+the `allow_bob_shell` policy field, the `bob` backend name, the `BOB_*` provider kinds —
+stays in the tree **behind an explicit edition guard** that runs before a key is read,
+before argv is built and before any process exists. Deleting them instead would break
+`spice-maker-bob`, whose `api_backend.py` and `make_model.py` construct `BobShellBackend`
+directly.
+
+Rejected: deleting the shared symbols (breaks the sibling edition and the one-source
+rule that `tools/sync_shared_core.py` exists to protect); adding the shared files to the
+sync exclude list so they drift (they are the same files the Bob edition compiles).
+
+Evidence: `build_flavor.BOB_ONLY` gates in `authoring/backends.py` (constructor guard),
+`cli.py` (`--backend` choices, `--team-id` registration, the `bob` branch),
+`pipeline/make_model.py` (`bob_backend_unavailable` before construction),
+`security/key_verification.py`, `ui/settings.py`, `ui/main_window.py`,
+`providers/registry.py`; `tests/test_edition_bob_absent.py` (11 tests: no catalog entry,
+no default, the constructor raises before `subprocess` is reachable, `doctor --json`
+lists no Bob row, `--backend bob` exits non-zero without a traceback, the setup page
+offers no Bob row); `uv run python -c "…" doctor --json` → 10 providers, zero Bob lines.
+
+## D-028 — One switch governs egress, and off means nothing is sent (2026-09-22)
+
+`AppConfig.internet_access` is the single source of truth for outbound access, and SETUP
+exposes exactly one control for it (`INTERNET ACCESS`). It is deliberately the only
+network control on that page: the old `reinforce_check` / `allow_remote` /
+`allow_bob_shell` spread meant a user could believe they had cut egress while a stage
+still reached the network. With the switch off, `security/network.require_network`
+refuses with `internet_access_off` before any request is built, and
+`BOARDMODELER_NO_NETWORK` forces it off regardless of the file so a test or a cautious
+user can pin it. `full_verification` moved to the build window because it is a per-build
+choice, not a network policy — the repository's own rule puts per-build choices in the
+window.
+
+Rejected: a second "allow web search" box (that is the sprawl this replaces); making the
+switch default off (a fresh copy could not build a model at all, and the switch is a user
+control, not the sandbox — the sandbox is D-029 and the vendor-host pinning of D-024).
+
+Evidence: `config.py` (`internet_access`, legacy `web_reinforcement` accepted on load),
+`security/network.py`, `ui/setup_dialog.py` (one checkbox), `ui/model_maker.py`
+(`FULL VERIFICATION` beside GO), `tests/security/test_network_off.py` (socket tripwire:
+zero connection attempts, refusal names the switch), `tests/ui/test_setup_dialog.py`.
+
+## D-029 — One execution policy, and a child environment is an allowlist (2026-09-22)
+
+Every child process this application starts passes `security/execution.py` before it
+exists: an absolute executable from a name allowlist, no shell form possible, an argv
+shape that keeps every value out of a flag position, a cwd pinned inside a declared root,
+a mandatory positive timeout, a bounded capture, and an environment built from an allowlist
+with credential-shaped names refused even if an allowlist edit adds one. Callers that must
+own their process loop (the simulator's marker/cancel watchdog, the worker's streamed
+progress) call `validate()` and spawn the resolved values, and are named in an allowlist
+that a meta-test asserts is neither incomplete nor stale.
+
+The environment rule is the part that answers the owner's "never touch my keys":
+LTspice is spawned with fifteen OS variables and a private `TEMP` inside the copy, so the
+agent API key in the parent environment is not visible to the simulator or to anything it
+spawns. Where a child legitimately needs more (the worker is this program's own
+interpreter and runs the inference), the extra names are enumerated — `LTSPICE_EXE`, the
+`BOARDMODELER_*` family and the selected provider's documented aliases — and a test proves
+an unrelated secret such as `AWS_SECRET_ACCESS_KEY` does not reach it.
+
+Rejected: reusing the guard's `run_guarded` for everything (it buffers unbounded output
+through `communicate()`, which is the failure mode the cap exists to prevent); leaving the
+three UI spawn sites unmanaged (they now go through the policy, or through
+`QDesktopServices` with no child process at all).
+
+Evidence: `src/boardmodeler/security/execution.py`, `tests/security/test_execution.py`
+(refusals prove no spawn happens, a real timeout kills the tree, a 16 MiB flood is reported
+`truncated`, and the AST meta-test fails on any unallowlisted spawn site in `src/`),
+`simulation/ltspice.child_environment` + `tests/ltspice/test_child_environment.py`
+(including a source guard that the simulator's spawn keeps `env=`).
+
+## D-030 — The simulator boundary is the process environment, not a private ini (2026-09-22)
+
+Compartmentalising LTspice's *settings* was measured and refused. On LTspice 26.0.0 with
+`-ini <path>` (missing file, minimal file, and a copy of the user's own `LTspice.ini`),
+the process opens its GUI main window — observed through `EnumWindows` as
+`LTspice - [<ini stem>]` — and never exits, so a batch build hangs until the watchdog
+kills it. Redirecting `APPDATA` to a fresh folder behaves the same way. A *seeded*
+private settings file does run (593 ms warm, user's file byte-identical), but seeding
+means importing the user's settings, which is the opposite of compartmentalisation. The
+same measured shape is why `-I<path>` stays refused (D-006). The boundary is therefore
+the process: an allowlisted environment and a rewritten `TEMP` (D-029), with the
+simulator's own settings left where its vendor puts them.
+
+Rejected: shipping an `-ini` profile (hangs the build); seeding from `%APPDATA%`
+(imports the user's settings and still couples the copy to their profile); a timeout that
+tolerates the GUI (a build that shows a window is not a batch build, and the log marker it
+waits for never appears).
+
+Evidence: `simulation/ltspice.py` module docstring (measured variants and the observation
+method), `docs/STATUS.md` §B2; the smoke test still passes with the scrubbed environment
+(V(out)@1 ms = 0.632119 V, deviation 0.019%, tolerance ±2%).
+
+## D-031 — A finished model is reopened from disk, not remembered in a session (2026-09-22)
+
+The window could re-run verification only for the model it had just built, so closing the
+app lost the ability to verify a published model. `pipeline/make_model.model_summary`
+reads the model directory that exists on disk (library, symbol, card, `results.json`,
+spec and manifest) and refuses with `not_a_model_directory` rather than guessing;
+`model open --out DIR [--verify]` and the window's `OPEN MODEL…` expose it, and
+`--verify` runs the same path `model test` runs. Nothing is reported as verified unless
+the verification actually ran.
+
+Rejected: an in-memory session list (the failure mode is a restart); a second verification
+implementation for reopened models (two answers to one question).
+
+Evidence: `tests/e2e/test_reopen_model.py` (build offline, drop in-process state, reopen
+from disk, re-verify); manual check on a model built in a previous session —
+`model open --out build/datasheet-suite/ucc28251 --json` reports `UCC28251`, status
+`UNKNOWN`, counts PASS 34 / FAIL 6 / UNKNOWN 84 / NOT_APPLICABLE 174.
+
+## D-032 — Settings-as-data lives in a Qt-free module (2026-09-22)
+
+`boardmodeler setup --json` is the documented way to read the resolved settings, and the
+`.venv` the installer builds is deliberately Qt-free (size; `installer/vendor_env.py`).
+The description functions therefore live in `settings_summary.py`, which imports no GUI
+toolkit, and the dialog module re-exports them so there is one implementation. The config
+path is read through the `boardmodeler.config` module at call time rather than bound at
+import time, because callers and tests redirect it.
+
+Rejected: printing a second, hand-rolled payload from the CLI (two sources of truth for
+the same report); importing the dialog module and tolerating the failure (the shipped copy
+must be able to answer this command).
+
+Evidence: `src/boardmodeler/settings_summary.py`, `ui/setup_dialog.py`,
+`cli.py` (`setup` branch); proved with PySide6 made unimportable — `setup --json` prints the
+settings and exits 0 while `PySide6` never enters `sys.modules`.

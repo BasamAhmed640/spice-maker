@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from boardmodeler.build_flavor import BOB_ONLY
 from boardmodeler.config import AppConfig, config_path, load_config
 from boardmodeler.pipeline.project import Project, ProjectError
 from boardmodeler.ui.results_panel import STATUS_COLOURS, ResultsPanel
@@ -56,7 +57,13 @@ SCOPES = (
     "model_qualification",
     "primitive_reference",
 )
-PROVIDERS = ("(default)", "fixture", "http_inference", "bob_direct", "bob_shell")
+#: The provider row of the earlier board window. The Bob kinds are the Bob-only
+#: edition's; a general build offers no row that could select them.
+PROVIDERS = (
+    ("(default)", "fixture", "http_inference", "bob_direct", "bob_shell")
+    if BOB_ONLY
+    else ("(default)", "fixture", "http_inference")
+)
 
 
 class InputsPanel(QGroupBox):

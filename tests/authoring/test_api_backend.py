@@ -31,7 +31,6 @@ from boardmodeler.authoring.api_backend import ApiKeyBackend, build_api_backend
 from boardmodeler.authoring.backends import (
     AuthorRequest,
     AuthorResult,
-    BobShellBackend,
     UnavailableBackend,
 )
 from boardmodeler.config import AppConfig
@@ -1009,14 +1008,6 @@ def test_a_text_turn_returns_prose_even_when_it_is_not_json(tmp_path: Path) -> N
 # the factory
 
 
-def test_build_api_backend_returns_bob_shell_for_bob() -> None:
-    backend = build_api_backend("bob", config=AppConfig())
-    with_team = build_api_backend("bob", team_id="team-7", config=AppConfig())
-
-    assert isinstance(backend, BobShellBackend)
-    assert isinstance(with_team, BobShellBackend) and with_team.team_id == "team-7"
-
-
 def test_build_api_backend_refuses_an_unknown_id_and_names_the_catalog() -> None:
     backend = build_api_backend("magic", config=AppConfig())
 
@@ -1093,8 +1084,8 @@ def test_credential_for_walks_the_catalog_sources_in_order(
 
 
 def test_the_wrong_wire_is_a_programming_error_not_a_silent_coercion() -> None:
-    with pytest.raises(ValueError, match="bob-shell"):
-        ApiKeyBackend(provider("bob"), credential_lookup=with_key())
+    with pytest.raises(ValueError, match="synthetic-cli-wire"):
+        ApiKeyBackend(replace(OPENAI, wire="synthetic-cli-wire"), credential_lookup=with_key())
 
 
 def test_constructor_validates_its_bounds() -> None:

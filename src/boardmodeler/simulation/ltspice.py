@@ -21,11 +21,32 @@ resolved invocation is defined exactly once.
   LTspice resolves a local symbol and emits ``.lib <model>`` for it
   automatically).
 * There is no ``-o`` output-directory switch in this build.
+* **``-ini <path>`` is not used, ever.** Measured 2026-09-22 on this build, three
+  forms: a missing file, a minimal hand-written file, and a copy of the user's own
+  ``%APPDATA%\\LTspice.ini``. All three made LTspice open its GUI main window
+  (``LTspice - [<ini stem>]``, observed through ``EnumWindows``) and never exit, so a
+  batch run hangs until the watchdog kills it. The same happens when ``APPDATA`` is
+  redirected to a fresh folder: LTspice writes a settings file there and then shows a
+  window instead of running the deck. A *seeded* private settings file does work — a
+  copy of the real ``LTspice.ini`` in a redirected ``APPDATA`` ran the deck (593 ms
+  warm) and left the user's file byte-identical — but seeding from the user's profile
+  means importing their settings, which is the opposite of compartmentalisation. So
+  the simulator keeps its own settings and is contained at the **process boundary**
+  instead: see :func:`child_environment`.
 
 Every run is watchdogged: the process tree of the PID **we** spawned is killed
 once the log shows ``Total elapsed time`` and the process still has not exited
 after a grace period, or once the timeout elapses. Nothing is ever reported as
 having run when it did not.
+
+**Every command here passes the execution policy first.** ``-version`` and the
+tree kill are ordinary short commands and go through
+:func:`boardmodeler.security.execution.run`; the two runs that need the watchdog
+above (``-b`` and ``-netlist``) keep their own process loop and therefore call
+:func:`boardmodeler.security.execution.validate` and spawn exactly the resolved
+executable, argv, working directory and environment. That is why this module still
+appears in the spawn-site allowlist in ``tests/security/test_execution.py``: it owns
+a loop, so it also owns that loop's kill and its output bound.
 """
 
 from __future__ import annotations
@@ -33,10 +54,12 @@ from __future__ import annotations
 import contextlib
 import os
 import re
+import signal
 import subprocess
+import tempfile
 import threading
 import time
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -44,6 +67,7 @@ from typing import Literal
 import numpy as np
 
 from boardmodeler.domain.hashing import sha256_file
+from boardmodeler.security import execution
 from boardmodeler.simulation.log import LogSummary, parse_log
 from boardmodeler.simulation.raw import RawFormatError, read_raw
 
@@ -80,9 +104,91 @@ class LtspiceLockTimeout(RuntimeError):
     """
 
 
-def _lock_path() -> Path:
-    import tempfile
+#: The only OS variables the simulator process is allowed to see. LTspice needs the
+#: system paths to find its own DLLs and its settings, and nothing else. The list is an
+#: allowlist rather than a denylist on purpose: a variable added to the parent
+#: environment by any other program cannot leak into a run because it is not named here.
+_CHILD_ENV_ALLOWED: frozenset[str] = frozenset(
+    {
+        "SYSTEMROOT",
+        "WINDIR",
+        "SYSTEMDRIVE",
+        "COMSPEC",
+        "PATHEXT",
+        "PATH",
+        "USERPROFILE",
+        "HOMEDRIVE",
+        "HOMEPATH",
+        "APPDATA",
+        "LOCALAPPDATA",
+        "PROGRAMDATA",
+        "NUMBER_OF_PROCESSORS",
+        "PROCESSOR_ARCHITECTURE",
+        "PROCESSOR_IDENTIFIER",
+        # LTspice's own documented switches, honoured from the environment by design.
+        "PASTE_OMEGA",
+        "CAPITAL_KILO",
+    }
+)
 
+#: Defence in depth: even a name an allowlist edit added by mistake is dropped when it
+#: looks like a credential. Nothing about this program's secrets belongs in a simulator.
+_CHILD_ENV_SECRET_MARKERS: tuple[str, ...] = (
+    "KEY",
+    "TOKEN",
+    "SECRET",
+    "PASSWORD",
+    "CREDENTIAL",
+)
+
+
+def child_environment(parent: Mapping[str, str] | None = None) -> dict[str, str]:
+    """The environment one LTspice process is given: an allowlist, never a copy.
+
+    The simulator is a third-party program that reads whatever its environment holds,
+    and this program's environment holds an agent API key. Passing ``os.environ``
+    through would hand the key to LTspice (and to anything it spawns) for no benefit,
+    so the child gets the fifteen OS variables it actually needs plus a private
+    scratch ``TEMP`` inside this copy — nothing else. A name is kept only when it is
+    allowlisted *and* does not look like a credential, so an allowlist mistake is not
+    enough to leak one.
+
+    ``TEMP``/``TMP``/``TMPDIR`` point into the copy's ``data/temp`` so simulator
+    scratch files land with the run instead of in the user's profile. When the storage
+    helpers cannot be imported (a bare library use) the inherited values are kept and
+    the run still works.
+
+    This is now the second layer, not the only one: every simulator command is built
+    as an :class:`boardmodeler.security.execution.CommandSpec` whose ``extra_env`` is
+    this mapping, and the execution policy refuses any variable a spec did not name.
+    The scrubber stays because it is the thing that knows what the simulator needs,
+    and because a spec cannot forget to name it.
+    """
+    source = os.environ if parent is None else parent
+    kept: dict[str, str] = {}
+    for name, value in source.items():
+        upper = name.upper()
+        if upper not in _CHILD_ENV_ALLOWED:
+            continue
+        if any(marker in upper for marker in _CHILD_ENV_SECRET_MARKERS):
+            continue
+        kept[name] = value
+    try:
+        from boardmodeler.storage import data_dir
+
+        scratch = data_dir() / "temp"
+        scratch.mkdir(parents=True, exist_ok=True)
+        for name in ("TEMP", "TMP", "TMPDIR"):
+            kept[name] = str(scratch)
+    except Exception:  # pragma: no cover - only a non-storage caller reaches this
+        for name in ("TEMP", "TMP", "TMPDIR"):
+            inherited = source.get(name)
+            if inherited:
+                kept[name] = inherited
+    return kept
+
+
+def _lock_path() -> Path:
     return Path(tempfile.gettempdir()) / _LOCK_FILENAME
 
 
@@ -421,32 +527,131 @@ def discover(explicit: str | Path | None = None) -> LocateOutcome:
     return LocateOutcome(install=None, probed=candidates, reason="not_installed")
 
 
+#: Output caps for the simulator's own console text. LTspice writes its results to
+#: files beside the deck; what reaches stdout/stderr is a banner and any error lines --
+#: a clean batch run measured 0 bytes on both streams on this machine, and a failing one
+#: emits a few lines. The caps exist so a runaway child cannot hand this process
+#: gigabytes, and they are far above anything a real run emits, so a cap can never cut a
+#: diagnosis short.
+_VERSION_OUTPUT_CAP = 1 << 20
+_RUN_OUTPUT_CAP = 4 << 20
+
+#: How long the tree kill itself may take. It is a separate, short-lived child; a
+#: ``taskkill`` that cannot finish in this long is not going to finish at all.
+_KILL_TIMEOUT_S = 30.0
+
+
+def _scratch_dir() -> Path:
+    """A working directory for a command that has no opinion about one.
+
+    ``taskkill`` and ``-version`` neither read nor write a relative path, and the
+    execution policy requires a cwd that exists, is a directory and is not a network
+    share; the platform temp directory is all three. In the shipped application
+    ``storage.initialize()`` points ``tempfile`` at this copy's own ``data/temp``, so
+    even this lands inside the copy.
+    """
+    return Path(tempfile.gettempdir())
+
+
+def _simulator_spec(
+    name: str, exe: Path, tail: tuple[str, ...], timeout_s: float, max_output_bytes: int
+) -> execution.CommandSpec:
+    """One simulator command, in the form the execution policy wants.
+
+    The environment is *pinned* into the spec (``extra_env``) instead of inherited by
+    name: the child gets exactly :func:`child_environment`'s mapping and nothing else,
+    and the policy refuses any variable the spec did not name, so a variable that
+    appears in the parent later cannot reach the simulator. The tail is a template --
+    literal switches the call site wrote, with ``PATH_VALUE`` where a path goes -- so
+    a filename can never be read as a flag.
+    """
+    return execution.CommandSpec(
+        name=name,
+        executable=Path(exe),
+        argv_tail=tail,
+        timeout_s=timeout_s,
+        max_output_bytes=max_output_bytes,
+        extra_env=child_environment(),
+    )
+
+
 def version(exe: Path, *, timeout_s: float = 20.0) -> str | None:
-    """Version reported by ``LTspice.exe -version`` (e.g. ``26.0.0``)."""
+    """Version reported by ``LTspice.exe -version`` (e.g. ``26.0.0``), or ``None``.
+
+    A short, buffered command, so it goes through :func:`execution.run`: a pinned
+    executable, a literal tail, a mandatory timeout and a bounded capture. Every
+    failure is reported as ``None`` exactly as the previous ``subprocess.run`` did,
+    because the callers (``doctor``, the regression report) treat "cannot tell" as data,
+    not as an exception: a refusal, a spawn that could not start at all
+    (``spawn_error`` -- a configured path holding something that is not a runnable
+    image), a timeout, or an incomplete capture. The version line is searched for in
+    both streams: this build prints it on stdout, but nothing about a version banner is
+    worth losing to the wrong stream.
+    """
+    scratch = _scratch_dir()
+    tail = ("-version",)
+    spec = _simulator_spec("ltspice-version", exe, tail, timeout_s, _VERSION_OUTPUT_CAP)
     try:
-        proc = subprocess.run(
-            [str(exe), "-version"],
-            capture_output=True,
-            text=True,
-            timeout=timeout_s,
-            check=False,
-        )
-    except OSError, subprocess.SubprocessError:
+        result = execution.run(spec, argv=tail, cwd=scratch, root=scratch)
+    except execution.CommandRefused:
         return None
-    match = _VERSION_RE.search(proc.stdout or "")
+    if result.spawn_error is not None or result.timed_out or result.truncated:
+        return None
+    match = _VERSION_RE.search(result.stdout) or _VERSION_RE.search(result.stderr)
     return match.group(1) if match else None
 
 
 def _kill_tree(pid: int) -> None:
-    """Kill the process tree rooted at ``pid`` (which we spawned ourselves)."""
-    if os.name == "nt":
-        subprocess.run(
-            ["taskkill", "/PID", str(pid), "/T", "/F"],
-            capture_output=True,
-            check=False,
-        )
-    else:  # pragma: no cover - LTspice is Windows-only
-        subprocess.run(["pkill", "-P", str(pid)], capture_output=True, check=False)
+    """Kill the process tree rooted at ``pid`` (which we spawned ourselves).
+
+    Windows: the guard-allowlisted ``taskkill``, run through the execution policy like
+    every other child. The policy is what pins the absolute path and the literal argv
+    (``/PID <pid> /T /F``), so the kill cannot grow into a general command runner, and
+    the path comes from this machine's own system folder rather than from PATH. A
+    ``taskkill`` we cannot start must not turn a watchdog kill into a crash -- the run
+    is already being torn down and reports itself as failed -- so a refusal is
+    swallowed. A ``taskkill`` that runs but fails (a stripped image without it, an
+    environment it cannot start in) falls back to terminating the root process
+    directly: that loses the descendants, which is worse than the tree kill and much
+    better than a run that keeps holding the simulator lock.
+
+    POSIX (unreachable in practice: LTspice is Windows-only): the process group is
+    signalled directly, replacing the old ``pkill -P``, which named an executable the
+    guard does not allow and would have been refused by this module's own policy.
+    """
+    if os.name != "nt":  # pragma: no cover - LTspice is Windows-only
+        with contextlib.suppress(OSError, AttributeError):
+            os.killpg(os.getpgid(pid), signal.SIGKILL)
+        return
+    scratch = _scratch_dir()
+    tool = execution.system_executable("taskkill")
+    spec = execution.CommandSpec(
+        name="ltspice-kill-tree",
+        executable=tool,
+        argv_tail=("/PID", execution.ANY_VALUE, "/T", "/F"),
+        timeout_s=_KILL_TIMEOUT_S,
+        max_output_bytes=64 * 1024,
+        # taskkill needs the OS basics to start at all: with an empty environment it
+        # exits 1 with "the specified module could not be found" and kills nothing, so
+        # an allowlist that omitted ``SystemRoot`` would silently disable the watchdog.
+        env_allowlist=execution.WINDOWS_BASE_ENV,
+        # The guard's allowlist carries the *bare* name it spawns through PATH
+        # (``taskkill``); a pinned path has the extension, so the spec names it
+        # explicitly -- otherwise the policy would refuse every kill and the watchdog
+        # would silently stop killing anything.
+        extra_allowed_executables=(tool.name,),
+    )
+    killed = False
+    try:
+        killed = execution.run(spec, argv=(str(pid),), cwd=scratch, root=scratch).ok
+    except execution.CommandRefused:  # pragma: no cover - a stripped Windows image
+        # A stripped image (no taskkill) leaves nothing to run; a taskkill that starts
+        # and fails comes back as a result with ``ok`` False. Either way the fallback
+        # below is what matters, not the exception.
+        killed = False
+    if not killed:  # pragma: no cover - only when taskkill is unusable
+        with contextlib.suppress(OSError):
+            os.kill(pid, signal.SIGTERM)
 
 
 def _purge_outputs(outputs: dict[str, Path]) -> list[Path]:
@@ -513,7 +718,12 @@ def run_batch(
     deck, so when ``deck.parent != run_dir`` the outputs are looked up next to
     the deck (reported through the returned paths).
 
-    ``search_paths``/``-I`` is deliberately absent: see the module docstring.
+    ``search_paths``/``-I`` is deliberately absent: see the module docstring. The
+    switches that do go in are checked as *literal flags* by
+    :func:`execution.command_line`, so a configured ``extra_switches`` entry that
+    carries data (``-I <path>``, ``-ini <path>``) is refused here rather than handed
+    to a build that would open a modal dialog and hang -- the measured refusals in the
+    module docstring are enforced at the argv, not only documented.
     """
     deck = Path(deck).resolve()
     run_dir = Path(run_dir).resolve()
@@ -525,11 +735,7 @@ def run_batch(
     if not exe.is_file():
         raise FileNotFoundError(f"LTspice executable not found: {exe}")
 
-    switches = ["-b"]
-    if ascii_raw:
-        switches.append("-ascii")
-    switches.extend(str(s) for s in extra_switches)
-    argv = [str(exe), *switches, str(deck)]
+    switches = execution.command_line(["-b", *(["-ascii"] if ascii_raw else []), *extra_switches])
 
     outputs = _output_paths(deck, deck.parent)
     lock = _acquire_lock(lock_timeout_s)
@@ -539,7 +745,7 @@ def run_batch(
             deck=deck,
             run_dir=run_dir,
             outputs=outputs,
-            argv=argv,
+            switches=switches,
             timeout_s=timeout_s,
             marker_grace_s=marker_grace_s,
             poll_s=poll_s,
@@ -577,7 +783,7 @@ def _run_locked(
     deck: Path,
     run_dir: Path,
     outputs: dict[str, Path],
-    argv: list[str],
+    switches: Sequence[str],
     timeout_s: float,
     marker_grace_s: float,
     poll_s: float,
@@ -589,15 +795,35 @@ def _run_locked(
     # watchdog below kill a fresh run after its grace period.
     _purge_outputs(outputs)
 
+    # The policy checks the executable, the argv, the working directory and the
+    # environment before anything exists. This module keeps its own Popen because of
+    # the watchdog below: a marker-grace period and a cancel event cannot be expressed
+    # as a buffered call, so the loop stays here and spawns exactly the resolved
+    # values. ``_native_path`` goes in as the policy's path alias -- it re-spells a
+    # path that is too long for LTspice's legacy file handling, and the policy verifies
+    # the alias still names the same file, so the re-spelling cannot redirect the run.
+    spec = _simulator_spec(
+        "ltspice-batch", exe, (*switches, execution.PATH_VALUE), timeout_s, _RUN_OUTPUT_CAP
+    )
+    resolved = execution.validate(
+        execution.CommandCall(spec=spec, argv=(*switches, str(deck))),
+        cwd=run_dir,
+        root=run_dir,
+        extra_roots=(deck.parent,),
+        path_alias=_native_path,
+    )
+    argv = [str(exe), *switches, str(deck)]
+
     started = time.monotonic()
     proc = subprocess.Popen(
-        [*argv[:-1], _native_path(deck)],
-        cwd=_native_path(run_dir),
+        [str(resolved.executable), *resolved.tail],
+        cwd=str(resolved.cwd),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
         encoding="utf-8",
         errors="replace",
+        env=child_environment(),
     )
 
     outputs = _output_paths(deck, deck.parent)
@@ -684,20 +910,43 @@ def netlist_step(
     Symbols must be resolvable without ``-I``: the schematic's own directory is
     searched first (verified), so generated ``.asy`` files are placed beside the
     schematic.
+
+    Like the batch run, this keeps its own loop for the marker/cancel watchdog and
+    therefore validates first: the schematic path is pinned inside the schematic's
+    directory (the run directory is the primary scope, so the two may differ), the
+    executable and the ``-netlist`` flag come from the spec, and the long-path alias
+    applies exactly as it does to a batch deck.
     """
+    exe = Path(exe)
     schematic = Path(schematic).resolve()
     work = Path(run_dir).resolve() if run_dir else schematic.parent
     work.mkdir(parents=True, exist_ok=True)
+    if not exe.is_file():
+        # The documented contract of this module's entry points, kept even though the
+        # policy would refuse with its own (also stable) code.
+        raise FileNotFoundError(f"LTspice executable not found: {exe}")
+
+    spec = _simulator_spec(
+        "ltspice-netlist", exe, ("-netlist", execution.PATH_VALUE), timeout_s, _RUN_OUTPUT_CAP
+    )
+    resolved = execution.validate(
+        execution.CommandCall(spec=spec, argv=("-netlist", str(schematic))),
+        cwd=work,
+        root=work,
+        extra_roots=(schematic.parent,),
+        path_alias=_native_path,
+    )
 
     started = time.monotonic()
     proc = subprocess.Popen(
-        [str(exe), "-netlist", str(schematic)],
-        cwd=str(work),
+        [str(resolved.executable), *resolved.tail],
+        cwd=str(resolved.cwd),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
         encoding="utf-8",
         errors="replace",
+        env=resolved.env,
     )
     timed_out = False
     terminated_after_marker = False
