@@ -200,6 +200,19 @@ it: `tools/verify_release_zip.py` reported `archive PASS, extract PASS, install 
 launchable on such a machine is to sign it or to approve it once in Windows Security
 (`installer/README.md`, "Smart App Control").
 
+The owner's actual first step was then verified against the published repository, after the
+commit was pushed (`c14496f`):
+
+```
+uv run python tools/verify_release_zip.py --source github --no-ltspice
+archive  PASS  7.1 s   zip 90955175 B; installer 1.5.0; pyproject 1.5.0
+```
+
+That stage downloads the real **Code → Download ZIP** from `codeload`, checks the installer's
+recorded hash against `SHA256SUMS.txt`, and reads the version the installer carries — so the
+download is the 1.5.0 build and its checksum matches. `releases/` is git-ignored, so the
+download is source plus the 85 MB installer (~91 MB), not the local convenience zips.
+
 ### C4 — the real agent path, measured at 1.5.0
 
 A live build was run through the product path with a real provider and the owner's own
