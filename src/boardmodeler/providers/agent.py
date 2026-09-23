@@ -102,6 +102,18 @@ def _run_batches(jobs, run, progress, cancel):
             publish()
     if failure is not None:
         raise failure
+    # The annotation promises one response per job. Two states could otherwise return a
+    # ``None`` to a caller that immediately reads a field from it: a slot whose future was
+    # cancelled (only reachable on the failure path above, which raised) and a ``run`` that
+    # itself returned ``None``. The latter is silent today and would surface as an
+    # AttributeError in the caller, so name it here instead of letting it travel.
+    missing = [index for index, result in enumerate(results) if result is None]
+    if missing:
+        raise ProviderError(
+            "response_missing",
+            f"batch(es) {', '.join(str(index + 1) for index in missing)} returned no "
+            f"extraction response for {len(jobs)} submitted job(s)",
+        )
     return results
 
 
