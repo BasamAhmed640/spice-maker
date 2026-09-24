@@ -4,6 +4,11 @@ env/
 app/
 data/
 models/
+.env
+.env.*
+*.key
+credentials*
+**/credentials*
 build/
 dist/
 releases/

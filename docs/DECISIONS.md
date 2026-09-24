@@ -1044,3 +1044,22 @@ must be able to answer this command).
 Evidence: `src/boardmodeler/settings_summary.py`, `ui/setup_dialog.py`,
 `cli.py` (`setup` branch); proved with PySide6 made unimportable — `setup --json` prints the
 settings and exits 0 while `PySide6` never enters `sys.modules`.
+
+## D-033 — Explicit simulator choice and full verification default (2026-09-24)
+
+The app resolves LTspice only from the executable chosen in this copy's SETUP or
+an explicit simulator argument. It never interprets an inherited `LTSPICE_EXE` as a
+selection, searches installation directories, or probes a default library folder.
+The BROWSE picker remains a user-initiated way to choose a file. The GUI opens with
+FULL VERIFICATION selected; quick mode is an explicit structural draft whose
+electrical status remains UNKNOWN. This supersedes the quick-default and optional
+discovery decisions recorded above for older builds.
+
+Model authoring in the general edition uses HTTPS text replies without command or
+filesystem tools. The application writes candidate files and runs its own bounded
+LTspice batch harness, then compares measured artifacts with frozen datasheet rows.
+Its simulator child receives an allowlisted environment without the provider key.
+
+Evidence: `simulation/ltspice.py`, `ui/setup_dialog.py`, `ui/model_maker.py`,
+`config.py`, `tests/test_ltspice_explicit_only.py`, and
+`tests/test_cli_doctor.py`.

@@ -1262,3 +1262,39 @@ exists only on the `model build` command line).
 * `MAX_OUTPUT_TOKENS` remains 32768 (deliberate; change would be unmeasured).
 * **The Bob edition has been mirrored and hand-adapted** (nothing staged or committed; `spice-maker-bob` is at v1.4.0). `tools/sync_shared_core.py ../spice-maker-bob --apply` was run. Verified here: `ruff format --check .` clean (239 files) and `tests/test_desktop_retry.py tests/ui/ tests/gui/` → **87 passed**; `doctor --json` reports `version 1.4.0`, a single catalog entry (label `BOB API KEY`), and `searched: false` with `reason: "unset"`. Recorded for that verification: the full gate **1209 passed, 13 skipped** (not re-run for this note). Structural immunity to the authoring-budget defect: Bob authors through `_run_guarded` in the shared `authoring/backends.py` — one process against one deadline, with `timed_out` returned as data on a `GuardedProcess`, so no retry is funded from a remainder and the defect's mechanism cannot occur. Honest caveat: `BobShellBackend` turns `timed_out` into a failed `AuthorResult` carrying a `bob_shell_timeout` detail (`authoring/backends.py`); the route from there to the user-visible outcome was not traced. **Drift found while writing this:** the dry run now reports **1** shared file differing (`tests/ui/test_main_window.py` — the general edition dropped an unused `QObject` import 4 s after the file was copied), which Bob's `ruff check .` now flags as that one F401; the one-line mirror is pending.
 * Nothing is committed or pushed. No release binary should be published from this tree before the version stamp and signing items are resolved.
+
+## 2026-09-24 — explicit LTspice selection and self-contained general-edition rebuild
+
+This entry supersedes the older open-item and discovery descriptions immediately
+above. `locate_outcome()` now reads only the executable selected in this copy's
+configuration or passed explicitly to the call. Startup and `doctor` perform no
+installation search, ignore an inherited `LTSPICE_EXE`, and do not inspect a
+default LTspice library directory. The SETUP BROWSE picker remains user initiated.
+The GUI now defaults to full electrical verification; a quick run is explicitly
+electrically unverified. The general edition gives its HTTPS authoring provider
+text prompts only; the application owns model writes and simulator execution.
+
+Source setup follows the Bob project workspace pattern of root instructions,
+`.bob/rules/` and `.bobignore`, with a project-local Python 3.14 `.venv` and pinned
+root `requirements.txt`. The Python environment is a requested project practice,
+not a requirement from IBM's Bob documentation. The existing installer bundles its
+own runtime and pinned wheels, and its updated binary is tracked for GitHub's
+source ZIP.
+
+Observed on this machine:
+
+| Check | Result |
+|---|---|
+| `.venv\\Scripts\\python.exe -m pytest -q tests/test_ltspice_explicit_only.py` | 6 passed |
+| `.venv\\Scripts\\python.exe -m pytest -q tests/ui/test_setup_dialog.py tests/gui/test_window_contract.py tests/gui/test_sanity_mode.py` | 31 passed |
+| `.venv\\Scripts\\python.exe -m pytest -q tests/test_cli_doctor.py` | 6 passed, 3 skipped because this test session did not select LTspice |
+| `.venv\\Scripts\\python.exe -m pytest -q -m "not ltspice and not installer and not slow"` | 1506 passed, 7 skipped, 166 deselected in 72.68 s |
+| `installer/build.ps1 -Version 1.5.0` | PASS: frozen GUI opened; portable installer installed, updated, and created two isolated fresh copies; both copies built an in-folder `.venv` from bundled wheels; verifier observed no outside-folder additions |
+| Rebuilt `Install.exe` | 89,511,936 bytes; SHA256 `a37f7da4cd84667f98ed1efadcc0c60ec59ac7b53ff8a14c30d725a60b6e1d34` |
+| Fresh GitHub source ZIP, project-local `.venv` and `doctor` | PASS in the separate end-to-end check; model authoring stopped at DeepSeek HTTP 402, insufficient balance |
+
+No TPS54332DDA generated-model simulation PASS is claimed: the provider refused
+authoring before there was a candidate to simulate. A separate run of TI's official
+unmodified TPS54332 model is reference evidence, not verification of an authored
+model. The current installer passed this machine's security policy; unsigned
+executables may still require organizational approval on another computer.

@@ -44,7 +44,7 @@ def test_smoke_test_passes_with_observed_values(ltspice_exe: Path, tmp_path: Pat
 
 
 def test_smoke_test_reports_failure_for_missing_executable(tmp_path: Path) -> None:
-    """A forced-bad LTSPICE_EXE must produce fail + non-empty detail, not a crash."""
+    """An explicitly selected missing executable must fail with diagnostic detail."""
     result = smoke_test(tmp_path / "does_not_exist.exe", tmp_path / "smoke")
     assert result.status == "fail"
     assert result.detail.strip()
