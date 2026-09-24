@@ -1,0 +1,493 @@
+{
+  "model_sha256": "93d94658b5d4838f83457df14a8cc016fe9985f178a4dc7aa6c9eec0097ade06",
+  "outcomes": [
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B001_REQ_024"
+      ],
+      "citations": [
+        "B001_REQ_024 requires >= 0.8 V (PDF page 0) \u2014 \"Adjustable output voltage down to 0.8 V\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-17397276a76f",
+      "status": "UNKNOWN",
+      "unknown_reason": "sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B001_REQ_026"
+      ],
+      "citations": [
+        "B001_REQ_026 requires <= 3.5 A (PDF page 0) \u2014 \"Integrated 80-m\u2126 high-side MOSFET supports up \nto 3.5-A continuous output current\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-8ab56521ff59",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B001_REQ_029"
+      ],
+      "citations": [
+        "B001_REQ_029 requires typ 1e-06 A (+/-10 %) (PDF page 0) \u2014 \"Typical 1-\u03bcA shutdown quiescent current\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-b5a2f536cbc1",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_004"
+      ],
+      "citations": [
+        "B002_REQ_004 requires <= 4e-06 A (PDF page 5) \u2014 \"Shutdown supply current EN = 0 V, VIN = 12 V, \u201340\u00b0C to 85\u00b0C 1 4 \u03bcA\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-589aa1f8cd2b",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_005"
+      ],
+      "citations": [
+        "B002_REQ_005 requires <= 0.00012 A (PDF page 5) \u2014 \"Operating \u2013 non switching supply current VSENSE = 0.85 V 82 120 \u03bcA\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-00c4c9a92a82",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_006"
+      ],
+      "citations": [
+        "B002_REQ_006 requires 1.25 .. 1.35 V (PDF page 5) \u2014 \"Enable threshold Rising and Falling 1.25 1.35 V\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-4c769247de89",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_007"
+      ],
+      "citations": [
+        "B002_REQ_007 requires typ -1e-06 A (+/-10 %) (PDF page 5) \u2014 \"Input current Enable threshold \u2013 50 mV -1 \u03bcA\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-bc7de9db4509",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_008"
+      ],
+      "citations": [
+        "B002_REQ_008 requires typ -4e-06 A (+/-10 %) (PDF page 5) \u2014 \"Input current Enable threshold + 50 mV -4 \u03bcA\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-3ec5fc08091d",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_009"
+      ],
+      "citations": [
+        "B002_REQ_009 requires 0.772 .. 0.828 V (PDF page 5) \u2014 \"Voltage reference 0.772 0.8 0.828 V\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-cbf1a29539a2",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_013"
+      ],
+      "citations": [
+        "B002_REQ_013 requires typ 800 V/V (+/-10 %) (PDF page 5) \u2014 \"Error amplifier DC gain(1) VSENSE = 0.8 V 800 V/V\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-b64e8050e580",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_014"
+      ],
+      "citations": [
+        "B002_REQ_014 requires typ 2.7e+06 Hz (+/-10 %) (PDF page 5) \u2014 \"Error amplifier unity gain bandwidth(1) 5 pF capacitance from COMP to GND pins 2.7 MHz\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-3f2089e922a0",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_015"
+      ],
+      "citations": [
+        "B002_REQ_015 requires typ 7e-06 A (+/-10 %) (PDF page 5) \u2014 \"Error amplifier source/sink current V(COMP) = 1.0 V, 100-mV overdrive \u00b17 \u03bcA\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-5bd1e2a2f07f",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_017"
+      ],
+      "citations": [
+        "B002_REQ_017 requires typ 0.16 A (+/-10 %) (PDF page 5) \u2014 \"Pulse-skipping Eco-mode switch current threshold 160 mA\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-352531caf560",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_018"
+      ],
+      "citations": [
+        "B002_REQ_018 requires 4.2 .. 6.5 A (PDF page 5) \u2014 \"Current limit threshold VIN = 12 V 4.2 6.5 A\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-b7f0e2be9450",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_020"
+      ],
+      "citations": [
+        "B002_REQ_020 requires typ 2e-06 A (+/-10 %) (PDF page 5) \u2014 \"Charge current V(SS) = 0.4 V 2 \u03bcA\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-549de48802bb",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_023"
+      ],
+      "citations": [
+        "B002_REQ_023 requires <= 1.35e-07 s (PDF page 5) \u2014 \"Minimum controllable on time VIN = 12 V, 25\u00b0C 110 135 ns\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-166a13af7bfb",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_026"
+      ],
+      "citations": [
+        "B002_REQ_026 requires typ 2.1 V (+/-10 %) (PDF page 8) \u2014 \"The boot capacitor voltage is monitored by an UVLO circuit and turns the high-side MOSFET off when the voltage falls below a preset threshold of 2.1 V typically.\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-6a3acbb3f202",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B002_REQ_035"
+      ],
+      "citations": [
+        "B002_REQ_035 requires -2 .. 2 % (PDF page 9) \u2014 \"The voltage reference system produces a \u00b12% initial accuracy voltage reference (\u00b13.5% over temperature) by scaling the output of a temperature stable band-gap circuit.\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-b03c042ffaa4",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B003_REQ-004"
+      ],
+      "citations": [
+        "B003_REQ-004 requires >= 4.2 A (PDF page 13) \u2014 \"Switch current limit (minimum) 2.3 A 2.3 A 2.3 A 3.5 A 4.2 A\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-72331bcaa3dd",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B003_REQ-005"
+      ],
+      "citations": [
+        "B003_REQ-005 requires typ 1.25 V (+/-10 %) (PDF page 11) \u2014 \"The enable threshold voltage is 1.25 V typical.\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-56fe7a9c8b37",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B003_REQ-010"
+      ],
+      "citations": [
+        "B003_REQ-010 requires typ 0.5 V (+/-10 %) (PDF page 12) \u2014 \"When the peak inductor current is lower than pulse skip threshold, the COMP pin voltage falls to 0.5 V (typical) \nand the device enters Eco-mode . When the device is in Eco-mode, the COMP pin voltage is clamped at 0.5 V \ninternally which prevents the high-side integrated MOSFET from switching.\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-d23d4ee8a4c9",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B003_REQ-017"
+      ],
+      "citations": [
+        "B003_REQ-017 requires >= 0.872 V (PDF page 11) \u2014 \"When the VSENSE pin \nvoltage goes above 109% \u00d7 Vref, the high-side MOSFET is forced off.\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-6311790a4a4a",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B003_REQ-018"
+      ],
+      "citations": [
+        "B003_REQ-018 requires <= 0.856 V (PDF page 11) \u2014 \"When the VSENSE pin voltage falls below \n107% \u00d7 Vref, the high-side MOSFET is enabled again.\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-cf7cb46eec51",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B004_REQ_TPS54332DDA_VREF_0P8V"
+      ],
+      "citations": [
+        "B004_REQ_TPS54332DDA_VREF_0P8V requires typ 0.8 V (+/-10 %) (PDF page 17) \u2014 \"VREF = 0.8 V\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-b60e7fcb367d",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B004_REQ_TPS54332DDA_VGGM_800"
+      ],
+      "citations": [
+        "B004_REQ_TPS54332DDA_VGGM_800 requires typ 800 V/V (+/-10 %) (PDF page 17) \u2014 \"VGGM = 800\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-9bd462ced099",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B005_REQ-MAX-DUTY-CYCLE"
+      ],
+      "citations": [
+        "B005_REQ-MAX-DUTY-CYCLE requires <= 91 % (PDF page 19) \u2014 \"The upper limit of the output voltage set point is constrained by the maximum duty cycle of 91% \nand is given by Equation 32.\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-af4a3f973993",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    },
+    {
+      "artifacts": {},
+      "cause": null,
+      "char_ids": [
+        "B005_REQ-MIN-ON-TIME"
+      ],
+      "citations": [
+        "B005_REQ-MIN-ON-TIME requires <= 1.3e-07 s (PDF page 20) \u2014 \"The lower limit is constrained by the minimum controllable on time which can be as high as 130 ns.\""
+      ],
+      "detail": "",
+      "judged": "",
+      "measured": {},
+      "operating_point": {},
+      "probe_id": "circuit_measurement",
+      "run_dir": "models\\A2-tps54332-controlled-low\\build\\validation-cache\\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\\probes\\circuit_measurement-b9f99295c4ea",
+      "status": "UNKNOWN",
+      "unknown_reason": "deferred_after_invalid_simulation: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.56s; raw=no; log=yes); LTspice said: deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(10): Unknown parameter"
+    }
+  ],
+  "part": "TPS54332DDA",
+  "spec_digest": "587a27b80d49586b7f834ff4303b823499fd7b7979db218954a0d12d9bf08c04"
+}

@@ -108,7 +108,7 @@ failed baseline, so only authoring changed):
 |---|---|---|---|
 | Baseline (previous session) | max | 512 s, 100,075 tokens | 27 UNKNOWN: no operating point |
 | A (`tps54332-controlled-high-effort/`) | high | first API attempt used the whole 600 s turn budget while three builds shared the provider | UNKNOWN: no candidate written |
-| A2 | low | 283 s, 51,027 tokens | 27 UNKNOWN: `Ven en_ok GND V=limit(...)` refused by LTspice ("Unknown parameter"). The targeted repair note quoted that line; the V=/I= normalizer added after this run now rewrites it before simulation.<br>Turn 2 was still running when this report was committed (no result claimed). |
+| A2 | low | 283 s, 51,027 tokens | 27 UNKNOWN: `Ven en_ok GND V=limit(...)` refused by LTspice ("Unknown parameter"). The targeted repair note quoted that line; the V=/I= normalizer added after this run now rewrites it before simulation.<br>Turn 2: the first API attempt again used the whole 600 s turn budget, now with four builds sharing the provider, so the turn-1 candidate was kept. **Final: UNKNOWN, 27 UNKNOWN, 885 s.** |
 
 Probe decks and logs for every fixture that ran are under each run's `probes/`.
 
@@ -144,7 +144,7 @@ never PASS. The LM358 builds took 216 s (1 turn) and 356 s (2 turns) end to end.
 | Provider keys in the LTspice child environment (8 names, fake values) | absent (both editions) |
 | `tools/scan_credentials.py` over both working trees and the evidence folder | 0 findings; values compared in memory, names only printed |
 | Offline fresh ZIP (`git archive` of the branch): venv, pinned `requirements.txt`, startup, explicit `.op` run, credential scan | PASS / PASS (both editions) |
-| Fresh GitHub ZIP of `convergence-shared-core` (download → extract → `py -3.14` venv → pinned install → startup without LTspice access → explicit `.op` → credential scan) | PASS 7/7 in both editions at `c6e032e` / `ed7b867` (ZIP sha256 `727d33de…`, `2184acfe…`); `shared_core.py --check` intact on GitHub's bytes; `.bob/rules*` and `.bobignore` present. Final commits: FINALZIP_PLACEHOLDER |
+| Fresh GitHub ZIP of `convergence-shared-core` (download → extract → `py -3.14` venv → pinned install → startup without LTspice access → explicit `.op` → credential scan) | PASS 7/7 in both editions at `c6e032e` / `ed7b867` (ZIP sha256 `727d33de…`, `2184acfe…`); `shared_core.py --check` intact on GitHub's bytes; `.bob/rules*` and `.bobignore` present. Final code commits `1fb89f8` (general, branch ZIP sha256 `2544f398…`) and `64e2fa3` (Bob, `f312ffd9…`): **PASS 7/7 each**; every `generated-models/*/SHA256SUMS.txt` verifies against the downloaded bytes |
 | Full suite, general (`-m "not gui and not network"`, LTspice enabled) | 1629 passed, 13 skipped, 0 failed (344 s) |
 | Full suite, Bob (same selection) | 1215 passed, 148 skipped, 7 failed. All 7 fail identically at untouched `aebf457` (CLI doctor/run-tests fixtures); they are not caused by this change |
 | Shared core | 41 files identical (`tools/shared_core.py --compare`) |
@@ -172,6 +172,10 @@ is the source ZIP + `.venv` + pinned `requirements.txt`.
   succeeds with no key present. The LM358 build therefore used the app's own reviewed rows
   (`--requirements/--bindings`, produced by the keyless run). Root cause not found.
 - **Open defect:** 7 pre-existing Bob CLI test failures (see section 6).
+- **Provider throughput:** with 3–4 builds sharing one OpenCode Go key, a single author API
+  attempt consumed the whole 600 s turn budget twice (A turn 1, A2 turn 2). The loop kept
+  the previous candidate and reported UNKNOWN; it never lowered effort or switched provider on
+  its own. Run one build per key, or raise the turn budget explicitly.
 - **Open harness issue:** max-limit current rows are compared as signed values unless the
   planner sets `absolute`, so a large negative current would pass a "≤ 4 µA" row. Both current
   PASSes above also hold in magnitude. Separately, one timed-out fixture defers every

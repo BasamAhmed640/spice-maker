@@ -1,0 +1,66 @@
+.subckt TPS54332DDA BOOT VIN EN SS VSENSE COMP GND PH POWERPAD
+
+* PowerPAD to GND
+Rpp POWERPAD GND 1m
+
+* EN pin: pull-up, input current, enable detect
+Ren EN GND 100Meg
+Bpu VIN EN I=10n*limit((V(VIN,GND)-V(EN,GND))/1,0,1)
+Ben GND EN I=15u*(V(EN,GND)-1.133)*limit((V(EN,GND)-1.1)/0.1,0,1)
+Ven en_ok GND V=limit((V(EN,GND)-1.25)/0.05,0,1)
+
+* Shutdown and operating current
+Bshut VIN GND I=1u*(1-V(en_ok,GND))
+Bop VIN GND I=82u*V(en_ok,GND)*limit((V(VSENSE,GND)-0.81)/0.01,0,1)
+
+* SS pin
+Rss SS GND 100Meg
+Bss SS GND I=2u*V(en_ok,GND)
+
+* Error amplifier
+Rcomp COMP GND 10Meg
+Bcomp COMP GND I=80n + 80u*(V(VSENSE,GND)-0.8)*V(en_ok,GND)
+Bclamp COMP GND I=limit((0.5-V(COMP,GND))/0.1,0,1)*1m - limit((V(COMP,GND)-0.955)/0.1,0,1)*1m
+
+* Oscillator ramp
+Vramp ramp GND PULSE(0.5 1.0 0 1u 1n 0 1.001u)
+Bclock clock GND V=limit((0.51-V(ramp,GND))/0.01,0,1)
+
+* Min on time
+Cmon mon GND 12p
+Rmon mon GND 1G
+Bmon mon GND I=100u*V(gate_req,GND)
+Bclamp_mon mon GND I=limit((V(mon,GND)-1.0)/0.1,0,1)*1m
+Bn_gate n_gate GND V=1-V(gate_req,GND)
+Sdis2 mon GND n_gate GND SWM
+Bmin_on min_on GND V=limit((1.0-V(mon,GND))/0.1,0,1)*V(gate_req,GND)
+
+* Current limit
+Bilim S2 GND V=limit((I(Vsen)-4.5)/0.1,0,1)
+A2 S2 clock 0 0 0 QB2 Q2 0 SRFLOP Vhigh=1 Vlow=0 Trise=1n
+
+* OVP
+Bovp_set S_ovp GND V=limit((V(VSENSE,GND)-0.872)/0.01,0,1)
+Bovp_reset R_ovp GND V=limit((0.856-V(VSENSE,GND))/0.01,0,1)
+A4 S_ovp R_ovp 0 0 0 QB_ovp Q_ovp 0 SRFLOP Vhigh=1 Vlow=0 Trise=1n
+
+* Boot UVLO
+Bboot_ok boot_ok GND V=limit((V(BOOT,PH)-2.1)/0.1,0,1)
+
+* PWM comparator
+Bpwm pwm GND V=limit((V(COMP,GND)-V(ramp,GND))/0.01,0,1)
+
+* Gate request
+Bgate_req gate_req GND V=V(pwm,GND)*V(en_ok,GND)*V(boot_ok,GND)*(1-V(Q_ovp,GND))
+
+* Final gate
+Bgate_final gate_final GND V=(V(gate_req,GND)+V(min_on,GND))*V(en_ok,GND)*V(boot_ok,GND)*(1-V(Q_ovp,GND))*(1-V(Q2,GND))
+
+* High-side switch
+Vsen ph_int PH 0
+S_HS VIN ph_int gate_final GND SWM
+Rph ph_int GND 1Meg
+
+.model SWM SW(Ron=0.08 Roff=1Meg Vt=0.5 Vh=0.1)
+
+.ends TPS54332DDA

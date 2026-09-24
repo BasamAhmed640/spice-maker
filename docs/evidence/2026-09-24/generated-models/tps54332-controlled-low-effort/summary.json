@@ -1,11 +1,17 @@
 {
-  "part": "tps54332-controlled-low-effort",
-  "status": "RUNNING_AT_COLLECTION",
-  "counts": null,
-  "detail": null,
-  "iterations": null,
-  "wall_time_s": null,
-  "exit_code": null,
+  "part": "TPS54332DDA",
+  "status": "UNKNOWN",
+  "counts": {
+    "PASS": 0,
+    "FAIL": 0,
+    "UNKNOWN": 27,
+    "BLOCKED": 0,
+    "NOT_APPLICABLE": 0
+  },
+  "detail": "api_request_failed: deadline_exhausted: only -1.03 s of the 600 s turn budget remained before attempt 2 of 3, and a retry needs 30 s; standard symbol generated locally from the model's declared ports",
+  "iterations": 2,
+  "wall_time_s": 885.2,
+  "exit_code": 0,
   "turns": [
     {
       "turn": 1,
@@ -22,5 +28,8 @@
       "candidate_sha256": "93d94658b5d4838f83457df14a8cc016fe9985f178a4dc7aa6c9eec0097ade06"
     }
   ],
-  "history": null
+  "history": [
+    "turn 1: progress; failing circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement, circuit_measurement",
+    "turn 2: api_request_failed: deadline_exhausted: only -1.03 s of the 600 s turn budget remained before attempt 2 of 3, and a retry needs 30 s; existing candidate preserved"
+  ]
 }
