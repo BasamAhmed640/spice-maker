@@ -79,7 +79,6 @@ __all__ = [
     "LtspiceLockTimeout",
     "SmokeResult",
     "default_lib_dir",
-    "discover",
     "locate",
     "locate_outcome",
     "netlist_step",
@@ -278,9 +277,6 @@ BATCH_RESOLUTION_NOTES = (
     "-I is unsupported (GUI modal hang), .step is unsupported (concatenated raw)"
 )
 
-#: Explicit override for automation. On its own it is a setting, never a search.
-_CANDIDATE_ENV = "LTSPICE_EXE"
-
 
 @dataclass(frozen=True)
 class LtspiceInstall:
@@ -378,53 +374,19 @@ class SmokeResult:
 
 
 def default_lib_dir() -> Path | None:
-    """The installation's read-only library directory, if it can be found."""
-    candidates = [
-        Path(os.environ.get("LOCALAPPDATA", "")) / "LTspice" / "lib",
-        Path(os.environ.get("APPDATA", "")) / "LTspice" / "lib",
-    ]
-    for candidate in candidates:
-        if candidate.is_dir():
-            return candidate
-    return None
+    """Return only the library directory explicitly saved in this copy's settings."""
+    from boardmodeler.config import load_config
 
-
-def _install_candidates() -> list[tuple[Path, str]]:
-    """Well-known install locations, in probe order, for :func:`discover` only.
-
-    Nothing else may call this: an unconfigured machine reports ``unset`` instead of
-    inspecting the user's profile, so SETUP has to ask the user exactly once.
-    """
-    candidates: list[tuple[Path, str]] = []
-    localappdata = os.environ.get("LOCALAPPDATA")
-    if localappdata:
-        candidates.append(
-            (Path(localappdata) / "Programs" / "ADI" / "LTspice" / "LTspice.exe", "LOCALAPPDATA")
-        )
-    program_files = os.environ.get("PROGRAMFILES")
-    if program_files:
-        candidates.append((Path(program_files) / "ADI" / "LTspice" / "LTspice.exe", "ProgramFiles"))
-    program_files_x86 = os.environ.get("PROGRAMFILES(X86)")
-    if program_files_x86:
-        candidates.append(
-            (Path(program_files_x86) / "LTC" / "LTspiceXVII" / "XVIIx64.exe", "ProgramFiles(x86)")
-        )
-        candidates.append(
-            (Path(program_files_x86) / "LTC" / "LTspiceIV" / "scad3.exe", "ProgramFiles(x86)")
-        )
-    return candidates
+    configured = load_config().ltspice.lib_dir
+    return Path(configured) if configured else None
 
 
 LocateReason = Literal[
     "configured",
     "config",
-    "env",
     "unset",
-    "discovered",
     "configured_missing",
     "config_missing",
-    "env_missing",
-    "not_installed",
 ]
 
 
@@ -462,12 +424,8 @@ def locate_outcome(explicit: str | Path | None = None) -> LocateOutcome:
     """Resolve LTspice from what the user configured, never by searching the machine.
 
     The order is the ``explicit`` argument, then the saved ``ltspice.path`` from the
-    config file, then ``LTSPICE_EXE``. A configured entry that is missing is reported
-    missing — it does **not** fall through to another installation, because silently
-    simulating with a different binary than the one that was asked for would
-    invalidate every result. With none of the three set, the outcome is ``unset``:
-    SETUP has not been completed, and no install location is touched. Use
-    :func:`discover` when the user explicitly asks for a search.
+    config file. A configured entry that is missing is reported missing rather than
+    replaced. With neither set, the outcome is ``unset`` and no install location is touched.
     """
     if explicit:
         return _resolve_one(
@@ -479,14 +437,6 @@ def locate_outcome(explicit: str | Path | None = None) -> LocateOutcome:
     configured = _configured_path()
     if configured:
         return _resolve_one(Path(configured), "config", found="config", missing="config_missing")
-    env_value = os.environ.get(_CANDIDATE_ENV)
-    if env_value:
-        return _resolve_one(
-            Path(env_value),
-            f"env:{_CANDIDATE_ENV}",
-            found="env",
-            missing="env_missing",
-        )
     return LocateOutcome(install=None, probed=[], reason="unset")
 
 
@@ -494,37 +444,9 @@ def locate(explicit: str | Path | None = None) -> LtspiceInstall | None:
     """The configured LTspice executable, or ``None`` when SETUP has not set one.
 
     Never searches: an unconfigured machine reports nothing until the user chooses
-    an executable in SETUP, or exports ``LTSPICE_EXE`` for automation.
+    an executable in SETUP or supplies a path for this call.
     """
     return locate_outcome(explicit).install
-
-
-def discover(explicit: str | Path | None = None) -> LocateOutcome:
-    """Probe well-known install locations because the user explicitly asked.
-
-    This is the SETUP page's find button and the explicit CLI search. It never runs
-    as part of :func:`locate`, and never at startup; the probed list is returned so
-    the caller can show exactly which locations were inspected.
-    """
-    candidates = _install_candidates()
-    if explicit:
-        candidates.insert(0, (Path(explicit), "configured"))
-    env_value = os.environ.get(_CANDIDATE_ENV)
-    if env_value:
-        candidates.insert(0 if not explicit else 1, (Path(env_value), f"env:{_CANDIDATE_ENV}"))
-    for path, source in candidates:
-        if not path.is_file():
-            continue
-        if source == "configured":
-            reason: LocateReason = "configured"
-        elif source.startswith("env:"):
-            reason = "env"
-        else:
-            reason = "discovered"
-        return LocateOutcome(
-            install=LtspiceInstall(path=path, source=source), probed=candidates, reason=reason
-        )
-    return LocateOutcome(install=None, probed=candidates, reason="not_installed")
 
 
 #: Output caps for the simulator's own console text. LTspice writes its results to

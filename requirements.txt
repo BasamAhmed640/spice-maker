@@ -1,0 +1,13 @@
+# Run from the extracted project directory with Python 3.14 in .venv.
+# These versions are pinned from uv.lock. The local project is installed last.
+annotated-types==0.8.0
+numpy==2.5.3
+pydantic==2.13.5
+pydantic-core==2.46.5
+pypdf==6.19.0
+pypdfium2==5.13.0
+pyside6-essentials==6.11.2
+shiboken6==6.11.2
+typing-extensions==4.16.0
+typing-inspection==0.4.4
+-e .

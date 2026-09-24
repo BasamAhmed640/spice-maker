@@ -20,9 +20,9 @@ The folder extracted from GitHub is the storage boundary for this copy:
 SETUP is required on first launch. Choose the existing LTspice executable and a model
 folder under this extracted folder. The executable is read from its existing location;
 the app does not relocate or install LTspice. The chosen path is saved in
-`data/config.json`, and nothing searches for an installation on its own: SETUP's find
-button and `doctor --find-ltspice` probe the well-known locations only when the user
-asks. Changing working directory cannot change
+`data/config.json`. The app does not search for an installation; use SETUP's BROWSE
+button to choose the executable yourself. An inherited `LTSPICE_EXE` value is ignored.
+Changing working directory cannot change
 where this copy stores data. Model paths are saved relative to the portable root, so
 moving the entire folder on the same Windows account preserves that preference.
 

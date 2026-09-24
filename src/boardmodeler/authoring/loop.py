@@ -283,12 +283,10 @@ def build_prompt(spec: SpecSet, subckt: str, harness_summary: str = "") -> str:
     lines.extend(
         [
             "",
-            "## Testing it yourself",
-            "The harness runs automatically at the end of every turn and its feedback is appended",
-            "to this prompt. If the installed CLI offers it, you can also run the same harness on",
-            "the files written so far with:",
-            "",
-            "    uv run boardmodeler model test --out <this working directory>",
+            "## Verification",
+            "The application runs the harness automatically after every turn and appends",
+            "its measured feedback here. You have no command or file-system tools; return",
+            "only the complete model text requested by the application.",
             "",
             "## Rules",
             f"1. Write only `{MODEL_DIRNAME}/{subckt}.lib`; the application draws the symbol.",

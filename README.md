@@ -1,5 +1,44 @@
 # Spice Maker
 
+## Windows setup and model verification
+
+From a GitHub **Code → Download ZIP** archive, extract the folder and run its included
+`Install.exe`. The installer carries Python and pinned packages and creates `.venv` in
+that extracted folder without using the computer's Python installation. Launch
+`Start.cmd`, open SETUP, choose the existing LTspice executable with **BROWSE**, choose
+a model folder in this copy, and save an API key for the selected provider. LTspice is
+never searched for or selected from an inherited environment variable. The current
+general edition sends authoring requests directly to the selected provider's HTTPS API;
+it does not give the authoring model command or file-system tools.
+
+For a Python 3.14 source setup using IBM Bob's standard project pattern, run these
+commands in PowerShell from the extracted folder. They create and install into this
+project's `.venv` only; they require an existing Python 3.14 and package access:
+
+```powershell
+py -3.14 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\boardmodeler.exe setup
+.\.venv\Scripts\boardmodeler.exe doctor --json
+```
+
+For a measured model, open the model maker and keep **FULL VERIFICATION** selected before GO.
+The optional quick choice performs structural checks and an unpowered load only; its
+electrical status remains **UNKNOWN**. Full verification creates local test circuits,
+runs the configured LTspice executable in batch mode, and compares observed waveforms
+with frozen datasheet requirements. It reports a PASS only for measured rows that meet
+their limits; it does not certify untested behavior. The command-line `model build`
+performs full verification by default; `--sanity` opts into the quick checks.
+
+```powershell
+.\.venv\Scripts\boardmodeler.exe model build --part TPS54332DDA --datasheet .\TPS54332DDA.pdf --out .\models\TPS54332DDA --allow-remote
+```
+
+The model build requires a real TPS54332DDA datasheet PDF, a selected provider key,
+and an LTspice path saved in this copy's SETUP. The generated `MODEL_CARD.md` records
+the measured and untested rows. [IBM Bob's workspace rule format](https://bob.ibm.com/docs/shell/configuration/bobshell-custom-rules)
+is represented by `AGENTS.md` and `.bob/rules/`; the application itself does not run Bob.
+
 **1.5.0: containment, one network switch, and models you can reopen.** This edition now ships **no CLI agent at all** — IBM Bob lives only in the separate Bob-only build, so nothing in this copy installs or executes a third-party agent, and every provider is a plain HTTPS request to the host its vendor documents. Egress has exactly **one control**: SETUP's `INTERNET ACCESS`, which governs the provider API and the part vendor's own site for supporting material; with it off the app sends nothing and refuses a build with that reason (proved by a test that runs the refusal path behind a socket tripwire).
 
 Every child process this program starts now goes through one policy module (`security/execution.py`): an absolute allowlisted executable, no shell, an argv shaped so no string from an agent, a datasheet or a filename can land in a flag position, a mandatory timeout, bounded output, and an **allowlisted child environment that is never a copy of the parent's**. That last point is what keeps your agent key away from the simulator: LTspice runs with fifteen OS variables and nothing else, so it cannot see `DEEPSEEK_API_KEY` or any other secret in your shell. The simulator is also still launched without `-I` or `-ini` — both were re-measured on LTspice 26.0.0 and both make it open its GUI window instead of running in batch (a fresh *or* seeded private settings file does it; a redirected `APPDATA` does too), which is why the boundary is the process environment rather than a private profile. A build is no longer a one-session artifact: **OPEN MODEL…** in the window and `boardmodeler model open --out DIR [--verify]` reopen a finished model directory from disk, show its recorded status and rows, and re-run verification on demand.
@@ -8,9 +47,9 @@ Testing followed the same rule — the graded claims are commands, not prose. `t
 
 **1.4.0: a model build no longer fails on its own clock.** A full-mode build used to fund its retries from what was left of one turn deadline, so a slow reasoning-class model left its own retry seconds to run in and that clock failure was published as the model's verdict. A retry now requires a viable budget, budget exhaustion is its own reported condition, and the supporting-material search declines immediately rather than spending an allowance it cannot use. Measured on the same datasheet and provider: cold 2828.7 s with 4 PASS rows, warm 1559.1 s with 34 PASS rows, 4 extraction cache hits, the model published both times. The published status is still `UNKNOWN` — the honest label for a partly verified model, because 34 simulator-observed PASS rows out of the testable set is not measured accuracy. [Defect remediation](docs/STATUS.md).
 
-The rest of 1.4.0 is containment and usability. Credentials are a plain local file in this folder (`data/credentials.json`) with no DPAPI, no registry entry and no Credential Manager entry — **weaker at rest than what it replaced**, because anyone who can read the folder can read the key. LTspice is configured, never searched: first launch does not probe install locations, and discovery runs only on SETUP's FIND or `doctor --find-ltspice`. Outbound inference is pinned to the selected provider's documented host and refused before any request is sent, and the supporting-material search reads only the part vendor's sites and gives up immediately with a stated reason. The model window and SETUP are resizable, the doctor report is a scrollable view showing the whole report (it used to reach only its last 4000 characters), and an hourglass beside the timer animates only while a build runs. The installer provisions a real in-folder `.venv` from vendored wheels with no network access at install time, writes `Start.cmd`, `Boardmodeler.cmd` and a folder-local shortcut, and leaves an existing copy of the app untouched; that `.venv` has no Qt, so window-opening commands (`ui`, `setup`) go through `app\SpiceMaker.exe`. [Storage and fresh-start instructions](docs/PORTABLE_STORAGE.md).
+The rest of 1.4.0 is containment and usability. Credentials are a plain local file in this folder (`data/credentials.json`) with no DPAPI, no registry entry and no Credential Manager entry — **weaker at rest than what it replaced**, because anyone who can read the folder can read the key. LTspice is configured only after the user chooses its path in SETUP; no install-location search is offered. Outbound inference is pinned to the selected provider's documented host and refused before any request is sent, and the supporting-material search reads only the part vendor's sites and gives up immediately with a stated reason. The model window and SETUP are resizable, the doctor report is a scrollable view showing the whole report (it used to reach only its last 4000 characters), and an hourglass beside the timer animates only while a build runs. The installer provisions a real in-folder `.venv` from vendored wheels with no network access at install time, writes `Start.cmd`, `Boardmodeler.cmd` and a folder-local shortcut, and leaves an existing copy of the app untouched; that `.venv` has no Qt, so window-opening commands (`ui`, `setup`) go through `app\SpiceMaker.exe`. [Storage and fresh-start instructions](docs/PORTABLE_STORAGE.md).
 
-**1.3.0: quick structural checks are now the GUI default.** Quick mode skips AI test-circuit planning and uses structural checks plus a five-second unpowered LTspice load when available. Electrical accuracy remains explicitly unverified. Enable **Full simulation verification (slower)** in SETUP, or use **Run full verification** after a quick build. [Modes and limitations](docs/QUICK_MODE.md).
+**1.3.0 introduced quick structural checks.** Quick mode skips AI test-circuit planning and uses structural checks plus a five-second unpowered LTspice load when available. Electrical accuracy remains explicitly unverified. The current GUI defaults to **FULL VERIFICATION** beside GO; you may explicitly uncheck it for a quick draft and run full verification later. [Modes and limitations](docs/QUICK_MODE.md).
 
 **1.2.1 fixes streamed API completion and shows received-data progress.** [API fix and measured checks](docs/API_STREAM_PROGRESS.md).
 
@@ -45,7 +84,7 @@ hash in SHA256SUMS.txt is the SHA256 of the installer inside
 prerequisite; this edition installs no CLI agent. See INSTALL.txt for instructions and
 SHA256SUMS.txt for the installer hash.
 
-**Give it a datasheet and a part number; an agent authors an LTspice model. The GUI now defaults to local structural checks. Full simulation verification is optional. You get a `.lib`, a symbol and a card that states what was checked and what remains unverified.** That is the product. Everything below the fold is
+**Give it a datasheet and a part number; an agent authors an LTspice model. The GUI defaults to full electrical verification. Quick structural checks are an explicit unverified draft choice. You get a `.lib`, a symbol and a card that states what was checked and what remains unverified.** That is the product. Everything below the fold is
 supporting machinery, and the board/circuit/UI layers date from an earlier, wider spec.
 
 ```powershell

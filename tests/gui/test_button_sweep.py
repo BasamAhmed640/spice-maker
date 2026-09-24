@@ -162,7 +162,7 @@ def test_the_sweep_leaves_no_sandbox_stub_bound_in_the_application(report: Any) 
     engine = sys.modules.get("boardmodeler.pipeline.make_model")
     assert engine is not None, "the sweep's click on GO should have imported the engine"
     assert engine.locate is ltspice.locate, "the engine kept the sandbox's locate()"
-    for attribute in ("locate", "locate_outcome", "discover", "smoke_test"):
+    for attribute in ("locate", "locate_outcome", "smoke_test"):
         real = getattr(ltspice, attribute)
         for name, module in sorted(sys.modules.items()):
             if not name.startswith("boardmodeler") or module is ltspice:

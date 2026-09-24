@@ -12,7 +12,7 @@ The child is this program's own interpreter, so it needs more of the parent
 environment than a third-party tool would -- but the boundary is still explicit.
 Before the child exists, :func:`boardmodeler.security.execution.validate` pins the
 interpreter, the argv, the working directory and the environment; the environment
-is a named allowlist (the OS basics, ``LTSPICE_EXE``, every ``BOARDMODELER_*``
+is a named allowlist (the OS basics, every ``BOARDMODELER_*``
 variable and the selected provider's own documented key variables), never
 ``os.environ`` wholesale. A build also has a hard deadline (8 hours by default)
 and a bounded protocol stream: the pumps below stop a child that floods, and the
@@ -123,7 +123,6 @@ _WORKER_ENV_BASE: tuple[str, ...] = (
     "SPICE_MAKER_ROOT",
     # The simulator's documented automation override: the pipeline resolves LTspice with
     # it, and the test suite exports it instead of writing a config file.
-    "LTSPICE_EXE",
     # The documented config-file override (``boardmodeler.config``).
     "BOARDMODELER_CONFIG",
 )

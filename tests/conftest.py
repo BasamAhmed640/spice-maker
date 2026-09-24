@@ -1,12 +1,8 @@
 """Shared pytest fixtures.
 
-The application deliberately never searches for LTspice: the path is a setting the
-user makes explicitly. A *test session* therefore says which executable it means,
-once, via the documented ``LTSPICE_EXE`` automation override. ``session_ltspice_env``
-resolves the install the same way the ``ltspice_install`` fixture does (configured
-first, then one explicit ``discover``) and exports the path into the real process
-environment, so in-process ``locate()`` calls and the CLI subprocesses a test spawns
-both see an explicitly configured simulator.
+The application never searches for LTspice. A test session may supply an explicit
+``LTSPICE_EXE`` fixture path; this file writes that path to a disposable project
+configuration so in-process and CLI tests use the same selected executable.
 
 ``ltspice_exe`` skips (never fakes) when the simulator is unavailable; tests that
 assert simulator behaviour must be able to prove they ran against a real
@@ -15,21 +11,23 @@ executable, so the fixture also exposes the located path.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
-from boardmodeler.simulation.ltspice import LtspiceInstall, discover, locate
+from boardmodeler.config import AppConfig, LtspiceConfig, save_config
+from boardmodeler.simulation.ltspice import LtspiceInstall, locate
 
-#: How a test session states its simulator choice. The application only ever reads
-#: this as a *configured* path; setting it is the explicit ask, not a search.
+#: Test-only input, never read by the application as a simulator path.
 _CONFIGURED_ENV = "LTSPICE_EXE"
 
 
 def _resolve_install() -> LtspiceInstall | None:
-    """The session's simulator: already configured, else found by one explicit ask."""
-    install = locate() or discover().install
+    """The session's simulator: saved configuration or explicit test input only."""
+    supplied = os.environ.get(_CONFIGURED_ENV)
+    install = LtspiceInstall(Path(supplied), "test-input") if supplied else locate()
     if install is None or not install.path.is_file():
         return None
     return install
@@ -39,7 +37,7 @@ def _no_simulator_message(install: LtspiceInstall | None) -> str:
     """Say what is true: nothing was configured/found, and how to configure one."""
     if install is None:
         return (
-            "no LTspice executable was configured or found, and the test session did not "
+            "no LTspice executable was configured, and the test session did not "
             f"configure one; set {_CONFIGURED_ENV} to an LTspice.exe to run this test"
         )
     return (
@@ -55,19 +53,19 @@ def session_ltspice_install() -> LtspiceInstall | None:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def session_ltspice_env(session_ltspice_install: LtspiceInstall | None) -> Iterator[None]:
-    """Export the session's simulator choice so subprocesses inherit it.
-
-    The environment is mutated for real (through a session-scoped ``MonkeyPatch``)
-    rather than with the function-scoped ``monkeypatch`` fixture: a session fixture
-    cannot request that fixture, and a CLI started with ``subprocess.run`` inherits
-    only ``os.environ``, not pytest's patching.
-    """
+def session_ltspice_env(
+    session_ltspice_install: LtspiceInstall | None, tmp_path_factory: pytest.TempPathFactory
+) -> Iterator[None]:
+    """Save one disposable LTspice setting for tests that launch child CLIs."""
     if session_ltspice_install is None:
         yield
         return
+    config_path = tmp_path_factory.mktemp("configured-ltspice") / "config.json"
+    save_config(
+        AppConfig(ltspice=LtspiceConfig(path=str(session_ltspice_install.path))), config_path
+    )
     patch = pytest.MonkeyPatch()
-    patch.setenv(_CONFIGURED_ENV, str(session_ltspice_install.path))
+    patch.setenv("BOARDMODELER_CONFIG", str(config_path))
     try:
         yield
     finally:

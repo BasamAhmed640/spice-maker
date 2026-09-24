@@ -43,8 +43,7 @@ class LtspiceConfig(BaseModel):
 
     ``path=None`` means SETUP has not chosen an executable yet. It is never taken
     as an instruction to search the machine: ``simulation.ltspice.locate`` resolves
-    only what is written here or in ``LTSPICE_EXE`` (see
-    ``simulation.ltspice.discover`` for the explicit, user-requested search).
+    only what is written here or explicitly passed to a simulator call.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -127,7 +126,7 @@ class AppConfig(BaseModel):
     #: The *default* the build window's FULL VERIFICATION checkbox opens with. It is
     #: not a SETUP setting: whether one build is verified fully or structurally is a
     #: per-build choice, and the choice belongs beside GO.
-    full_verification: bool = False
+    full_verification: bool = True
 
     @model_validator(mode="before")
     @classmethod

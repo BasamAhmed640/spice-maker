@@ -171,7 +171,7 @@ def _configured_full_verification() -> bool:
 
         return bool(load_config().full_verification)
     except Exception:  # pragma: no cover - a broken config must not block the window
-        return False
+        return True
 
 
 #: The environment a child CLI process needs from this one, and nothing else: the DLL
@@ -179,7 +179,6 @@ def _configured_full_verification() -> bool:
 #: and the network pin (so a switched-off session cannot be re-enabled by a child).
 _CLI_ENV_ALLOWLIST: tuple[str, ...] = (
     "BOARDMODELER_CONFIG",
-    "LTSPICE_EXE",
     "BOARDMODELER_NO_NETWORK",
     *WINDOWS_BASE_ENV,
 )

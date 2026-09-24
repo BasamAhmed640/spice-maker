@@ -1178,7 +1178,7 @@ def test_the_worker_child_cannot_see_unrelated_secrets(qapp, worker_project: Pat
     assert "AWS_SECRET_ACCESS_KEY" not in child_env
     assert "GITHUB_TOKEN" not in child_env
     assert "SOME_UNRELATED_VARIABLE" not in child_env
-    assert child_env["LTSPICE_EXE"] == r"C:\fake\LTspice.exe"
+    assert "LTSPICE_EXE" not in child_env
     assert child_env["BOARDMODELER_TEST_ONLY"] == "kept"
     # ``os.environ`` uppercases every key on Windows, so the child reports the OS
     # variable under its uppercase spelling whichever spelling the spec allowlists.

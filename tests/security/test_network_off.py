@@ -197,9 +197,19 @@ def _closed_loopback_port() -> int:
         return int(probe.getsockname()[1])
 
 
-def test_the_gate_is_not_an_always_refuse_branch(config_on: None, tmp_path: Path) -> None:
+def test_the_gate_is_not_an_always_refuse_branch(
+    config_on: None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Switch on: the same call passes the gate, builds the API backend, and dials."""
+    from boardmodeler import agent_providers
+    from boardmodeler.authoring.api_backend import env_sources
     from boardmodeler.providers.http_inference import HttpRequest, urllib_transport
+    from boardmodeler.security import credentials
+
+    monkeypatch.setattr(credentials, "_read_saved", lambda: None)
+    for provider in agent_providers.CATALOG:
+        for variable in env_sources(provider):
+            monkeypatch.delenv(variable, raising=False)
 
     assert internet_allowed() is True
     require_network("authoring")  # must not raise

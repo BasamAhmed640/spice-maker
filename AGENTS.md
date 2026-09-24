@@ -3,6 +3,8 @@
 ## Commands
 
 ```powershell
+py -3.14 -m venv .venv                   # source checkout: project-local environment
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 uv sync --all-extras                       # single setup command
 uv run pytest -q                           # unit + integration (LTspice-marked tests run locally)
 uv run pytest -q -m "not ltspice"          # simulator-free subset
@@ -18,7 +20,7 @@ uv run boardmodeler model install --out build/tps54320 --user-lib --apply
 
 ## The model-maker path (D-014)
 
-The GUI defaults to `authoring/sanity.py`: no AI test planning, one bounded unpowered load per candidate when LTspice is available, at most two author turns, and UNKNOWN electrical status. Full verification remains optional and its rules below still apply. Never describe a structural check as measured accuracy.
+The GUI defaults to FULL VERIFICATION. The optional quick path uses `authoring/sanity.py`: no AI test planning, one bounded unpowered load per candidate when LTspice is available, at most two author turns, and UNKNOWN electrical status. Never describe a structural check as measured accuracy.
 
 * `authoring/` is the engine: `spec.py` (the frozen datasheet rows), `probes.py` (one deck
   per characteristic), `harness.py` (run + judge), `backends.py` + `loop.py` (the agent),

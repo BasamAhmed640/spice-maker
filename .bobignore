@@ -1,0 +1,14 @@
+# IBM Bob workspace exclusions. Runtime access is controlled by application code.
+.venv/
+env/
+app/
+data/
+models/
+build/
+dist/
+releases/
+runs/
+*.raw
+*.log
+*.db
+*.exe

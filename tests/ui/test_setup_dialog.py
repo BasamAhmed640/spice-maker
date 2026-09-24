@@ -325,30 +325,14 @@ def _page(qtbot):
 
 
 def test_opening_the_page_searches_nothing(qtbot, isolated_config: Path, monkeypatch) -> None:
-    """The install scan may only run because the user pressed FIND.
-
-    Opening SETUP, refreshing its status and drawing it must all resolve the configured
-    setting and stop. ``discover`` is poisoned here, so a call made while the page is
-    built fails loudly instead of passing unnoticed — this is the machine-snooping
-    regression the owner reported.
-    """
+    """Opening SETUP must ignore an inherited simulator setting."""
     monkeypatch.delenv("LTSPICE_EXE", raising=False)
-    searched: list[int] = []
-
-    def never_called(*_args, **_kwargs):
-        searched.append(1)
-        raise AssertionError("discover() ran without the user pressing FIND")
-
-    monkeypatch.setattr("boardmodeler.simulation.ltspice.discover", never_called)
-    # ``discover`` is the only caller today; poisoning the candidate list as well keeps
-    # this guard true for any future caller that reaches install locations directly.
-    monkeypatch.setattr("boardmodeler.simulation.ltspice._install_candidates", never_called)
 
     page = _page(qtbot)
     page._refresh_status()
     page._fit_to_content()
-
-    assert searched == [], "nothing on this page may probe install locations by itself"
+    assert page.ltspice_edit.text() == ""
+    assert not hasattr(page, "find_ltspice_button")
 
 
 def test_nothing_configured_says_so_and_asks_the_user(
@@ -361,71 +345,8 @@ def test_nothing_configured_says_so_and_asks_the_user(
     shown = page.ltspice_status.text().lower()
     assert page.ltspice_edit.text() == ""
     assert "not set yet" in shown
-    assert "find" in shown and "browse" in shown, "the user must be told how to set it"
-    assert "discovered automatically" not in shown, "no search happened, so none may be claimed"
-    assert "nothing is searched automatically" in shown
-
-
-def test_find_searches_when_pressed_and_saves_nothing(
-    qtbot, isolated_config: Path, monkeypatch, tmp_path: Path
-) -> None:
-    """FIND is the one explicit ask: it probes, it fills the field, it writes nothing."""
-    from boardmodeler.simulation.ltspice import LocateOutcome, LtspiceInstall
-
-    monkeypatch.delenv("LTSPICE_EXE", raising=False)
-    found = tmp_path / "LTspice.exe"
-    found.write_bytes(b"test fixture")
-    calls: list[int] = []
-
-    def fake_discover(explicit=None):
-        calls.append(1)
-        return LocateOutcome(
-            install=LtspiceInstall(path=found, source="LOCALAPPDATA"),
-            probed=[(found, "LOCALAPPDATA")],
-            reason="discovered",
-        )
-
-    monkeypatch.setattr("boardmodeler.simulation.ltspice.discover", fake_discover)
-
-    page = _page(qtbot)
-
-    assert calls == [], "the search must not run when the page opens"
-    assert page.ltspice_edit.text() == ""
-
-    page.find_ltspice_button.click()
-
-    assert calls == [1], "pressing FIND is what runs the search, exactly once"
-    assert page.ltspice_edit.text() == str(found), "what it found must fill the field"
-    assert not isolated_config.exists(), "FIND must not save; only SAVE writes the config"
-    shown = page.ltspice_status.text().lower()
-    assert "find found" in shown, f"the search must be reported as the user's: {shown!r}"
-    assert "not saved yet" in shown and "save" in shown
-
-
-def test_find_reports_finding_nothing_without_inventing_one(
-    qtbot, isolated_config: Path, monkeypatch, tmp_path: Path
-) -> None:
-    from boardmodeler.simulation.ltspice import LocateOutcome
-
-    monkeypatch.delenv("LTSPICE_EXE", raising=False)
-    probed = [
-        (tmp_path / "Programs" / "ADI" / "LTspice" / "LTspice.exe", "LOCALAPPDATA"),
-        (tmp_path / "ADI" / "LTspice" / "LTspice.exe", "ProgramFiles"),
-    ]
-
-    def fake_discover(explicit=None):
-        return LocateOutcome(install=None, probed=probed, reason="not_installed")
-
-    monkeypatch.setattr("boardmodeler.simulation.ltspice.discover", fake_discover)
-
-    page = _page(qtbot)
-    page.find_ltspice_button.click()
-
-    shown = page.ltspice_status.text().lower()
-    assert page.ltspice_edit.text() == "", "a search that found nothing must fill nothing"
-    assert "2" in shown and "found no ltspice" in shown, f"it must say where: {shown!r}"
-    assert "browse" in shown, "and offer the manual way out"
-    assert not isolated_config.exists()
+    assert "browse" in shown, "the user must be told how to set it"
+    assert "find" not in shown, "the app must not offer machine-wide discovery"
 
 
 def test_a_saved_path_is_reported_as_saved_configuration(

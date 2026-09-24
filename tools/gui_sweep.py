@@ -19,7 +19,7 @@ sandboxed *before* the first click and recorded instead of performed:
   calls ``security.execution.run``) is replaced by a shim that records the sanctioned
   command and answers with a canned ``doctor --json`` payload, so the real ``_run_cli``
   code path is exercised and nothing is ever launched;
-* the LTspice probes (``discover``/``locate``/``locate_outcome``/``smoke_test``) and the
+* the LTspice probes (``locate``/``locate_outcome``/``smoke_test``) and the
   API-key connection check are stubs, so nothing is executed and no network is used;
 * ``app_root``/``data_dir``/``config_path``/``credential_path``/``model_dir``/
   ``library_dir`` and ``tempfile.tempdir`` all point inside one sandbox directory, and
@@ -692,7 +692,6 @@ class Sandbox:
             (credentials, "set_credential", self._set_credential),
             (key_verification, "verify_key", self._verify_key),
             (file_dialogs, "starting_directory", self._starting_directory),
-            (ltspice, "discover", self._discover),
             (ltspice, "locate", self._locate),
             (ltspice, "locate_outcome", self._locate_outcome),
             (ltspice, "smoke_test", self._smoke_test),
