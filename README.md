@@ -149,6 +149,16 @@ setup. The same folder contains INSTALL.txt and SHA256SUMS.txt.
 Open SETUP once to select LTspice and save your API key. Python is bundled; LTspice must be
 installed separately; this edition installs and runs no CLI agent. This installer is unsigned.
 
+**What is and is not a sandbox.** The project `.venv` isolates Python packages only, and a
+`.bobignore` (Bob edition) only hides files from Bob's context. Neither is an OS sandbox: neither
+restricts filesystem, network or process access by this app, LTspice or the model provider.
+What does contain this app: LTspice runs only from the path you choose in SETUP (nothing
+searches for it); the simulator gets an allowlisted environment, so no API key reaches it; the
+agent is a plain HTTPS request that runs no tools and no shell on this machine; and only the
+application writes files (decks and the candidate model). The key file, `data/credentials.json`,
+is plain text inside this folder. The optional `sim` extra (`spicelib`, not in `requirements.txt`) checks LTspice's default
+install locations when it is imported; the app imports it only after an LTspice path is set.
+
 To rebuild, run `installer\build.ps1 -Version 1.5.0`; see
 [installer details](installer/README.md). The build refreshes the root installer,
 instructions and checksum so committing those files updates Code → Download ZIP.

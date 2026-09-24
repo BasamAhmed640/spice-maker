@@ -551,7 +551,12 @@ class ApiKeyBackend:
         prompt = request.prompt
         if not request.expect_text:
             prompt = f"{prompt.rstrip()}\n\n{REPLY_FORMAT_INSTRUCTION}"
-        url, headers, body = self._shape(prompt, key=key)
+        switches = None
+        if request.reasoning_effort and "reasoning_effort" in self.provider.extra_body:
+            # Transcription does not need the deep reasoning a model repair does; the
+            # stage chooses, and a provider without the documented switch is untouched.
+            switches = {**self.provider.extra_body, "reasoning_effort": request.reasoning_effort}
+        url, headers, body = self._shape(prompt, key=key, extra_body=switches)
         limit = self.timeout_s if timeout_s is None else timeout_s
         deadline = time.monotonic() + limit
         try:
@@ -624,7 +629,9 @@ class ApiKeyBackend:
                 f"{prompt}\n\nYour previous reply was rejected: {problem}\n"
                 "Reply again with exactly one JSON object and nothing else."
             )
-            retry_url, retry_headers, retry_body = self._shape(retry_prompt, key=key)
+            retry_url, retry_headers, retry_body = self._shape(
+                retry_prompt, key=key, extra_body=switches
+            )
             left = deadline - time.monotonic()
             try:
                 if left < MIN_ATTEMPT_S:
