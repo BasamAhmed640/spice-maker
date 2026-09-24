@@ -6,7 +6,8 @@ Writes generated-models/<name>/ with the published .lib, the harness report, the
 result, per-turn timing and token usage, every probe deck (.cir) with its LTspice log
 (as UTF-8 .log.txt; the repository ignores *.log and *.raw) and SHA256SUMS.txt over the
 copied files plus the .raw files that were measured (hashes only; the waveforms stay out
-of Git). Nothing is re-simulated or re-judged here.
+of Git). Text evidence is written with LF endings, as Git checks it out (eol=lf), so the
+recorded hashes verify in a clone. Nothing is re-simulated or re-judged here.
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+CRLF, LF = b"\r\n", b"\n"
 
 
 def sha256(path: Path) -> str:
@@ -31,6 +33,11 @@ def read_log(path: Path) -> str:
     return data.decode("utf-8", errors="replace")
 
 
+def write_lf(path: Path, data: bytes | str) -> None:
+    raw = data.encode("utf-8") if isinstance(data, str) else data
+    path.write_bytes(raw.replace(CRLF, LF))
+
+
 def main(out_dir: str, result_json: str, time_json: str, name: str) -> None:
     out = Path(out_dir)
     target = HERE / "generated-models" / name
@@ -39,10 +46,10 @@ def main(out_dir: str, result_json: str, time_json: str, name: str) -> None:
     target.mkdir(parents=True)
     sums: dict[str, str] = {}
     for lib in out.glob("*.lib"):
-        shutil.copy2(lib, target / lib.name)
+        shutil.copy2(lib, target / lib.name)  # *.lib is binary in .gitattributes
     for name_ in ("harness-report.json", "MODEL_CARD.md"):
         if (out / name_).is_file():
-            shutil.copy2(out / name_, target / name_)
+            write_lf(target / name_, (out / name_).read_bytes())
     # A build still running at collection time has no final result yet; its finished
     # turns are still evidence, and the summary says it was collected mid-run.
     result_path, time_path = Path(result_json), Path(time_json)
@@ -73,15 +80,14 @@ def main(out_dir: str, result_json: str, time_json: str, name: str) -> None:
         key = deck.parent.parent.parent.name[:12]
         folder = probes / f"{key}-{deck.parent.name}"
         folder.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(deck, folder / "deck.cir")
+        write_lf(folder / "deck.cir", deck.read_bytes())
+        relative = folder.relative_to(target).as_posix()
         log = deck.with_suffix(".log")
         if log.is_file():
-            (folder / "deck.log.txt").write_text(read_log(log), encoding="utf-8")
-            sums[f"{folder.relative_to(target).as_posix()}/deck.log (original bytes)"] = sha256(
-                log
-            )
+            write_lf(folder / "deck.log.txt", read_log(log))
+            sums[f"{relative}/deck.log (original bytes)"] = sha256(log)
         for raw in deck.parent.glob("*.raw"):
-            sums[f"{folder.relative_to(target).as_posix()}/{raw.name} (not copied)"] = sha256(raw)
+            sums[f"{relative}/{raw.name} (not copied)"] = sha256(raw)
     summary = {
         "part": result.get("part"),
         "status": result.get("status"),
@@ -93,13 +99,13 @@ def main(out_dir: str, result_json: str, time_json: str, name: str) -> None:
         "turns": turns,
         "history": result.get("history"),
     }
-    (target / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    write_lf(target / "summary.json", json.dumps(summary, indent=2) + "\n")
     for path in sorted(target.rglob("*")):
         if path.is_file() and path.name != "SHA256SUMS.txt":
             sums[path.relative_to(target).as_posix()] = sha256(path)
-    (target / "SHA256SUMS.txt").write_text(
+    write_lf(
+        target / "SHA256SUMS.txt",
         "".join(f"{digest}  {name_}\n" for name_, digest in sorted(sums.items())),
-        encoding="utf-8",
     )
     print(json.dumps({k: summary[k] for k in ("part", "status", "counts", "wall_time_s")}))
 
