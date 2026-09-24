@@ -1,0 +1,18 @@
+* Frozen fixture: Measure EN input current at enable threshold - 50 mV.
+.include "C:/Users/basam/src/.smsnap/general/models/B-tps54332-full/build/model/TPS54332DDA.lib"
+V_VIN VIN 0 12
+C_IN VIN 0 10e-6
+V_EN EN 0 1.2
+C_BOOT BOOT PH 0.1e-6
+C_SS SS 0 10e-9
+L1 PH VOUT 4.7e-6
+C_OUT VOUT 0 47e-6
+R_LOAD VOUT 0 1.0
+R_COMP COMP 0 10e3
+C_COMP COMP 0 1e-9
+Xdut BOOT VIN EN SS VOUT COMP 0 PH 0 TPS54332DDA
+.temp 25
+.options plotwinsize=0 numdgt=15
+.tran 0 0.001 0 1e-06
+.save I(V_EN)
+.end

@@ -1,0 +1,58 @@
+{
+  "label": "vendor model - NOT the AI-generated model",
+  "part": "LM358",
+  "verdict": "NOT_APPLICABLE",
+  "search_result": "NOT_FOUND",
+  "reason": "No official vendor LM358 SPICE model exists in any searched local location; nothing was downloaded (internet downloads were out of scope), so no vendor simulation check could be run.",
+  "searched": [
+    {
+      "location": "C:\\Users\\basam\\AppData\\Local\\LTspice\\lib\\sub",
+      "files_scanned": 4920,
+      "method": "filename contains \"lm\"+\"358\"; content search for \"lm358\" (ASCII and UTF-16LE) in .lib/.sub/.mod/.cir/.asc/.asy/.txt/.net/.inc/.sp/.spi/.ckt/.cki/.model/.olb files < 5 MB",
+      "hits": [],
+      "note": "only LT3580/LT3581/LT3585-x/LT3587/LTC3588-x/LTC3589/LTC4358 file names contain \"358\"; none is an LM358"
+    },
+    {
+      "location": "C:\\Users\\basam\\Documents\\LTspice",
+      "files_scanned": 15990,
+      "method": "filename contains \"lm\"+\"358\"; content search for \"lm358\" (ASCII and UTF-16LE) in .lib/.sub/.mod/.cir/.asc/.asy/.txt/.net/.inc/.sp/.spi/.ckt/.cki/.model/.olb files < 5 MB",
+      "hits": []
+    },
+    {
+      "location": "C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice",
+      "files_scanned": 748,
+      "method": "filename contains \"lm\"+\"358\"; content search for \"lm358\" (ASCII and UTF-16LE) in .lib/.sub/.mod/.cir/.asc/.asy/.txt/.net/.inc/.sp/.spi/.ckt/.cki/.model/.olb files < 5 MB",
+      "hits": []
+    },
+    {
+      "location": "C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\lib.zip",
+      "entries_scanned": 11854,
+      "method": "read in memory with Python zipfile (not extracted); filename contains \"lm\"+\"358\"; content search for \"lm358\" (ASCII and UTF-16LE) in .lib/.sub/.mod/.cir/.asc/.asy/.txt/.net/.inc/.sp/.spi/.ckt/.cki/.model/.olb files < 5 MB",
+      "hits": []
+    },
+    {
+      "location": "C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\examples.zip",
+      "entries_scanned": 4282,
+      "method": "read in memory with Python zipfile (not extracted); filename contains \"lm\"+\"358\"; content search for \"lm358\" (ASCII and UTF-16LE) in .lib/.sub/.mod/.cir/.asc/.asy/.txt/.net/.inc/.sp/.spi/.ckt/.cki/.model/.olb files < 5 MB",
+      "hits": []
+    },
+    {
+      "location": "C:/Users/basam/src/spice-maker/fixtures/**/originals/",
+      "hits": [],
+      "note": "no directory named originals* exists under fixtures"
+    },
+    {
+      "location": "C:\\Users\\basam\\src\\spice-maker\\src\\boardmodeler\\authoring\\lm358_reference.py",
+      "hits": [],
+      "note": "reviewed datasheet-extraction recipe (DATASHEET_SHA256 58c89c68...af46, PRODUCT_URL https://www.ti.com/product/LM358); references no local model file"
+    }
+  ],
+  "related_non_model_files": [
+    {
+      "path": "C:\\Users\\basam\\src\\spice-maker\\fixtures\\opamp\\ti-lm358-rev-ab-page9.txt",
+      "sha256": "09c9faa928cbde269f54cda6df3c58ff7d776fbd7891e43f67736a9f9006f591",
+      "what": "TI LM358 datasheet page-9 text (Electrical Characteristics); datasheet text, not a SPICE model"
+    }
+  ],
+  "to_complete": "Obtain the official TI LM358 PSpice model from the TI product page, keep it outside the repo, and run e.g. a unity-gain follower at V+=5 V, V-=0, Vin=2.5 V checked against the datasheet VOS limit (LM358: 7 mV max at 25 C, per the fixture page above)."
+}

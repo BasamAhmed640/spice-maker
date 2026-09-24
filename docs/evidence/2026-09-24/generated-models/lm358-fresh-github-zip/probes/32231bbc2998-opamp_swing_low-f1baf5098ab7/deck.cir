@@ -1,0 +1,13 @@
+* Dual op amp swing low; channel 1
+.include "C:/Users/basam/AppData/Local/Temp/fzgh/general/tree-v5t4sexd/spice-maker-convergence-shared-core/models/G-lm358/build/model/LM358.lib"
+Vcc vcc 0 5
+Vref ref 0 2.5
+Xamp out inm inp 0 ref other other vcc LM358
+Rload out 0 10000
+Vin inp 0 0
+Vminus inm 0 1
+.tran 0 0.0001 0 1e-08
+.temp 25
+.options plotwinsize=0 numdgt=15 method=gear gminsteps=0 srcsteps=0
+.save V(inp) V(inm) V(out) I(Vcc)
+.end

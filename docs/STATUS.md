@@ -1304,3 +1304,19 @@ the 2.42977 V lower bound (12 V input, 2.5-ohm load, 25 C). That single result
 does not verify the AI-authored model or wider electrical behavior. The current
 installer passed this machine's security policy; unsigned executables may still
 require organizational approval on another computer.
+
+## 2026-09-24 — convergence-first authoring, bounded prompts, one shared core
+
+Branch `convergence-shared-core`. Full evidence, hashes and verdicts:
+[`docs/evidence/2026-09-24/REPORT.md`](evidence/2026-09-24/REPORT.md). Decisions D-034–D-036.
+
+Observed on this machine (LTspice 26.0.0 selected explicitly; OpenCode Go `deepseek-v4.1-flash`):
+
+| Check | Result |
+|---|---|
+| Previous TPS54332DDA build (fresh ZIP of `44a1d3c`), re-run of its probe deck | FAIL reproduced: no operating point, "trouble with node en"; build UNKNOWN (0 PASS / 66 UNKNOWN / 93 N/A), 1965 s, 182k tokens |
+| `pytest -q -m "not gui and not network"` with `LTSPICE_EXE` set | 1629 passed, 13 skipped, 0 failed |
+| LM358 generated-model build (reviewed rows, AI-authored model, full verification) | PASS 19/19 covered rows after 1 turn, 216 s, 52k tokens |
+| Fresh GitHub ZIP of the branch: venv, pinned install, startup without LTspice access, explicit `.op`, credential scan | PASS (7/7 steps) |
+| `tools/shared_core.py --compare ..\spice-maker-bob` | identical: 41 files |
+| TPS54332DDA reruns after this change | see REPORT.md section 3 (no generated-model PASS is claimed unless listed there) |

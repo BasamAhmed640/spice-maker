@@ -1,0 +1,13 @@
+* Dual op amp swing high; channel 1
+.include "C:/Users/basam/src/.smsnap/general/models/C-lm358/build/model/LM358.lib"
+Vcc vcc 0 30
+Vref ref 0 15
+Xamp vcc out inm inp 0 ref other other LM358
+Rload out 0 10000
+Vin inp 0 1
+Vminus inm 0 0
+.tran 0 0.0001 0 1e-08
+.temp 25
+.options plotwinsize=0 numdgt=15 method=gear gminsteps=0 srcsteps=0
+.save V(inp) V(inm) V(out) I(Vcc)
+.end

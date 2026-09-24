@@ -1,0 +1,14 @@
+* Dual op amp bias; channel 1
+.include "C:/Users/basam/src/.smsnap/general/models/C-lm358/build/model/LM358.lib"
+Vcc vcc 0 5
+Vref ref 0 2.5
+Xamp vcc out inm inp 0 ref other other LM358
+Rload out 0 1e+12
+Vin inp 0 0
+Bservo servo 0 V=limit(1e4*(V(out)-1.4),-0.1,3.5)
+Vsense inm servo 0
+.tran 0 0.0001 0 1e-08
+.temp 25
+.options plotwinsize=0 numdgt=15 method=gear gminsteps=0 srcsteps=0
+.save V(inp) V(inm) V(out) I(Vcc) I(Vin) I(Vsense)
+.end

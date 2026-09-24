@@ -1,0 +1,11 @@
+LTspice 26.0.0 for Windows
+Circuit: C:\Users\basam\src\.smsnap\general\models\A2-tps54332-controlled-low\build\validation-cache\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\probes\circuit_measurement-17397276a76f\deck.cir
+Start Time: Thu Sep 24 02:10:30 2026
+Options:plotwinsize=0 numdgt=15
+C:\Users\basam\src\.smsnap\general\models\A2-tps54332-controlled-low\build\validation-cache\fd26dafebebe7d82354eea7bc28948529d6423ea262f43356c7a946cd59fdb96\probes\circuit_measurement-17397276a76f\deck.cir(14): This sub-circuit cannot be instantiated because it contains these syntax errors:
+C:\Users\basam\src\.smsnap\general\models\A2-tps54332-controlled-low\build\model\TPS54332DDA.lib(10): Unknown parameter
+Ven en_ok GND V=limit((V(EN,GND)-1.25)/0.05,0,1)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Xdut BOOT VIN EN SS VSENSE COMP 0 PH 0 TPS54332DDA
+                                       ^^^^^^^^^^^

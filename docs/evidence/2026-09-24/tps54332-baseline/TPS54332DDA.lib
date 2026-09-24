@@ -1,0 +1,68 @@
+* TPS54332DDA reduced behavioural model
+* Ports: BOOT VIN EN SS VSENSE COMP GND PH POWERPAD
+.subckt TPS54332DDA BOOT VIN EN SS VSENSE COMP GND PH POWERPAD
+
+* PowerPAD tied to GND
+Rpad POWERPAD GND 1m
+
+* Internal PH current sense: Vsen measures inductor current
+Vsen PH_int PH 0
+
+* High-side switch between VIN and PH_int, Ron=80mOhm
+S1 VIN PH_int sw GND SWMOD
+.model SWMOD SW(Ron=0.08 Roff=1Meg Vt=0.5 Vh=0.1)
+
+* Bootstrap diode from VIN to BOOT
+Dboot VIN BOOT Dboot
+.model Dboot D(Is=1e-12 Rs=1 Ron=10)
+
+* 1 MHz clock, 10 ns set pulse
+Vclk clk GND PULSE(0 1 0 1n 1n 10n 1u)
+
+* EN comparator with 1.25 V threshold
+Ben_ok en_ok GND V = if(V(EN,GND)>1.25, if(V(VIN,GND)>3.3, 1, 0), 0)
+
+* EN internal pull-up current source: 1 uA below threshold, 4 uA above
+Ben_pull VIN EN I = if(V(EN,GND)>1.25, 4u, 1u) * (V(VIN,GND)>3.0)
+
+* EN clamp diode to VIN (for floating EN)
+Den EN VIN Den
+.model Den D(Is=1e-12 Rs=1)
+
+* Soft-start pin: 2 uA charge current, internal 1 pF, 100 MOhm bleed
+Bss VIN SS I = if(V(SS,GND)<0.8, 2u, 0) * V(en_ok,GND) * (V(VIN,GND)>3.0)
+Css_int SS GND 1p
+Rss SS GND 100Meg
+
+* Effective reference = min(0.8 V, SS pin)
+Bvref vref GND V = if(V(SS,GND)>0.8, 0.8, V(SS,GND))
+
+* Error amplifier: gm = 84.8 uS, RO = 9.43 MOhm (DC gain ~800)
+Berr COMP GND I = V(en_ok,GND) * 84.8u * (V(vref,GND) - V(VSENSE,GND))
+Roa COMP GND 9.43Meg
+
+* Internal COMP pull-up: 52 uA when COMP < ~0.6 V, off above
+Bpull VIN COMP I = V(en_ok,GND) * 52u / (1 + exp((V(COMP,GND)-0.6)/0.01))
+
+* COMP high clamp at 2.5 V
+Bclamp_high COMP GND I = if(V(COMP,GND)>2.5, (V(COMP,GND)-2.5)*1m, 0)
+
+* COMP low clamp (Eco-mode) at 0.5 V
+Bclamp_low VIN COMP I = V(en_ok,GND) * if(V(COMP,GND)<0.5, (0.5 - V(COMP,GND))*1m, 0)
+
+* Switch current threshold from COMP voltage, clamped to 4.5 A
+Bith ith GND V = if(V(COMP,GND)>0.5, min(0.16 + 100*(V(COMP,GND)-0.5), 4.5), 0)
+
+* Set pulse: clock rising, enabled, BOOT UVLO ok
+Bset set GND V = if(V(clk,GND)>0.5, if(V(en_ok,GND)>0.5, if(V(BOOT,PH)>2.1, 1, 0), 0), 0)
+
+* Reset: switch on and current reached threshold, or BOOT UVLO, or disabled
+Breset reset GND V = if(V(sw,GND)>0.5, if(I(Vsen) >= V(ith,GND) | V(BOOT,PH) < 2.1 | V(en_ok,GND)<0.5, 1, 0), 0)
+
+* SR latch state (sw)
+Csw sw GND 1n
+Rsw sw GND 1T
+Bsw_tgt sw_tgt GND V = if(V(set,GND)>0.5, 1, if(V(reset,GND)>0.5, 0, V(sw,GND)))
+Bsw GND sw I = (V(sw_tgt,GND) - V(sw,GND))*1n/1n
+
+.ends TPS54332DDA

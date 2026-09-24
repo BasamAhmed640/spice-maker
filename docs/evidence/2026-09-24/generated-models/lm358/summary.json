@@ -1,0 +1,36 @@
+{
+  "part": "LM358",
+  "status": "PASS",
+  "counts": {
+    "PASS": 19,
+    "FAIL": 0,
+    "UNKNOWN": 0,
+    "BLOCKED": 0,
+    "NOT_APPLICABLE": 0
+  },
+  "detail": "harness PASS after 1 turn(s): every covered characteristic passed; standard symbol generated locally from the model's declared ports",
+  "iterations": 1,
+  "wall_time_s": 216.0,
+  "exit_code": 0,
+  "turns": [
+    {
+      "turn": 1,
+      "elapsed_s": 214.9,
+      "usage": {
+        "prompt_tokens": 9048.0,
+        "completion_tokens": 43040.0,
+        "total_tokens": 52088.0,
+        "prompt_cache_hit_tokens": 0.0,
+        "prompt_cache_miss_tokens": 9048.0
+      },
+      "outcomes": {
+        "PASS": 19
+      },
+      "reused_simulation": false,
+      "candidate_sha256": "f823eb6cd80f505bbe36b466d6053da2c531e21d98fa8c240fabad473e75192a"
+    }
+  ],
+  "history": [
+    "turn 1: progress; failing none"
+  ]
+}

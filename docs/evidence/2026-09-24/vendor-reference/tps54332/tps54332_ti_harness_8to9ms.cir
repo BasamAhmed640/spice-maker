@@ -1,0 +1,29 @@
+* Frozen fixture: TPS54332 12 V to 2.5 V reference circuit at about 1 A
+.include "C:/Users/basam/Documents/Codex/2026-09-24/spice-generator-update-for-both-versions/work/ti_verification/model/TPS54332_PSPICE_TRANS/TPS54332_TRANS.LIB"
+Vvin vin 0 PULSE(0 12 0 1u 1u 30m 60m)
+Cin vin 0 10u
+Ruvhi vin en 150k
+Ruvlo en 0 48.7k
+Css ss 0 15n
+Cboot boot ph 100n
+Bcatch 0 ph I=limit((-V(ph)-0.5)/0.04,0,10)
+Lout ph lmid 2.5u
+Rldcr lmid out 10m
+Cout1 out c1 47u
+Rcesr1 c1 0 3m
+Cout2 out c2 47u
+Rcesr2 c2 0 3m
+Rload out 0 2.5
+Rfbhi out vsense 10.2k
+Rfblo vsense 0 4.75k
+Rcomp comp compmid 75k
+Ccomp compmid 0 180p
+Chf comp 0 10p
+Xdut boot vin en ss vsense comp 0 ph 0 TPS54332_TRANS
+.temp 25
+.options plotwinsize=0 numdgt=15
+.tran 0 0.009 0 1e-07
+.save V(out) V(ph) V(vsense)
+.meas tran vout_min_8_9 MIN V(out) FROM=8m TO=9m
+.meas tran vout_avg_8_9 AVG V(out) FROM=8m TO=9m
+.end

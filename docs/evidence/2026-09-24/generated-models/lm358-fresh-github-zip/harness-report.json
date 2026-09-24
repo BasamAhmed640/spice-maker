@@ -1,0 +1,888 @@
+{
+  "model_sha256": "eac222c22a560aeae5103b9921332e4fada483421553ebf5589b6df43ba0522f",
+  "outcomes": [
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_offset-6a835b04f696\\deck.log": "efac8447c8898799f80713cc9fcda61dbfdcea047e772d14ca766e7b372241f4",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_offset-6a835b04f696\\deck.raw": "5d4fd5fc212ca5b4aafd0d78b2c7c31757c97b6df5614307e172325921906991"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_VOS_CH1",
+        "LM358_VOS_TYP_CH1"
+      ],
+      "citations": [
+        "LM358_VOS_CH1 requires <= 0.007 V (PDF page 9) \u2014 \"VOS Input offset voltage VS = 5 V to 30 V; V C M = 0 V; V O = 1.4\nV\nLM358\n3 7\nmV\nTA = 0\u00b0C to 70\u00b0C 9\nLM358A 2 3\nTA = 0\u00b0C to 70\u00b0C 5\n\"",
+        "LM358_VOS_TYP_CH1 requires typ 0.003 V (+/-10 %) (PDF page 9) \u2014 \"VOS Input offset voltage VS = 5 V to 30 V; V C M = 0 V; V O = 1.4\nV\nLM358\n3 7\nmV\nTA = 0\u00b0C to 70\u00b0C 9\nLM358A 2 3\nTA = 0\u00b0C to 70\u00b0C 5\n\""
+      ],
+      "detail": "LM358_VOS_CH1 [DOCUMENTED_LIMIT]: measured opamp_value=0.00301207 V within <= 0.007 V; LM358_VOS_TYP_CH1 [TYPICAL_VALUE]: measured opamp_value=0.00301207 V, |measured - typ 0.003| = 1.20698e-05 V versus the 10 % band 0.0003 V (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 0.00301207 V",
+      "measured": {
+        "opamp_value": 0.0030120698226383524
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 1.0,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_offset",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_offset-6a835b04f696",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_offset-c7fe4a079ec1\\deck.log": "a92df05bd7ec3c3e60b0fbd28d97b4a4797a709fc946cf5c39692f975eb49bf4",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_offset-c7fe4a079ec1\\deck.raw": "204b1cf1e2fe1dfd83074aa01e26e65c377a4f08b0c064761ece200330fc0d10"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_VOS_CH2",
+        "LM358_VOS_TYP_CH2"
+      ],
+      "citations": [
+        "LM358_VOS_CH2 requires <= 0.007 V (PDF page 9) \u2014 \"VOS Input offset voltage VS = 5 V to 30 V; V C M = 0 V; V O = 1.4\nV\nLM358\n3 7\nmV\nTA = 0\u00b0C to 70\u00b0C 9\nLM358A 2 3\nTA = 0\u00b0C to 70\u00b0C 5\n\"",
+        "LM358_VOS_TYP_CH2 requires typ 0.003 V (+/-10 %) (PDF page 9) \u2014 \"VOS Input offset voltage VS = 5 V to 30 V; V C M = 0 V; V O = 1.4\nV\nLM358\n3 7\nmV\nTA = 0\u00b0C to 70\u00b0C 9\nLM358A 2 3\nTA = 0\u00b0C to 70\u00b0C 5\n\""
+      ],
+      "detail": "LM358_VOS_CH2 [DOCUMENTED_LIMIT]: measured opamp_value=0.00301207 V within <= 0.007 V; LM358_VOS_TYP_CH2 [TYPICAL_VALUE]: measured opamp_value=0.00301207 V, |measured - typ 0.003| = 1.20698e-05 V versus the 10 % band 0.0003 V (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 0.00301207 V",
+      "measured": {
+        "opamp_value": 0.0030120698226379842
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 2.0,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_offset",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_offset-c7fe4a079ec1",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_bias-6a835b04f696\\deck.log": "6c531a411f81258ad2ff21c6d448b5929032e745e4469c10570ca20596589999",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_bias-6a835b04f696\\deck.raw": "2e5db2168f73c4f9c3897bc5b6e43bba038acd87bb280fb397ca0444f6e745d8"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_IB_CH1",
+        "LM358_IB_TYP_CH1"
+      ],
+      "citations": [
+        "LM358_IB_CH1 requires <= 2.5e-07 A (PDF page 9) \u2014 \"IB Input bias current V O = 1.4 V\nLM358\n\u201320 \u2013250\nnA\nTA = 0\u00b0C to 70\u00b0C \u2013500\nLM358A\n\u201315 \u2013100\nTA = 0\u00b0C to 70\u00b0C \u2013200\n\"",
+        "LM358_IB_TYP_CH1 requires typ 2e-08 A (+/-10 %) (PDF page 9) \u2014 \"IB Input bias current V O = 1.4 V\nLM358\n\u201320 \u2013250\nnA\nTA = 0\u00b0C to 70\u00b0C \u2013500\nLM358A\n\u201315 \u2013100\nTA = 0\u00b0C to 70\u00b0C \u2013200\n\""
+      ],
+      "detail": "LM358_IB_CH1 [DOCUMENTED_LIMIT]: measured opamp_value=2e-08 A within <= 2.5e-07 A; LM358_IB_TYP_CH1 [TYPICAL_VALUE]: measured opamp_value=2e-08 A, |measured - typ 2e-08| = 3.30872e-24 A versus the 10 % band 2e-09 A (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 2e-08 A",
+      "measured": {
+        "opamp_value": 1.9999999999999997e-08
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 1.0,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_bias",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_bias-6a835b04f696",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_bias-c7fe4a079ec1\\deck.log": "4ddaf3991503d3f5897e8335202d1d9eb25f34d302cfae7f92c166871a9c490c",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_bias-c7fe4a079ec1\\deck.raw": "b690bbfe99e7b6e6e2349898f95f6d0d48460f73c73a00fb402b732ec6f793f1"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_IB_CH2",
+        "LM358_IB_TYP_CH2"
+      ],
+      "citations": [
+        "LM358_IB_CH2 requires <= 2.5e-07 A (PDF page 9) \u2014 \"IB Input bias current V O = 1.4 V\nLM358\n\u201320 \u2013250\nnA\nTA = 0\u00b0C to 70\u00b0C \u2013500\nLM358A\n\u201315 \u2013100\nTA = 0\u00b0C to 70\u00b0C \u2013200\n\"",
+        "LM358_IB_TYP_CH2 requires typ 2e-08 A (+/-10 %) (PDF page 9) \u2014 \"IB Input bias current V O = 1.4 V\nLM358\n\u201320 \u2013250\nnA\nTA = 0\u00b0C to 70\u00b0C \u2013500\nLM358A\n\u201315 \u2013100\nTA = 0\u00b0C to 70\u00b0C \u2013200\n\""
+      ],
+      "detail": "LM358_IB_CH2 [DOCUMENTED_LIMIT]: measured opamp_value=2e-08 A within <= 2.5e-07 A; LM358_IB_TYP_CH2 [TYPICAL_VALUE]: measured opamp_value=2e-08 A, |measured - typ 2e-08| = 3.30872e-24 A versus the 10 % band 2e-09 A (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 2e-08 A",
+      "measured": {
+        "opamp_value": 1.9999999999999997e-08
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 2.0,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_bias",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_bias-c7fe4a079ec1",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_offset_current-6a835b04f696\\deck.log": "065af9600d87a654bf40c8a54fd73c1aff066eaa4b3292a7f3072bc6e36276dc",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_offset_current-6a835b04f696\\deck.raw": "b2afebf195cff0f401597a5ab245863d8237c5f37e782aab2a0fc412ac4b7358"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_IOS_CH1",
+        "LM358_IOS_TYP_CH1"
+      ],
+      "citations": [
+        "LM358_IOS_CH1 requires <= 5e-08 A (PDF page 9) \u2014 \"IOS Input offset current V O = 1.4 V\nLM358\n2 50\nnA\nTA = 0\u00b0C to 70\u00b0C 150\nLM358A\n2 30\nTA = 0\u00b0C to 70\u00b0C 75\n\"",
+        "LM358_IOS_TYP_CH1 requires typ 2e-09 A (+/-10 %) (PDF page 9) \u2014 \"IOS Input offset current V O = 1.4 V\nLM358\n2 50\nnA\nTA = 0\u00b0C to 70\u00b0C 150\nLM358A\n2 30\nTA = 0\u00b0C to 70\u00b0C 75\n\""
+      ],
+      "detail": "LM358_IOS_CH1 [DOCUMENTED_LIMIT]: measured opamp_value=2e-09 A within <= 5e-08 A; LM358_IOS_TYP_CH1 [TYPICAL_VALUE]: measured opamp_value=2e-09 A, |measured - typ 2e-09| = 8.6854e-24 A versus the 10 % band 2e-10 A (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 2e-09 A",
+      "measured": {
+        "opamp_value": 1.9999999999999914e-09
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 1.0,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_offset_current",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_offset_current-6a835b04f696",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_offset_current-c7fe4a079ec1\\deck.log": "483bd35dd1a3b20253813c018566ec4e0c07fa70c7d5a38983f77408231d2234",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_offset_current-c7fe4a079ec1\\deck.raw": "1d534397f6334fc0da9689f9a461cabdd32918caa2319a9c2c89d9503bad1b21"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_IOS_CH2",
+        "LM358_IOS_TYP_CH2"
+      ],
+      "citations": [
+        "LM358_IOS_CH2 requires <= 5e-08 A (PDF page 9) \u2014 \"IOS Input offset current V O = 1.4 V\nLM358\n2 50\nnA\nTA = 0\u00b0C to 70\u00b0C 150\nLM358A\n2 30\nTA = 0\u00b0C to 70\u00b0C 75\n\"",
+        "LM358_IOS_TYP_CH2 requires typ 2e-09 A (+/-10 %) (PDF page 9) \u2014 \"IOS Input offset current V O = 1.4 V\nLM358\n2 50\nnA\nTA = 0\u00b0C to 70\u00b0C 150\nLM358A\n2 30\nTA = 0\u00b0C to 70\u00b0C 75\n\""
+      ],
+      "detail": "LM358_IOS_CH2 [DOCUMENTED_LIMIT]: measured opamp_value=2e-09 A within <= 5e-08 A; LM358_IOS_TYP_CH2 [TYPICAL_VALUE]: measured opamp_value=2e-09 A, |measured - typ 2e-09| = 8.6854e-24 A versus the 10 % band 2e-10 A (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 2e-09 A",
+      "measured": {
+        "opamp_value": 1.9999999999999914e-09
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 2.0,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_offset_current",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_offset_current-c7fe4a079ec1",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_gain-1ce830ffe786\\deck.log": "4a33b4703df0971de5f8314fbc9582a982dc72a107eddf42b9987f9b4f8a0c2f",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_gain-1ce830ffe786\\deck.raw": "df67c2b93a78cd3814d96b66cc420ffe73cab38f749bef2957bcb4d17742ed4c"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_AOL_CH1",
+        "LM358_AOL_TYP_CH1"
+      ],
+      "citations": [
+        "LM358_AOL_CH1 requires >= 25000 V/V (PDF page 9) \u2014 \"AOL Open-loop voltage gain V S = 15 V; V O = 1 V to 11 V; R L \u22652 k\u03a9\n25 100\nV/mV\nTA = 0\u00b0C to 70\u00b0C 15\n\"",
+        "LM358_AOL_TYP_CH1 requires typ 100000 V/V (+/-10 %) (PDF page 9) \u2014 \"AOL Open-loop voltage gain V S = 15 V; V O = 1 V to 11 V; R L \u22652 k\u03a9\n25 100\nV/mV\nTA = 0\u00b0C to 70\u00b0C 15\n\""
+      ],
+      "detail": "LM358_AOL_CH1 [DOCUMENTED_LIMIT]: measured opamp_value=99121.3 V/V within >= 25000 V/V; LM358_AOL_TYP_CH1 [TYPICAL_VALUE]: measured opamp_value=99121.3 V/V, |measured - typ 100000| = 878.746 V/V versus the 10 % band 10000 V/V (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 99121.3 V/V",
+      "measured": {
+        "opamp_value": 99121.25388513866
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 1.0,
+        "op_input": 2.5,
+        "op_load": 2000.0,
+        "op_vcc": 15.0,
+        "op_vout": 6.0,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_gain",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_gain-1ce830ffe786",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_gain-b7449041fb67\\deck.log": "f0547e0578060d3ded9d9abd31ded6393f37ab0efbce46b39a58e0a5d8b43f7b",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_gain-b7449041fb67\\deck.raw": "161e4794ec89da7fad04e5514e9324b250903e5258715984747a71a00b633f37"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_AOL_CH2",
+        "LM358_AOL_TYP_CH2"
+      ],
+      "citations": [
+        "LM358_AOL_CH2 requires >= 25000 V/V (PDF page 9) \u2014 \"AOL Open-loop voltage gain V S = 15 V; V O = 1 V to 11 V; R L \u22652 k\u03a9\n25 100\nV/mV\nTA = 0\u00b0C to 70\u00b0C 15\n\"",
+        "LM358_AOL_TYP_CH2 requires typ 100000 V/V (+/-10 %) (PDF page 9) \u2014 \"AOL Open-loop voltage gain V S = 15 V; V O = 1 V to 11 V; R L \u22652 k\u03a9\n25 100\nV/mV\nTA = 0\u00b0C to 70\u00b0C 15\n\""
+      ],
+      "detail": "LM358_AOL_CH2 [DOCUMENTED_LIMIT]: measured opamp_value=99121.3 V/V within >= 25000 V/V; LM358_AOL_TYP_CH2 [TYPICAL_VALUE]: measured opamp_value=99121.3 V/V, |measured - typ 100000| = 878.746 V/V versus the 10 % band 10000 V/V (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 99121.3 V/V",
+      "measured": {
+        "opamp_value": 99121.25388527998
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 2.0,
+        "op_input": 2.5,
+        "op_load": 2000.0,
+        "op_vcc": 15.0,
+        "op_vout": 6.0,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_gain",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_gain-b7449041fb67",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_gbw-6a835b04f696\\deck.log": "fdcab5620bbfe4e69889af1e74c46112654a7e23af85b3f57640c6f5961bc06c",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_gbw-6a835b04f696\\deck.raw": "739093d78a0ae86ee32661519b86d49ad9759035085ff0048d68f8722b7b539a"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_GBW_CH1"
+      ],
+      "citations": [
+        "LM358_GBW_CH1 requires typ 700000 Hz (+/-10 %) (PDF page 9) \u2014 \"GBW Gain bandwidth product 0.7 MHz\n\""
+      ],
+      "detail": "LM358_GBW_CH1 [TYPICAL_VALUE]: measured opamp_value=699890 Hz, |measured - typ 700000| = 110.189 Hz versus the 10 % band 70000 Hz (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 699890 Hz",
+      "measured": {
+        "opamp_value": 699889.8112380657
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 1.0,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_gbw",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_gbw-6a835b04f696",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_gbw-c7fe4a079ec1\\deck.log": "2c3bb19bbd23daad9712ab943480eaaa66bf64e4df637477e2bf6720e2c3ced1",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_gbw-c7fe4a079ec1\\deck.raw": "3d3c596b4b6805e82556a235a1fb4acb5462cf1689c7cb3dfb2e22d538b71b10"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_GBW_CH2"
+      ],
+      "citations": [
+        "LM358_GBW_CH2 requires typ 700000 Hz (+/-10 %) (PDF page 9) \u2014 \"GBW Gain bandwidth product 0.7 MHz\n\""
+      ],
+      "detail": "LM358_GBW_CH2 [TYPICAL_VALUE]: measured opamp_value=699890 Hz, |measured - typ 700000| = 110.189 Hz versus the 10 % band 70000 Hz (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 699890 Hz",
+      "measured": {
+        "opamp_value": 699889.8112380657
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 2.0,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_gbw",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_gbw-c7fe4a079ec1",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_slew_rise-6a835b04f696\\deck.log": "53254b0503e5e98fb3ff09860cd233b4abfa17d5f9e2983c3faafbaeeded023f",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_slew_rise-6a835b04f696\\deck.raw": "839579045256a1ffe5f450162bfba2d3e870a7ebdf7003a2f8db7b3b0b16ae64"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_SR_RISE_CH1"
+      ],
+      "citations": [
+        "LM358_SR_RISE_CH1 requires typ 300000 V/s (+/-10 %) (PDF page 9) \u2014 \"SR Slew rate G = +1 0.3 V/\u00b5s\n\""
+      ],
+      "detail": "LM358_SR_RISE_CH1 [TYPICAL_VALUE]: measured opamp_value=299910 V/s, |measured - typ 300000| = 90.4657 V/s versus the 10 % band 30000 V/s (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 299910 V/s",
+      "measured": {
+        "opamp_value": 299909.53430708114
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 1.0,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_slew_rise",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_slew_rise-6a835b04f696",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_slew_rise-c7fe4a079ec1\\deck.log": "003cc492eb1e28acde67fbc0a7d8cf957e0a7cd90d194e856f1fc3042b8ba18a",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_slew_rise-c7fe4a079ec1\\deck.raw": "c13157edcd8fd5d98d199279fd7bc9fa90260da5d20994971df9ed73757c2efc"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_SR_RISE_CH2"
+      ],
+      "citations": [
+        "LM358_SR_RISE_CH2 requires typ 300000 V/s (+/-10 %) (PDF page 9) \u2014 \"SR Slew rate G = +1 0.3 V/\u00b5s\n\""
+      ],
+      "detail": "LM358_SR_RISE_CH2 [TYPICAL_VALUE]: measured opamp_value=299910 V/s, |measured - typ 300000| = 90.4657 V/s versus the 10 % band 30000 V/s (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 299910 V/s",
+      "measured": {
+        "opamp_value": 299909.53430708114
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 2.0,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_slew_rise",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_slew_rise-c7fe4a079ec1",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_slew_fall-6a835b04f696\\deck.log": "7237fe7d9e60d20c3639dda2bcf94ddfa686be8349cb6ff211075b2c3e816da8",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_slew_fall-6a835b04f696\\deck.raw": "180f2f0bda45312ebab6db5f29f0398a97650bcf223f240008aa696b3fa6caab"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_SR_FALL_CH1"
+      ],
+      "citations": [
+        "LM358_SR_FALL_CH1 requires typ 300000 V/s (+/-10 %) (PDF page 9) \u2014 \"SR Slew rate G = +1 0.3 V/\u00b5s\n\""
+      ],
+      "detail": "LM358_SR_FALL_CH1 [TYPICAL_VALUE]: measured opamp_value=300090 V/s, |measured - typ 300000| = 90.4625 V/s versus the 10 % band 30000 V/s (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 300090 V/s",
+      "measured": {
+        "opamp_value": 300090.4624772217
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 1.0,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_slew_fall",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_slew_fall-6a835b04f696",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_slew_fall-c7fe4a079ec1\\deck.log": "0076f3aabe9e05c4cf553b67287b7ed1c1016b445ab4bb7607fa1e3aeaca0afd",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_slew_fall-c7fe4a079ec1\\deck.raw": "771d06bbe32999ada8c39732d400c7522ef3415fc857884da6135328c799c0f0"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_SR_FALL_CH2"
+      ],
+      "citations": [
+        "LM358_SR_FALL_CH2 requires typ 300000 V/s (+/-10 %) (PDF page 9) \u2014 \"SR Slew rate G = +1 0.3 V/\u00b5s\n\""
+      ],
+      "detail": "LM358_SR_FALL_CH2 [TYPICAL_VALUE]: measured opamp_value=300090 V/s, |measured - typ 300000| = 90.4625 V/s versus the 10 % band 30000 V/s (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 300090 V/s",
+      "measured": {
+        "opamp_value": 300090.4624772217
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 2.0,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_slew_fall",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_slew_fall-c7fe4a079ec1",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_swing_high-a74acc96a0e4\\deck.log": "541812475ad6a84fa1e3fc418ea2ca247d28184842f8a3ffd4736b368803e458",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_swing_high-a74acc96a0e4\\deck.raw": "1de60e2d602907f24c94ac0a71bbbcda59820a6421e18e828856e93bb6f5c2ab"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_VOH_CH1",
+        "LM358_VOH_TYP_CH1"
+      ],
+      "citations": [
+        "LM358_VOH_CH1 requires <= 3 V (PDF page 9) \u2014 \"VO Voltage output swing from rail\nPositive rail\nVS = 30 V; R L = 2 k\u03a9T A = 0\u00b0C to 70\u00b0C 4\nVVS = 30 V; R L \u226510 k\u03a9 2 3\nVS = 5 V; R L \u22652 k\u03a9 1.5\nNegative rail V S = 5 V; R L \u226410 k\u03a9T A = 0\u00b0C to 70\u00b0C 5 20 mV\n\"",
+        "LM358_VOH_TYP_CH1 requires typ 2 V (+/-10 %) (PDF page 9) \u2014 \"VO Voltage output swing from rail\nPositive rail\nVS = 30 V; R L = 2 k\u03a9T A = 0\u00b0C to 70\u00b0C 4\nVVS = 30 V; R L \u226510 k\u03a9 2 3\nVS = 5 V; R L \u22652 k\u03a9 1.5\nNegative rail V S = 5 V; R L \u226410 k\u03a9T A = 0\u00b0C to 70\u00b0C 5 20 mV\n\""
+      ],
+      "detail": "LM358_VOH_CH1 [DOCUMENTED_LIMIT]: measured opamp_value=2.00003 V within <= 3 V; LM358_VOH_TYP_CH1 [TYPICAL_VALUE]: measured opamp_value=2.00003 V, |measured - typ 2| = 2.8e-05 V versus the 10 % band 0.2 V (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 2.00003 V",
+      "measured": {
+        "opamp_value": 2.000027999972005
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 1.0,
+        "op_input": 2.5,
+        "op_load": 10000.0,
+        "op_vcc": 30.0,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_swing_high",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_swing_high-a74acc96a0e4",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_swing_high-a8632ba8a793\\deck.log": "5bd62b7449014565e8d88b96acd1216fc34c2f6fc7f6900a74159a9a64da71ac",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_swing_high-a8632ba8a793\\deck.raw": "e7c28b93db5b2aff6cfc4129ce442a2837c9d0d15772ae99494ecc8ff40027f7"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_VOH_CH2",
+        "LM358_VOH_TYP_CH2"
+      ],
+      "citations": [
+        "LM358_VOH_CH2 requires <= 3 V (PDF page 9) \u2014 \"VO Voltage output swing from rail\nPositive rail\nVS = 30 V; R L = 2 k\u03a9T A = 0\u00b0C to 70\u00b0C 4\nVVS = 30 V; R L \u226510 k\u03a9 2 3\nVS = 5 V; R L \u22652 k\u03a9 1.5\nNegative rail V S = 5 V; R L \u226410 k\u03a9T A = 0\u00b0C to 70\u00b0C 5 20 mV\n\"",
+        "LM358_VOH_TYP_CH2 requires typ 2 V (+/-10 %) (PDF page 9) \u2014 \"VO Voltage output swing from rail\nPositive rail\nVS = 30 V; R L = 2 k\u03a9T A = 0\u00b0C to 70\u00b0C 4\nVVS = 30 V; R L \u226510 k\u03a9 2 3\nVS = 5 V; R L \u22652 k\u03a9 1.5\nNegative rail V S = 5 V; R L \u226410 k\u03a9T A = 0\u00b0C to 70\u00b0C 5 20 mV\n\""
+      ],
+      "detail": "LM358_VOH_CH2 [DOCUMENTED_LIMIT]: measured opamp_value=2.00003 V within <= 3 V; LM358_VOH_TYP_CH2 [TYPICAL_VALUE]: measured opamp_value=2.00003 V, |measured - typ 2| = 2.8e-05 V versus the 10 % band 0.2 V (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 2.00003 V",
+      "measured": {
+        "opamp_value": 2.000027999972005
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 2.0,
+        "op_input": 2.5,
+        "op_load": 10000.0,
+        "op_vcc": 30.0,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_swing_high",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_swing_high-a8632ba8a793",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_swing_low-f1baf5098ab7\\deck.log": "36e8758a36c78fd0db02fe9c2fe2e27730a67661c0f3937808cc8eb2400d47ac",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_swing_low-f1baf5098ab7\\deck.raw": "ecdf3171582395e3c15b068f31821f37d2ea366dadab3f55205a79fcab6e14ef"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_VOL_CH1",
+        "LM358_VOL_TYP_CH1"
+      ],
+      "citations": [
+        "LM358_VOL_CH1 requires <= 0.02 V (PDF page 9) \u2014 \"VO Voltage output swing from rail\nPositive rail\nVS = 30 V; R L = 2 k\u03a9T A = 0\u00b0C to 70\u00b0C 4\nVVS = 30 V; R L \u226510 k\u03a9 2 3\nVS = 5 V; R L \u22652 k\u03a9 1.5\nNegative rail V S = 5 V; R L \u226410 k\u03a9T A = 0\u00b0C to 70\u00b0C 5 20 mV\n\"",
+        "LM358_VOL_TYP_CH1 requires typ 0.005 V (+/-10 %) (PDF page 9) \u2014 \"VO Voltage output swing from rail\nPositive rail\nVS = 30 V; R L = 2 k\u03a9T A = 0\u00b0C to 70\u00b0C 4\nVVS = 30 V; R L \u226510 k\u03a9 2 3\nVS = 5 V; R L \u22652 k\u03a9 1.5\nNegative rail V S = 5 V; R L \u226410 k\u03a9T A = 0\u00b0C to 70\u00b0C 5 20 mV\n\""
+      ],
+      "detail": "LM358_VOL_CH1 [DOCUMENTED_LIMIT]: measured opamp_value=0.005 V within <= 0.02 V; LM358_VOL_TYP_CH1 [TYPICAL_VALUE]: measured opamp_value=0.005 V, |measured - typ 0.005| = 4.99999e-09 V versus the 10 % band 0.0005 V (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 0.005 V",
+      "measured": {
+        "opamp_value": 0.004999995000005001
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 1.0,
+        "op_input": 2.5,
+        "op_load": 10000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_swing_low",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_swing_low-f1baf5098ab7",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_swing_low-e25970baeb6f\\deck.log": "a67506380f44372f78092fa34961774d52b24f95ce0bdaf141e4ed7e1ee10224",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_swing_low-e25970baeb6f\\deck.raw": "2459beffa8b1532017305889cb080318118f8b4cd35b926e2a6437e56a1a52fd"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_VOL_CH2",
+        "LM358_VOL_TYP_CH2"
+      ],
+      "citations": [
+        "LM358_VOL_CH2 requires <= 0.02 V (PDF page 9) \u2014 \"VO Voltage output swing from rail\nPositive rail\nVS = 30 V; R L = 2 k\u03a9T A = 0\u00b0C to 70\u00b0C 4\nVVS = 30 V; R L \u226510 k\u03a9 2 3\nVS = 5 V; R L \u22652 k\u03a9 1.5\nNegative rail V S = 5 V; R L \u226410 k\u03a9T A = 0\u00b0C to 70\u00b0C 5 20 mV\n\"",
+        "LM358_VOL_TYP_CH2 requires typ 0.005 V (+/-10 %) (PDF page 9) \u2014 \"VO Voltage output swing from rail\nPositive rail\nVS = 30 V; R L = 2 k\u03a9T A = 0\u00b0C to 70\u00b0C 4\nVVS = 30 V; R L \u226510 k\u03a9 2 3\nVS = 5 V; R L \u22652 k\u03a9 1.5\nNegative rail V S = 5 V; R L \u226410 k\u03a9T A = 0\u00b0C to 70\u00b0C 5 20 mV\n\""
+      ],
+      "detail": "LM358_VOL_CH2 [DOCUMENTED_LIMIT]: measured opamp_value=0.005 V within <= 0.02 V; LM358_VOL_TYP_CH2 [TYPICAL_VALUE]: measured opamp_value=0.005 V, |measured - typ 0.005| = 4.99999e-09 V versus the 10 % band 0.0005 V (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 0.005 V",
+      "measured": {
+        "opamp_value": 0.004999995000005001
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 2.0,
+        "op_input": 2.5,
+        "op_load": 10000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_swing_low",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_swing_low-e25970baeb6f",
+      "status": "PASS",
+      "unknown_reason": null
+    },
+    {
+      "artifacts": {
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_quiescent\\deck.log": "bf3f2ec494a22d90a3e0efddf0c50a6552d31436f3c54a2113b44f4061200266",
+        "C:\\Users\\basam\\AppData\\Local\\Temp\\fzgh\\general\\tree-v5t4sexd\\spice-maker-convergence-shared-core\\models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_quiescent\\deck.raw": "4235281c76d9d20c5394b932ea2587c609565f2aacce55efa588631e0722bf98"
+      },
+      "cause": null,
+      "char_ids": [
+        "LM358_IQ",
+        "LM358_IQ_TYP"
+      ],
+      "citations": [
+        "LM358_IQ requires <= 0.0006 A (PDF page 9) \u2014 \"IQ Quiescent current per amplifier\nVO = 2.5 V; I O = 0 A\nTA = 0\u00b0C to 70\u00b0C\n350 600\n\u00b5A\nVS = 30 V; V O = 15 V; I O = 0 A 500 1000\n\"",
+        "LM358_IQ_TYP requires typ 0.00035 A (+/-10 %) (PDF page 9) \u2014 \"IQ Quiescent current per amplifier\nVO = 2.5 V; I O = 0 A\nTA = 0\u00b0C to 70\u00b0C\n350 600\n\u00b5A\nVS = 30 V; V O = 15 V; I O = 0 A 500 1000\n\""
+      ],
+      "detail": "LM358_IQ [DOCUMENTED_LIMIT]: measured opamp_value=0.00035 A within <= 0.0006 A; LM358_IQ_TYP [TYPICAL_VALUE]: measured opamp_value=0.00035 A, |measured - typ 0.00035| = 5.42101e-20 A versus the 10 % band 3.5e-05 A (typical-value comparison, not a min/max limit check)",
+      "judged": "opamp_value = 0.00035 A",
+      "measured": {
+        "opamp_value": 0.00034999999999999994
+      },
+      "operating_point": {
+        "c_out": 2.2e-05,
+        "en_high": 2.0,
+        "gate_frac": 0.02,
+        "hold_frac": 0.5,
+        "min_vout_frac": 0.25,
+        "op_channel": 1,
+        "op_input": 2.5,
+        "op_load": 1000000000000.0,
+        "op_vcc": 5,
+        "op_vout": 1.4,
+        "pg_pullup": 10000.0,
+        "pg_rail": 5.0,
+        "r_bot": 3240.0,
+        "r_load": 100.0,
+        "r_top": 10000.0,
+        "settle_frac": 0.1,
+        "temp_c": 25.0,
+        "tmax_s": 1e-08,
+        "tstop_s": 0.0001,
+        "vin_dc": 12.0,
+        "vout_nom": 3.3
+      },
+      "probe_id": "opamp_quiescent",
+      "run_dir": "models\\G-lm358\\build\\validation-cache\\511c02096e0e86f897789d14855a8f7bc67b35ca0e98d20b78b2e6eb0a657016\\probes\\opamp_quiescent",
+      "status": "PASS",
+      "unknown_reason": null
+    }
+  ],
+  "part": "LM358",
+  "spec_digest": "c129543a5641cfebe1b09bc3eda17d8d92d97146b78135f1a46f487d0cea6373"
+}

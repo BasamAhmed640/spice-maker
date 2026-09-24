@@ -1,0 +1,23 @@
+LTspice 26.0.0 for Windows
+Circuit: C:\Users\basam\AppData\Local\Temp\ltev0924\vendorA\tps54332_ti_reference.cir
+Start Time: Thu Sep 24 01:52:06 2026
+solver = Alternate
+Maximum thread count: 16
+tnom = 27
+temp = 27
+method = trap
+dd: Emission coefficient, N=0.001, too small, this might lead to numerical problems.
+dd: Emission coefficient, N=0.01, too small, this might lead to numerical problems.
+Direct Newton iteration succeeded in finding operating point.
+Total elapsed time: 415.679 seconds.
+
+Files loaded:
+C:\Users\basam\AppData\Local\Temp\ltev0924\vendorA\tps54332_ti_reference.cir
+C:\Users\basam\Documents\Codex\2026-09-24\spice-generator-update-for-both-versions\work\ti_verification\model\TPS54332_PSPICE_TRANS\TPS54332_TRANS.LIB
+
+vout_avg: AVG(V(out) )=2.51532354769 FROM 0.01 TO 0.012
+vout_max: MAX(V(out) )=2.52204871178 FROM 0.011 TO 0.012
+vout_min: MIN(V(out) )=2.5095102787 FROM 0.011 TO 0.012
+ph_first: V(ph)=6  AT 0.0110000317901
+ph_second: V(ph)=6  AT 0.0110010319065
+fsw: 1/(ph_second-ph_first)=999883.591206

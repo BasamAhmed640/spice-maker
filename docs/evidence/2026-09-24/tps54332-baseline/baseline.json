@@ -1,0 +1,115 @@
+{
+  "label": "AI-generated model (opencode) - TPS54332DDA - FAILED run baseline",
+  "source_run_dir": "C:\\Users\\basam\\Documents\\Codex\\2026-09-24\\spice-generator-update-for-both-versions\\work\\fresh-general-44a1d3c\\spice-maker-44a1d3c9a041891f40e7351dc853fbbc347ff7a4\\models\\TPS54332DDA-opencode",
+  "status": "UNKNOWN",
+  "detail": "max_iterations=2 exhausted; still failing: circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN, circuit_measurement=UNKNOWN",
+  "counts": {
+    "BLOCKED": 0,
+    "FAIL": 0,
+    "NOT_APPLICABLE": 93,
+    "PASS": 0,
+    "UNKNOWN": 66
+  },
+  "rows_total": 159,
+  "row_status_counts": {
+    "UNKNOWN": 66,
+    "NOT_APPLICABLE": 93
+  },
+  "harness_report": {
+    "model_sha256": "45776014ce5cfeb67b6ab8d46fd3439aec9d8ca84143f19a42e21d20d73788cd",
+    "outcomes_total": 27,
+    "outcome_status_counts": {
+      "UNKNOWN": 27
+    },
+    "unknown_reasons": {
+      "sim_convergence_failure: Gmin stepping failed to find operating point. Use\".option gminsteps=0\" to skip all Gmin stepping. | Source stepping failed to find oper": 1,
+      "deferred_after_invalid_simulation: sim_convergence_failure: Gmin stepping failed to find operating point. Use\".option gminsteps=0\" to skip all Gmin stepping. | ": 26
+    }
+  },
+  "turns": [
+    {
+      "file": "build\\candidates\\8605f5b93f3c43e893e704679fa6b5da\\0001\\result.json",
+      "turn": 1,
+      "elapsed_s": 512.2720571999671,
+      "usage": {
+        "prompt_tokens": 24490.0,
+        "completion_tokens": 75585.0,
+        "total_tokens": 100075.0
+      },
+      "score": [
+        27,
+        0,
+        0.0
+      ],
+      "reused_simulation": false,
+      "candidate_model_sha256": "45776014ce5cfeb67b6ab8d46fd3439aec9d8ca84143f19a42e21d20d73788cd",
+      "lib_sha256": "45776014ce5cfeb67b6ab8d46fd3439aec9d8ca84143f19a42e21d20d73788cd",
+      "harness_outcome_status_counts": {
+        "UNKNOWN": 27
+      }
+    },
+    {
+      "file": "build\\candidates\\8605f5b93f3c43e893e704679fa6b5da\\0002\\result.json",
+      "turn": 2,
+      "elapsed_s": 355.5734641000163,
+      "usage": {
+        "prompt_tokens": 25981.0,
+        "completion_tokens": 55988.0,
+        "total_tokens": 81969.0
+      },
+      "score": [
+        27,
+        0,
+        0.0
+      ],
+      "reused_simulation": false,
+      "candidate_model_sha256": "70434221100aa78c55edfc770407afa83c010d7697f7eb3990c80a581938b18d",
+      "lib_sha256": "70434221100aa78c55edfc770407afa83c010d7697f7eb3990c80a581938b18d",
+      "harness_outcome_status_counts": {
+        "UNKNOWN": 27
+      }
+    }
+  ],
+  "turn_totals": {
+    "elapsed_s": 867.8455212999834,
+    "prompt_tokens": 50471.0,
+    "completion_tokens": 131573.0,
+    "total_tokens": 182044.0
+  },
+  "extraction_stage": {
+    "final_stage_entry": {
+      "counts": {},
+      "detail": "7/7 batches complete; 0 active; 487s elapsed",
+      "stage": "extract",
+      "status": "running"
+    },
+    "duration_s": 487,
+    "batch_progress_entries": 102
+  },
+  "prompt_md_bytes": 82255,
+  "request_settings": {
+    "provider": "opencode_go",
+    "max_iterations": 2,
+    "verification": "full",
+    "backend_name": "api",
+    "reinforce": false,
+    "stall_patience": 2,
+    "timeout_s": 300.0,
+    "turn_timeout_s": null,
+    "agent_model": null
+  },
+  "wall_time": {
+    "method": "max(mtime)-min(mtime) over all 59 files in the run folder (local time)",
+    "first_mtime": "2026-09-24T00:47:50",
+    "first_file": "build\\docs\\files\\DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D-tps54332_datasheet.pdf",
+    "last_mtime": "2026-09-24T01:20:35",
+    "last_file": "results.json",
+    "total_s": 1964.909
+  },
+  "source_file_sha256": {
+    "results.json": "2a7c3a2a86c345174aba8b61d131d44f77e95490128fd3ad3826afa8073f2deb",
+    "harness-report.json": "2dc3acb0160830680a3653257f70d307d1aa03363827d369a19bf1b2eed28791",
+    "TPS54332DDA.lib": "45776014ce5cfeb67b6ab8d46fd3439aec9d8ca84143f19a42e21d20d73788cd",
+    "build/prompt.md": "62b8a6883a6a3991f7c27fd97f47e05ab7ed251eb8a9b740c4e507289f5fbbe7"
+  }
+}

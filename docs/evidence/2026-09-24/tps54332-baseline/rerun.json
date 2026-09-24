@@ -1,0 +1,69 @@
+{
+  "label": "AI-generated model (opencode) - TPS54332DDA - fresh LTspice re-run of the failing probe",
+  "verdict": "FAIL",
+  "verdict_reason": "Failure reproduced: LTspice found no DC operating point, skipped it, then aborted the transient at the initial timepoint (node \"en\"); no V(VOUT) data was produced.",
+  "ltspice": "C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\LTspice.exe",
+  "ltspice_version_from_log": "LTspice 26.0.0 for Windows",
+  "command": "\"C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\LTspice.exe\" -b \"C:\\Users\\basam\\src\\spice-maker\\docs\\evidence\\2026-09-24\\tps54332-baseline\\deck.cir\"",
+  "cwd": "C:\\Users\\basam\\src\\spice-maker\\docs\\evidence\\2026-09-24\\tps54332-baseline",
+  "env_keys_passed": [
+    "APPDATA",
+    "LOCALAPPDATA",
+    "PATH",
+    "SYSTEMDRIVE",
+    "SystemRoot",
+    "TEMP",
+    "TMP",
+    "USERPROFILE"
+  ],
+  "timeout_s": 120.0,
+  "timed_out": false,
+  "returncode": 1,
+  "elapsed_s": 1.178,
+  "ltspice_reported_elapsed": [
+    "Total elapsed time: 0.678 seconds."
+  ],
+  "files": {
+    "lib": {
+      "path": "TPS54332DDA.lib",
+      "sha256": "45776014ce5cfeb67b6ab8d46fd3439aec9d8ca84143f19a42e21d20d73788cd",
+      "copied_from": "C:\\Users\\basam\\Documents\\Codex\\2026-09-24\\spice-generator-update-for-both-versions\\work\\fresh-general-44a1d3c\\spice-maker-44a1d3c9a041891f40e7351dc853fbbc347ff7a4\\models\\TPS54332DDA-opencode\\TPS54332DDA.lib"
+    },
+    "deck": {
+      "path": "deck.cir",
+      "sha256": "8601df5338ad7fa4b731b97ad4f66d0f58eeff6e850cd24d74603fcafe0e3cbd",
+      "copied_from": "C:\\Users\\basam\\Documents\\Codex\\2026-09-24\\spice-generator-update-for-both-versions\\work\\fresh-general-44a1d3c\\spice-maker-44a1d3c9a041891f40e7351dc853fbbc347ff7a4\\models\\TPS54332DDA-opencode\\build\\validation-cache\\3064cb99549f61da3866a53305a6fc31dc4dee0775ea76ea29b292f7b7e99481\\probes\\circuit_measurement-17397276a76f\\deck.cir",
+      "source_sha256": "df6d2f080936bcb4139f0929ea3caeb3932f2a5b9cba8e1e780d94e6dce5d2cf",
+      "modification": "only the .include line was rewritten to the relative path \"TPS54332DDA.lib\"; the identical deck also exists under validation-cache/42823cc925c6.../ (same sha256)"
+    },
+    "log": {
+      "path": "deck.log.txt",
+      "sha256": "e4406dae3e7a3347ff7b50ed05afff08dc8457ee6693b70b90ee6422d7f9bf35",
+      "ltspice_log_original_sha256": "e4406dae3e7a3347ff7b50ed05afff08dc8457ee6693b70b90ee6422d7f9bf35",
+      "ltspice_log_original_encoding": "utf-8",
+      "note": "deck.log (git-ignored) was transcoded to UTF-8 deck.log.txt (LF line endings) and removed; deck.raw deleted after inspection"
+    }
+  },
+  "raw_files_deleted": [
+    "deck.raw"
+  ],
+  "failure_lines": [
+    "Direct Newton iteration failed to find operating point.",
+    "Gmin stepping failed to find operating point. Use\".option gminsteps=0\" to skip all Gmin stepping.",
+    "Source stepping failed to find operating point. Use \".options srcsteps=0\" to skip all source stepping.",
+    "Gmin stepping level 2 failed to find operating point. Use\".option gminsteps=0\" to skip all Gmin stepping.",
+    "Source stepping level 2 failed to find operating point. Use \".options srcsteps=0\" to skip all source stepping.",
+    "Pseudo Transient failed to find the operating point at 420.962 ms",
+    "Pseudo Transient level 2 failed to find the operating point at 420.962 ms",
+    "Trouble finding operating point....skipping operating point for Transient analysis.",
+    "Convergence Failure:  Time step too small; initial timepoint: trouble with node \"en\"",
+    "Simulation Failed: Iteration limit reached"
+  ],
+  "exact_failure": [
+    "Convergence Failure:  Time step too small; initial timepoint: trouble with node \"en\"",
+    "Simulation Failed: Iteration limit reached"
+  ],
+  "requirement_verdict": "UNKNOWN",
+  "requirement_verdict_reason": "The probe (adjustable output voltage at the 0.8 V minimum set point) cannot be judged because the simulation produced no measurement; this matches the harness classification UNKNOWN in the source run.",
+  "runner": "ltrun.py (in this evidence folder): subprocess.run([LTspice.exe, \"-b\", <abs deck>], cwd=<deck dir>, env=minimal allowlist, timeout=120)"
+}

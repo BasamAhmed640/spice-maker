@@ -1,0 +1,28 @@
+* TPS54332DDA TI reference transient, isolated compatibility check
+.include "C:/Users/basam/Documents/Codex/2026-09-24/spice-generator-update-for-both-versions/work/ti_verification/model/TPS54332_PSPICE_TRANS/TPS54332_TRANS.LIB"
+Vin vin 0 PULSE(0 12 0 1u 1u 30m 60m)
+Cin vin 0 10u
+Ruvhi vin en 150k
+Ruvlo en 0 48.7k
+Css ss 0 15n
+Cboot boot ph 100n
+XU1 boot vin en ss vsense comp 0 ph 0 TPS54332_TRANS
+Dcatch 0 ph Dcatch
+.model Dcatch D(Is=1e-8 N=1.1 Rs=0.04 Cjo=300p Bv=40 Ibv=1m)
+Lout ph out 2.5u Rser=10m
+Cout1 out 0 47u Rser=3m
+Cout2 out 0 47u Rser=3m
+Rload out 0 2.5
+Rfbhi out vsense 10.2k
+Rfblo vsense 0 4.75k
+Rcomp comp compmid 75k
+Ccomp compmid 0 180p
+Chf comp 0 10p
+.tran 0 12m 0 50n
+.meas tran vout_avg AVG V(out) FROM=10m TO=12m
+.meas tran vout_max MAX V(out) FROM=11m TO=12m
+.meas tran vout_min MIN V(out) FROM=11m TO=12m
+.meas tran ph_first WHEN V(ph)=6 RISE=1 TD=11m
+.meas tran ph_second WHEN V(ph)=6 RISE=2 TD=11m
+.meas tran fsw PARAM 1/(ph_second-ph_first)
+.end

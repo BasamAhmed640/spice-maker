@@ -1,0 +1,21 @@
+LTspice 26.0.0 for Windows
+Circuit: C:\Users\basam\AppData\Local\Temp\fzgh\general\tree-v5t4sexd\spice-maker-convergence-shared-core\models\G-lm358\build\validation-cache\32231bbc2998b9f51ddadaef1db3524acead5eb00cf930c2e209141052bc2aa0\probes\opamp_gain-b7449041fb67\deck.cir
+Start Time: Thu Sep 24 02:13:05 2026
+Options:plotwinsize=0 numdgt=15 method=gear gminsteps=0 srcsteps=0
+solver = Alternate
+Maximum thread count: 16
+tnom = 27
+temp = 25
+method = Gear
+Direct Newton iteration failed to find operating point.
+Gmin stepping method for .op point skipped.
+Source stepping method for .op point skipped.
+Gmin stepping method for .op point skipped.
+Source stepping method for .op point skipped.
+Pseudo Transient succeeded in finding the operating point at 327.711 ms
+Total elapsed time: 0.146 seconds.
+
+Files loaded:
+C:\Users\basam\AppData\Local\Temp\fzgh\general\tree-v5t4sexd\spice-maker-convergence-shared-core\models\G-lm358\build\validation-cache\32231bbc2998b9f51ddadaef1db3524acead5eb00cf930c2e209141052bc2aa0\probes\opamp_gain-b7449041fb67\deck.cir
+C:\Users\basam\AppData\Local\Temp\fzgh\general\tree-v5t4sexd\spice-maker-convergence-shared-core\models\G-lm358\build\model\LM358.lib
+

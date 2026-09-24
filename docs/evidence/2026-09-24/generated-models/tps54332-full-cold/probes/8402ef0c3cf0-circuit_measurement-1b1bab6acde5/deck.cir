@@ -1,0 +1,18 @@
+* Frozen fixture: Measure error amplifier source/sink current at V(COMP)=1.0 V and 100-mV overdrive.
+.include "C:/Users/basam/src/.smsnap/general/models/B-tps54332-full/build/model/TPS54332DDA.lib"
+V1 VIN 0 12
+V2 EN 0 12
+V3 SS 0 0.8
+V4 VSENSE 0 0.9
+V5 COMP 0 1.0
+Cboot BOOT PH 0.1u
+L1 PH OUT 2.2u
+C1 OUT 0 22u
+Rload OUT 0 10
+Bdiode PH 0 I=if(V(PH)<0, V(PH)/0.1, 0)
+Xdut BOOT VIN EN SS VSENSE COMP 0 PH 0 TPS54332DDA
+.temp 25
+.options plotwinsize=0 numdgt=15
+.tran 0 0.001 0 1e-08
+.save I(V5)
+.end

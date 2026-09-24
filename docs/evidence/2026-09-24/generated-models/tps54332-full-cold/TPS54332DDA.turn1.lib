@@ -1,0 +1,62 @@
+.subckt TPS54332DDA BOOT VIN EN SS VSENSE COMP GND PH POWERPAD
+
+* Pin leakage / DC paths
+Rpad POWERPAD GND 1G
+Rboot BOOT PH 1Meg
+Rvsense VSENSE GND 1G
+Rcomp_pd COMP GND 1G
+Rss SS GND 100Meg
+Rpu VIN EN 540Meg
+Ren1 EN GND 1.18Meg
+Ben_sw_ctrl en_sw_ctrl GND V=0.5*(1+tanh((V(EN,GND)-1.25)/0.05))
+Sen EN sw_en en_sw_ctrl 0 SWEN
+Ren2 sw_en GND 445k
+.model SWEN SW(Ron=1 Roff=1Meg Vt=0.5 Vh=0.1)
+
+* Enable comparator
+Ben_ok en_ok GND V=0.5*(1+tanh((V(EN,GND)-1.25)/0.05))
+
+* SS boost control
+Bboost_ctrl boost_ctrl GND V=0.5*(1+tanh((0.1 - V(SS,GND))/0.01))
+
+* SS charge/discharge
+Bcharge SS GND I= -2u * V(en_ok,GND) + 10u * (1 - V(en_ok,GND))
+Bboost SS GND I= -200u * V(en_ok,GND) * V(boost_ctrl,GND)
+
+* SS clamp to 0.8V
+Vref08 ref08 GND 0.8
+Bclamp_ctrl clamp_ctrl GND V=0.5*(1+tanh((V(SS,GND)-0.8)/0.01))
+Sclamp SS ref08 clamp_ctrl 0 SWCLAMP
+.model SWCLAMP SW(Ron=1 Roff=1Meg Vt=0.5 Vh=0.1)
+
+* Reference from SS with 10mV matching
+Bvref vref GND V=limit(V(SS,GND),0,0.8) + 0.01*limit((0.8 - V(SS,GND))*10,0,1)
+
+* Error amplifier
+Bcomp COMP GND I=V(en_ok,GND) * limit(70u*(V(VSENSE,GND)-V(vref,GND)), -7u, 7u)
+
+* COMP clamp to 2.2875V (max duty ~91.5%)
+Vcomp_max comp_max GND 2.2875
+Bcomp_clamp_ctrl comp_clamp_ctrl GND V=0.5*(1+tanh((V(COMP,GND)-2.2875)/0.01))
+Scomp_clamp COMP comp_max comp_clamp_ctrl 0 SWCOMP
+.model SWCOMP SW(Ron=1 Roff=1Meg Vt=0.5 Vh=0.1)
+
+* VIN quiescent current
+Bq VIN GND I=1u + 81u * V(en_ok,GND) * limit((V(VSENSE,GND)-V(vref,GND))/0.01, 0, 1)
+
+* Oscillator (falling sawtooth 2.5V to 0 at 1MHz)
+Bosc osc GND V=2.5*(1 - (time/1u - floor(time/1u)))
+
+* Power stage
+Rsw SW PH 0.01
+S1 VIN SW ctrl 0 SWMOD
+Dlow GND PH DLOW
+
+* Switch control: PWM with current limit
+Bctrl ctrl GND V=0.5*(1+tanh((V(COMP,GND)-V(osc,GND))/0.01)) * 0.5*(1-tanh(((V(SW,GND)-V(PH,GND))/0.01 - 5)/0.2))
+
+* Models
+.model SWMOD SW(Ron=0.1 Roff=10Meg Vt=0.5 Vh=0.1)
+.model DLOW D(RS=0.05)
+
+.ends TPS54332DDA

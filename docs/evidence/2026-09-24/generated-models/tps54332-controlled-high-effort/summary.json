@@ -1,0 +1,19 @@
+{
+  "part": "TPS54332DDA",
+  "status": "UNKNOWN",
+  "counts": {
+    "PASS": 0,
+    "FAIL": 0,
+    "UNKNOWN": 0,
+    "BLOCKED": 0,
+    "NOT_APPLICABLE": 0
+  },
+  "detail": "api_request_failed: deadline_exhausted: only -1.03 s of the 600 s turn budget remained before attempt 2 of 3, and a retry needs 30 s; model_file_missing: models\\A-tps54332-controlled\\build\\model\\TPS54332DDA.lib does not exist after turn 1",
+  "iterations": 1,
+  "wall_time_s": 602.8,
+  "exit_code": 0,
+  "turns": [],
+  "history": [
+    "turn 1: api_request_failed: deadline_exhausted: only -1.03 s of the 600 s turn budget remained before attempt 2 of 3, and a retry needs 30 s; model_file_missing (models\\A-tps54332-controlled\\build\\model\\TPS54332DDA.lib)"
+  ]
+}

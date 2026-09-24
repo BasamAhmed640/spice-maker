@@ -1,0 +1,28 @@
+{
+  "part": "tps54332-full-cold",
+  "status": "RUNNING_AT_COLLECTION",
+  "counts": null,
+  "detail": null,
+  "iterations": null,
+  "wall_time_s": null,
+  "exit_code": null,
+  "turns": [
+    {
+      "turn": 1,
+      "elapsed_s": 604.8,
+      "usage": {
+        "prompt_tokens": 8214.0,
+        "completion_tokens": 62776.0,
+        "total_tokens": 70990.0
+      },
+      "outcomes": {
+        "FAIL": 2,
+        "PASS": 3,
+        "UNKNOWN": 9
+      },
+      "reused_simulation": false,
+      "candidate_sha256": "6c1114c4bbec32601f054211c233d50899128c1d5c1cc21aa5ae2a06e50a590a"
+    }
+  ],
+  "history": null
+}

@@ -1,0 +1,54 @@
+{
+  "part": "LM358",
+  "status": "PASS",
+  "counts": {
+    "PASS": 19,
+    "FAIL": 0,
+    "UNKNOWN": 0,
+    "BLOCKED": 0,
+    "NOT_APPLICABLE": 0
+  },
+  "detail": "harness PASS after 2 turn(s): every covered characteristic passed; standard symbol generated locally from the model's declared ports",
+  "iterations": 2,
+  "wall_time_s": 356.4,
+  "exit_code": 0,
+  "turns": [
+    {
+      "turn": 1,
+      "elapsed_s": 204.8,
+      "usage": {
+        "prompt_tokens": 9048.0,
+        "completion_tokens": 40954.0,
+        "total_tokens": 50002.0,
+        "prompt_cache_hit_tokens": 8832.0,
+        "prompt_cache_miss_tokens": 216.0
+      },
+      "outcomes": {
+        "PASS": 17,
+        "FAIL": 2
+      },
+      "reused_simulation": false,
+      "candidate_sha256": "bd882301b5c86003a494f32f2466c8335579208d3f2dbd7e130d0ecdba43c7c7"
+    },
+    {
+      "turn": 2,
+      "elapsed_s": 150.4,
+      "usage": {
+        "prompt_tokens": 11038.0,
+        "completion_tokens": 31238.0,
+        "total_tokens": 42276.0,
+        "prompt_cache_hit_tokens": 8960.0,
+        "prompt_cache_miss_tokens": 2078.0
+      },
+      "outcomes": {
+        "PASS": 19
+      },
+      "reused_simulation": false,
+      "candidate_sha256": "eac222c22a560aeae5103b9921332e4fada483421553ebf5589b6df43ba0522f"
+    }
+  ],
+  "history": [
+    "turn 1: progress; failing opamp_gain, opamp_gain",
+    "turn 2: progress; failing none"
+  ]
+}

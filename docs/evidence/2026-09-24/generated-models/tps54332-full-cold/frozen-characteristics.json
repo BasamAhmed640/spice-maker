@@ -1,0 +1,3098 @@
+{
+  "characteristics": [
+    {
+      "char_id": "B001_ABS_VIN",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "Input Voltage\nVIN \u20130.3 30\nV",
+      "max_value": 30.0,
+      "min_value": -0.3,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum input voltage on VIN is \u20130.3 V to 30 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_ABS_EN",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "EN \u20130.3 6\nV",
+      "max_value": 6.0,
+      "min_value": -0.3,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum input voltage on EN is \u20130.3 V to 6 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_ABS_BOOT",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "BOOT 38\nV",
+      "max_value": 38.0,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum input voltage on BOOT is 38 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_ABS_VSENSE",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "VSENSE \u20130.3 3\nV",
+      "max_value": 3.0,
+      "min_value": -0.3,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum input voltage on VSENSE is \u20130.3 V to 3 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_ABS_COMP",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "COMP \u20130.3 3\nV",
+      "max_value": 3.0,
+      "min_value": -0.3,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum input voltage on COMP is \u20130.3 V to 3 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_ABS_SS",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "SS \u20130.3 3\nV",
+      "max_value": 3.0,
+      "min_value": -0.3,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum input voltage on SS is \u20130.3 V to 3 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_ABS_BOOT_PH",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "Output Voltage\nBOOT-PH 8\nVPH \u20130.6 30",
+      "max_value": 8.0,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum output voltage BOOT-PH is 8 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_ABS_VPH",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "VPH \u20130.6 30",
+      "max_value": 30.0,
+      "min_value": -0.6,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum output voltage VPH is \u20130.6 V to 30 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_ABS_PH_TRANSIENT",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "PH (10-ns transient from ground to negative peak)"
+        }
+      ],
+      "excerpt": "PH (10-ns transient from ground to negative peak) \u20135",
+      "max_value": null,
+      "min_value": -5.0,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum negative transient on PH is \u20135 V for a 10-ns transient from ground to negative peak.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_ABS_SRC_EN",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "Source Current\nEN 100 \u03bcA",
+      "max_value": 9.999999999999999e-05,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum source current on EN is 100 \u03bcA.",
+      "target": null,
+      "typ_value": null,
+      "unit": "A"
+    },
+    {
+      "char_id": "B001_ABS_SRC_BOOT",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "BOOT 100 mA",
+      "max_value": 0.1,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum source current on BOOT is 100 mA.",
+      "target": null,
+      "typ_value": null,
+      "unit": "A"
+    },
+    {
+      "char_id": "B001_ABS_SRC_VSENSE",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "VSENSE 10 \u03bcA",
+      "max_value": 9.999999999999999e-06,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum source current on VSENSE is 10 \u03bcA.",
+      "target": null,
+      "typ_value": null,
+      "unit": "A"
+    },
+    {
+      "char_id": "B001_ABS_SRC_PH",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "PH 9.25 A",
+      "max_value": 9.25,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum source current on PH is 9.25 A.",
+      "target": null,
+      "typ_value": null,
+      "unit": "A"
+    },
+    {
+      "char_id": "B001_ABS_SINK_VIN",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "Sink Current\nVIN 9.25 A",
+      "max_value": 9.25,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum sink current on VIN is 9.25 A.",
+      "target": null,
+      "typ_value": null,
+      "unit": "A"
+    },
+    {
+      "char_id": "B001_ABS_SINK_COMP",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "COMP 100\n\u03bcA",
+      "max_value": 9.999999999999999e-05,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum sink current on COMP is 100 \u03bcA.",
+      "target": null,
+      "typ_value": null,
+      "unit": "A"
+    },
+    {
+      "char_id": "B001_ABS_SINK_SS",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "SS 200\n\u03bcA",
+      "max_value": 0.00019999999999999998,
+      "min_value": null,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum sink current on SS is 200 \u03bcA.",
+      "target": null,
+      "typ_value": null,
+      "unit": "A"
+    },
+    {
+      "char_id": "B001_ABS_TJ",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "Operating Junction \nTemperature \u201340 150 \u00b0C",
+      "max_value": 150.0,
+      "min_value": -40.0,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum operating junction temperature is \u201340 \u00b0C to 150 \u00b0C.",
+      "target": null,
+      "typ_value": null,
+      "unit": "C"
+    },
+    {
+      "char_id": "B001_ABS_TSTG",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted) (1)"
+        }
+      ],
+      "excerpt": "Storage temperature \u201365 150 \u00b0C",
+      "max_value": 150.0,
+      "min_value": -65.0,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "Absolute maximum storage temperature is \u201365 \u00b0C to 150 \u00b0C.",
+      "target": null,
+      "typ_value": null,
+      "unit": "C"
+    },
+    {
+      "char_id": "B001_ABS_ESD_HBM",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Human body model (HBM), per ANSI/ESDA/JEDEC JS-001, all pins(1)"
+        }
+      ],
+      "excerpt": "Human body model (HBM), per ANSI/ESDA/JEDEC JS-001, all pins(1) 2 kV",
+      "max_value": 2000.0,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "ESD human body model (HBM) rating is 2 kV, per ANSI/ESDA/JEDEC JS-001, all pins.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_ABS_ESD_CDM",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Charged device model (CDM), per JEDEC specification JESD22-C101, all pins(2)"
+        }
+      ],
+      "excerpt": "Charged device model (CDM), per JEDEC specification JESD22-C101, all pins(2) 500 V",
+      "max_value": 500.0,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 3,
+      "statement": "ESD charged device model (CDM) rating is 500 V, per JEDEC specification JESD22-C101, all pins.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_REC_VIN",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted)"
+        }
+      ],
+      "excerpt": "Operating Input Voltage on (VIN pin) 3.5 28 V",
+      "max_value": 28.0,
+      "min_value": 3.5,
+      "not_testable_reason": "operating envelope defines fixture conditions; it is not a measured DUT response",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 3,
+      "statement": "Recommended operating input voltage on VIN pin is 3.5 V to 28 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_REC_TJ",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "over operating free-air temperature range (unless otherwise noted)"
+        }
+      ],
+      "excerpt": "Operating junction temperature, TJ \u201340 150 \u00b0C",
+      "max_value": 150.0,
+      "min_value": -40.0,
+      "not_testable_reason": "operating envelope defines fixture conditions; it is not a measured DUT response",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 3,
+      "statement": "Recommended operating junction temperature TJ is \u201340 \u00b0C to 150 \u00b0C.",
+      "target": null,
+      "typ_value": null,
+      "unit": "C"
+    },
+    {
+      "char_id": "B001_FEAT_VOUT_MIN",
+      "conditions": [],
+      "excerpt": "Adjustable output voltage down to 0.8 V",
+      "max_value": null,
+      "min_value": 0.8,
+      "not_testable_reason": "invalid test fixture: 1 validation error for CircuitRecipe\nmeasurement\n  Value error, invalid measurement signal: VSENSE [type=value_error, input_value={'operation': 'mean', 'si...t': 0.001, 'end': 0.002}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error; no measurement accepted",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 0,
+      "statement": "Adjustable output voltage down to 0.8 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_FEAT_RDSON",
+      "conditions": [],
+      "excerpt": "Integrated 80-m\u03a9 high-side MOSFET supports up to 3.5-A continuous output current",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 0,
+      "statement": "Integrated 80-m\u03a9 high-side MOSFET.",
+      "target": 0.08,
+      "typ_value": 0.08,
+      "unit": "ohm"
+    },
+    {
+      "char_id": "B001_FEAT_IOUT",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "continuous output current"
+        }
+      ],
+      "excerpt": "Integrated 80-m\u03a9 high-side MOSFET supports up to 3.5-A continuous output current",
+      "max_value": 3.5,
+      "min_value": null,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 0,
+      "statement": "Integrated high-side MOSFET supports up to 3.5-A continuous output current.",
+      "target": null,
+      "typ_value": null,
+      "unit": "A"
+    },
+    {
+      "char_id": "B001_FEAT_FSW",
+      "conditions": [],
+      "excerpt": "Fixed 1-MHz switching frequency",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Switching frequency requires period/frequency extraction from the PH switching waveform; available LTspice measurement primitives do not support frequency measurement from a self-switching regulator without a device model or an added behavioral oscillator.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 0,
+      "statement": "Fixed 1-MHz switching frequency.",
+      "target": 1000000.0,
+      "typ_value": 1000000.0,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "B001_FEAT_IQ_SHUTDOWN",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "shutdown"
+        }
+      ],
+      "excerpt": "Typical 1-\u03bcA shutdown quiescent current",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V_VIN VIN 0 12",
+          "C_IN VIN 0 10e-6",
+          "V_EN EN 0 0",
+          "C_BOOT BOOT PH 0.1e-6",
+          "C_SS SS 0 10e-9",
+          "L1 PH VOUT 4.7e-6",
+          "C_OUT VOUT 0 47e-6",
+          "R_LOAD VOUT 0 1.0",
+          "R_COMP COMP 0 10e3",
+          "C_COMP COMP 0 1e-9"
+        ],
+        "condition_evidence": "Feature gives typical 1 uA shutdown quiescent current. Tested using the shutdown condition from B002_REQ-003: EN=0 V, VIN=12 V, 25 C. Missing: wider temperature range and max limit not verified by this typical-only feature.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": false,
+          "additional_signals": [],
+          "end": 0.001,
+          "level": null,
+          "offset": 0.0,
+          "operation": "mean",
+          "reference": null,
+          "rising": true,
+          "scale": 1.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "I(V_VIN)",
+          "start": 0.0001,
+          "trigger": null,
+          "trigger_level": null,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "EN": 0.0,
+          "VIN": 12.0
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure shutdown quiescent current.",
+        "step": 1e-06,
+        "stop": 0.001,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "BOOT",
+          "COMP": "COMP",
+          "EN": "EN",
+          "GND": "0",
+          "PH": "PH",
+          "POWERPAD": "0",
+          "SS": "SS",
+          "VIN": "VIN",
+          "VSENSE": "VOUT"
+        },
+        "unit": "A"
+      },
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 0,
+      "statement": "Typical 1-\u03bcA shutdown quiescent current.",
+      "target": 1e-06,
+      "typ_value": 1e-06,
+      "unit": "A"
+    },
+    {
+      "char_id": "B001_PINMAP_DDA",
+      "conditions": [],
+      "excerpt": "BOOT 1 O\nVIN 2 I\nEN 3 I\nSS 4 I\nVSENSE 5 I\nCOMP 6 O\nGND 7 \u2014\nPH 8 O\nPowerPAD 9 \u2014",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 2,
+      "statement": "DDA package pin map (top view): pin 1 BOOT (O), pin 2 VIN (I), pin 3 EN (I), pin 4 SS (I), pin 5 VSENSE (I), pin 6 COMP (O), pin 7 GND, pin 8 PH (O), pin 9 PowerPAD (GND).",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B001_EN_DISABLE",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Pull below 1.25 V to disable"
+        }
+      ],
+      "excerpt": "EN 3 I Enable pin. Pull below 1.25 V to disable. Float to enable. TI recommends programming the input undervoltage lockout with two resistors.",
+      "max_value": 1.25,
+      "min_value": null,
+      "not_testable_reason": "invalid test fixture: 1 validation error for CircuitRecipe\nmeasurement\n  Value error, invalid measurement signal: VSENSE [type=value_error, input_value={'operation': 'mean', 'si...t': 0.001, 'end': 0.002}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error; no measurement accepted",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 2,
+      "statement": "Pull EN below 1.25 V to disable.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B001_EN_FLOAT",
+      "conditions": [],
+      "excerpt": "Float to enable.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 2,
+      "statement": "Float EN to enable.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B001_BOOT_CAP",
+      "conditions": [],
+      "excerpt": "A 0.1-\u03bcF bootstrap capacitor is required between BOOT and PH. If the voltage on this capacitor falls below the minimum requirement, the high-side MOSFET is forced to switch off until the capacitor is refreshed.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 2,
+      "statement": "A 0.1-\u03bcF bootstrap capacitor is required between BOOT and PH. If the voltage on this capacitor falls below the minimum requirement, the high-side MOSFET is forced to switch off until the capacitor is refreshed.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B001_POWERPAD_GND",
+      "conditions": [],
+      "excerpt": "PowerPAD 9 \u2014 GND pin must be connected to the exposed pad for proper operation.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 2,
+      "statement": "GND pin must be connected to the exposed pad for proper operation.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B001_ABS_MAX_NOTE",
+      "conditions": [],
+      "excerpt": "Stresses beyond those listed under Absolute Maximum Ratings may cause permanent damage to the device. These are stress ratings only, which do not imply functional operation of the device at these or any other conditions beyond those indicated under Recommended Operating Conditions. Exposure to absolute-maximum-rated conditions for extended periods may affect device reliability.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 3,
+      "statement": "Stresses beyond those listed under Absolute Maximum Ratings may cause permanent damage to the device. These are stress ratings only, which do not imply functional operation of the device at these or any other conditions beyond those indicated under Recommended Operating Conditions. Exposure to absolute-maximum-rated conditions for extended periods may affect device reliability.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B001_ESD_NOTE",
+      "conditions": [],
+      "excerpt": "JEDEC document JEP155 states that 500-V HBM allows safe manufacturing with a standard ESD control process. JEDEC document JEP157 states that 250-V CDM allows safe manufacturing with a standard ESD control process.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 3,
+      "statement": "JEDEC document JEP155 states that 500-V HBM allows safe manufacturing with a standard ESD control process. JEDEC document JEP157 states that 250-V CDM allows safe manufacturing with a standard ESD control process.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B002_REQ-001",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Rising and Falling"
+        }
+      ],
+      "excerpt": "Internal undervoltage lockout threshold Rising and Falling 3.5 V",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Internal UVLO threshold requires a VIN sweep or threshold detection. The recipe primitives do not support DC sweep or automatic extraction of the VIN level where switching starts/stops.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 5,
+      "statement": "Internal undervoltage lockout threshold is 3.5 V typical for rising and falling VIN.",
+      "target": 3.5,
+      "typ_value": 3.5,
+      "unit": "V"
+    },
+    {
+      "char_id": "B002_REQ-002",
+      "conditions": [],
+      "excerpt": "The TPS54332 needs a minimum input voltage of 3.5 V to operate normally.",
+      "max_value": null,
+      "min_value": 3.5,
+      "not_testable_reason": "Recommended operating VIN range (3.5 V to 28 V) defines fixture conditions, not an output measurement; per instructions it is marked unbound.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 8,
+      "statement": "Minimum VIN voltage to operate normally is 3.5 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B002_REQ-003",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "EN = 0 V, VIN = 12 V, \u201340\u00b0C to 85\u00b0C"
+        }
+      ],
+      "excerpt": "Shutdown supply current EN = 0 V, VIN = 12 V, \u201340\u00b0C to 85\u00b0C 1 4 \u03bcA",
+      "max_value": 4e-06,
+      "min_value": null,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V_VIN VIN 0 12",
+          "C_IN VIN 0 10e-6",
+          "V_EN EN 0 0",
+          "C_BOOT BOOT PH 0.1e-6",
+          "C_SS SS 0 10e-9",
+          "L1 PH VOUT 4.7e-6",
+          "C_OUT VOUT 0 47e-6",
+          "R_LOAD VOUT 0 1.0",
+          "R_COMP COMP 0 10e3",
+          "C_COMP COMP 0 1e-9"
+        ],
+        "condition_evidence": "Electrical table condition EN=0 V, VIN=12 V for 1 uA typical / 4 uA max shutdown supply current. Fixture matches EN and VIN, 25 C. Missing: -40 to 85 C range not verified.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": false,
+          "additional_signals": [],
+          "end": 0.001,
+          "level": null,
+          "offset": 0.0,
+          "operation": "mean",
+          "reference": null,
+          "rising": true,
+          "scale": 1.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "I(V_VIN)",
+          "start": 0.0001,
+          "trigger": null,
+          "trigger_level": null,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "EN": 0.0,
+          "VIN": 12.0
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure shutdown supply current at EN=0 V, VIN=12 V.",
+        "step": 1e-06,
+        "stop": 0.001,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "BOOT",
+          "COMP": "COMP",
+          "EN": "EN",
+          "GND": "0",
+          "PH": "PH",
+          "POWERPAD": "0",
+          "SS": "SS",
+          "VIN": "VIN",
+          "VSENSE": "VOUT"
+        },
+        "unit": "A"
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 5,
+      "statement": "Shutdown supply current is 1 \u00b5A typical and 4 \u00b5A maximum under the stated condition.",
+      "target": 1e-06,
+      "typ_value": 1e-06,
+      "unit": "A"
+    },
+    {
+      "char_id": "B002_REQ-004",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "VSENSE = 0.85 V"
+        }
+      ],
+      "excerpt": "Operating \u2013 non switching supply current VSENSE = 0.85 V 82 120 \u03bcA",
+      "max_value": 0.00011999999999999999,
+      "min_value": null,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V_VIN VIN 0 12",
+          "C_IN VIN 0 10e-6",
+          "V_EN EN 0 3.3",
+          "C_BOOT BOOT PH 0.1e-6",
+          "C_SS SS 0 10e-9",
+          "L1 PH VOUT 4.7e-6",
+          "C_OUT VOUT 0 47e-6",
+          "R_LOAD VOUT 0 1.0",
+          "R_COMP COMP 0 10e3",
+          "C_COMP COMP 0 1e-9",
+          "V_VSENSE VSENSE 0 0.85"
+        ],
+        "condition_evidence": "Electrical table condition VSENSE=0.85 V for 82 uA typical / 120 uA max non-switching supply current. Fixture forces VSENSE=0.85 V, EN=3.3 V, VIN=12 V chosen in-range because the cited excerpt does not state VIN, 25 C. Missing: VIN condition and temperature extremes not covered.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": false,
+          "additional_signals": [],
+          "end": 0.001,
+          "level": null,
+          "offset": 0.0,
+          "operation": "mean",
+          "reference": null,
+          "rising": true,
+          "scale": 1.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "I(V_VIN)",
+          "start": 0.0001,
+          "trigger": null,
+          "trigger_level": null,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "EN": 3.3,
+          "VIN": 12.0,
+          "VSENSE": 0.85
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure operating non-switching supply current with VSENSE forced to 0.85 V.",
+        "step": 1e-06,
+        "stop": 0.001,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "BOOT",
+          "COMP": "COMP",
+          "EN": "EN",
+          "GND": "0",
+          "PH": "PH",
+          "POWERPAD": "0",
+          "SS": "SS",
+          "VIN": "VIN",
+          "VSENSE": "VSENSE"
+        },
+        "unit": "A"
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 5,
+      "statement": "Operating non-switching supply current is 82 \u00b5A typical and 120 \u00b5A maximum.",
+      "target": 8.2e-05,
+      "typ_value": 8.2e-05,
+      "unit": "A"
+    },
+    {
+      "char_id": "B002_REQ-005",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Rising and Falling"
+        }
+      ],
+      "excerpt": "Enable threshold Rising and Falling 1.25 1.35 V",
+      "max_value": 1.35,
+      "min_value": 1.25,
+      "not_testable_reason": "Enable threshold range 1.25 V to 1.35 V requires precise EN threshold detection with rising/falling sweeps. Available measurement primitives do not provide threshold extraction.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 5,
+      "statement": "Enable threshold is between 1.25 V and 1.35 V for rising and falling EN.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B002_REQ-006",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Enable threshold \u2013 50 mV"
+        }
+      ],
+      "excerpt": "Input current Enable threshold \u2013 50 mV -1 \u03bcA",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V_VIN VIN 0 12",
+          "C_IN VIN 0 10e-6",
+          "V_EN EN 0 1.2",
+          "C_BOOT BOOT PH 0.1e-6",
+          "C_SS SS 0 10e-9",
+          "L1 PH VOUT 4.7e-6",
+          "C_OUT VOUT 0 47e-6",
+          "R_LOAD VOUT 0 1.0",
+          "R_COMP COMP 0 10e3",
+          "C_COMP COMP 0 1e-9"
+        ],
+        "condition_evidence": "Electrical table condition enable threshold - 50 mV for -1 uA typical EN input current. Using typical enable threshold 1.25 V from the provided context, EN is set to 1.20 V; VIN=12 V is an in-range fixture bias, 25 C. Missing: exact threshold varies 1.25-1.35 V, so the -50 mV point is typical-based.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": false,
+          "additional_signals": [],
+          "end": 0.001,
+          "level": null,
+          "offset": 0.0,
+          "operation": "mean",
+          "reference": null,
+          "rising": true,
+          "scale": 1.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "I(V_EN)",
+          "start": 0.0001,
+          "trigger": null,
+          "trigger_level": null,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "EN": 1.2,
+          "VIN": 12.0
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure EN input current at enable threshold - 50 mV.",
+        "step": 1e-06,
+        "stop": 0.001,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "BOOT",
+          "COMP": "COMP",
+          "EN": "EN",
+          "GND": "0",
+          "PH": "PH",
+          "POWERPAD": "0",
+          "SS": "SS",
+          "VIN": "VIN",
+          "VSENSE": "VOUT"
+        },
+        "unit": "A"
+      },
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 5,
+      "statement": "EN input current at enable threshold \u2013 50 mV is -1 \u00b5A typical.",
+      "target": -1e-06,
+      "typ_value": -1e-06,
+      "unit": "A"
+    },
+    {
+      "char_id": "B002_REQ-007",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Enable threshold + 50 mV"
+        }
+      ],
+      "excerpt": "Input current Enable threshold + 50 mV -4 \u03bcA",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V_VIN VIN 0 12",
+          "C_IN VIN 0 10e-6",
+          "V_EN EN 0 1.3",
+          "C_BOOT BOOT PH 0.1e-6",
+          "C_SS SS 0 10e-9",
+          "L1 PH VOUT 4.7e-6",
+          "C_OUT VOUT 0 47e-6",
+          "R_LOAD VOUT 0 1.0",
+          "R_COMP COMP 0 10e3",
+          "C_COMP COMP 0 1e-9"
+        ],
+        "condition_evidence": "Electrical table condition enable threshold + 50 mV for -4 uA typical EN input current. Using typical enable threshold 1.25 V from the provided context, EN is set to 1.30 V; VIN=12 V is an in-range fixture bias, 25 C. Missing: exact threshold varies 1.25-1.35 V, so the +50 mV point is typical-based.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": false,
+          "additional_signals": [],
+          "end": 0.001,
+          "level": null,
+          "offset": 0.0,
+          "operation": "mean",
+          "reference": null,
+          "rising": true,
+          "scale": 1.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "I(V_EN)",
+          "start": 0.0001,
+          "trigger": null,
+          "trigger_level": null,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "EN": 1.3,
+          "VIN": 12.0
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure EN input current at enable threshold + 50 mV.",
+        "step": 1e-06,
+        "stop": 0.001,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "BOOT",
+          "COMP": "COMP",
+          "EN": "EN",
+          "GND": "0",
+          "PH": "PH",
+          "POWERPAD": "0",
+          "SS": "SS",
+          "VIN": "VIN",
+          "VSENSE": "VOUT"
+        },
+        "unit": "A"
+      },
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 5,
+      "statement": "EN input current at enable threshold + 50 mV is -4 \u00b5A typical.",
+      "target": -4e-06,
+      "typ_value": -4e-06,
+      "unit": "A"
+    },
+    {
+      "char_id": "B002_REQ-008",
+      "conditions": [],
+      "excerpt": "Voltage reference 0.772 0.8 0.828 V",
+      "max_value": 0.828,
+      "min_value": 0.772,
+      "not_testable_reason": "invalid test fixture: 1 validation error for CircuitRecipe\nmeasurement\n  Value error, invalid measurement signal: VSENSE [type=value_error, input_value={'operation': 'mean', 'si...t': 0.001, 'end': 0.002}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error; no measurement accepted",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 5,
+      "statement": "Voltage reference is 0.772 V minimum, 0.8 V typical, and 0.828 V maximum.",
+      "target": 0.8,
+      "typ_value": 0.8,
+      "unit": "V"
+    },
+    {
+      "char_id": "B002_REQ-009",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "BOOT-PH = 3 V, VIN = 3.5 V"
+        }
+      ],
+      "excerpt": "BOOT-PH = 3 V, VIN = 3.5 V 115 200\nm\u2126",
+      "max_value": 0.2,
+      "min_value": null,
+      "not_testable_reason": "High-side MOSFET on-resistance requires isolating on-state switch voltage and current; no direct pin access and available measurement operations cannot compute resistance from switched waveforms.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 5,
+      "statement": "High-side MOSFET on resistance is 115 m\u03a9 typical and 200 m\u03a9 maximum.",
+      "target": 0.115,
+      "typ_value": 0.115,
+      "unit": "ohm"
+    },
+    {
+      "char_id": "B002_REQ-010",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "BOOT-PH = 6 V, VIN = 12 V"
+        }
+      ],
+      "excerpt": "BOOT-PH = 6 V, VIN = 12 V 80 150",
+      "max_value": 0.15,
+      "min_value": null,
+      "not_testable_reason": "High-side MOSFET on-resistance requires isolating on-state switch voltage and current; no direct pin access and available measurement operations cannot compute resistance from switched waveforms.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 5,
+      "statement": "High-side MOSFET on resistance is 80 m\u03a9 typical and 150 m\u03a9 maximum.",
+      "target": 0.08,
+      "typ_value": 0.08,
+      "unit": "ohm"
+    },
+    {
+      "char_id": "B002_REQ-011",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "\u20132 \u03bcA < ICOMP < 2 \u03bcA, V(COMP) = 1 V"
+        }
+      ],
+      "excerpt": "Error amplifier transconductance (gm) \u20132 \u03bcA < ICOMP < 2 \u03bcA, V(COMP) = 1 V 92 \u03bcmhos",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unsupported unit preserved without conversion",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 5,
+      "statement": "Error amplifier transconductance (gm) is 92 \u00b5mhos typical.",
+      "target": 92.0,
+      "typ_value": 92.0,
+      "unit": "\u00b5mhos"
+    },
+    {
+      "char_id": "B002_REQ-012",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "VSENSE = 0.8 V; Specified by design"
+        }
+      ],
+      "excerpt": "Error amplifier DC gain(1) VSENSE = 0.8 V 800 V/V",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Error amplifier DC gain requires open-loop AC response of internal error amplifier with inaccessible noninverting reference; switching regulator and internal loop prevent stable isolated measurement.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 5,
+      "statement": "Error amplifier DC gain is 800 V/V typical. Specified by design.",
+      "target": 800.0,
+      "typ_value": 800.0,
+      "unit": "V/V"
+    },
+    {
+      "char_id": "B002_REQ-013",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "5 pF capacitance from COMP to GND pins; Specified by design"
+        }
+      ],
+      "excerpt": "Error amplifier unity gain bandwidth(1) 5 pF capacitance from COMP to GND pins 2.7 MHz",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Error amplifier unity gain bandwidth requires open-loop AC response with specified 5 pF COMP load; internal loop and inaccessible noninverting input prevent isolated measurement.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 5,
+      "statement": "Error amplifier unity gain bandwidth is 2.7 MHz typical. Specified by design.",
+      "target": 2700000.0,
+      "typ_value": 2700000.0,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "B002_REQ-014",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "V(COMP) = 1.0 V, 100-mV overdrive"
+        }
+      ],
+      "excerpt": "Error amplifier source/sink current V(COMP) = 1.0 V, 100-mV overdrive \u00b17 \u03bcA",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V1 VIN 0 12",
+          "V2 EN 0 12",
+          "V3 SS 0 0.8",
+          "V4 VSENSE 0 0.9",
+          "V5 COMP 0 1.0",
+          "Cboot BOOT PH 0.1u",
+          "L1 PH OUT 2.2u",
+          "C1 OUT 0 22u",
+          "Rload OUT 0 10",
+          "Bdiode PH 0 I=if(V(PH)<0, V(PH)/0.1, 0)"
+        ],
+        "condition_evidence": "Conditions from B002_REQ-014: V(COMP)=1.0 V, 100-mV overdrive (VSENSE=0.9 V vs internal Vref 0.8 V), VIN=12 V, EN enabled, SS=0.8 V. Measures current into COMP forcing source after settling. Covers typical source/sink current magnitude; does not cover temperature range or other overdrive levels.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": true,
+          "additional_signals": [],
+          "end": 0.001,
+          "level": null,
+          "offset": 0.0,
+          "operation": "mean",
+          "reference": null,
+          "rising": true,
+          "scale": 1.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "I(V5)",
+          "start": 0.0005,
+          "trigger": null,
+          "trigger_level": null,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "V(COMP)": 1.0,
+          "V(VSENSE)": 0.9,
+          "VIN": 12.0
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure error amplifier source/sink current at V(COMP)=1.0 V and 100-mV overdrive.",
+        "step": 1e-08,
+        "stop": 0.001,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "BOOT",
+          "COMP": "COMP",
+          "EN": "EN",
+          "GND": "0",
+          "PH": "PH",
+          "POWERPAD": "0",
+          "SS": "SS",
+          "VIN": "VIN",
+          "VSENSE": "VSENSE"
+        },
+        "unit": "A"
+      },
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 5,
+      "statement": "Error amplifier source/sink current magnitude is 7 \u00b5A typical (\u00b17 \u00b5A).",
+      "target": 7e-06,
+      "typ_value": 7e-06,
+      "unit": "A"
+    },
+    {
+      "char_id": "B002_REQ-015",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "VIN = 12 V"
+        }
+      ],
+      "excerpt": "Switch current to COMP transconductance VIN = 12 V 12 A/V",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Switch current to COMP transconductance requires correlating switch current with COMP voltage; recipe schema cannot compute A/V ratio from a single operating point.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 5,
+      "statement": "Switch current to COMP transconductance is 12 A/V typical.",
+      "target": 12.0,
+      "typ_value": 12.0,
+      "unit": "A/V"
+    },
+    {
+      "char_id": "B002_REQ-016",
+      "conditions": [],
+      "excerpt": "Pulse-skipping Eco-mode switch current threshold 160 mA",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Pulse-skipping threshold requires detecting Eco-mode entry and peak switch current at that boundary; available single-window measurements cannot reliably isolate the peak inductor current at the COMP=0.5 V clamp crossing.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 5,
+      "statement": "Pulse-skipping Eco-mode switch current threshold is 160 mA typical.",
+      "target": 0.16,
+      "typ_value": 0.16,
+      "unit": "A"
+    },
+    {
+      "char_id": "B002_REQ-017",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "VIN = 12 V"
+        }
+      ],
+      "excerpt": "Current limit threshold VIN = 12 V 4.2 6.5 A",
+      "max_value": 6.5,
+      "min_value": 4.2,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V1 VIN 0 12",
+          "V2 EN 0 12",
+          "V3 SS 0 0.8",
+          "V4 VSENSE 0 0.8",
+          "V5 COMP 0 2.0",
+          "Cboot BOOT PH 0.1u",
+          "L1 PH OUT 2.2u",
+          "C1 OUT 0 22u",
+          "Rload OUT 0 0.5",
+          "Bdiode PH 0 I=if(V(PH)<0, V(PH)/0.1, 0)"
+        ],
+        "condition_evidence": "Conditions from B002_REQ-017: VIN=12 V. Fixture forces EN high, SS=0.8 V, VSENSE=0.8 V, COMP=2 V to demand maximum duty, load 0.5 \u03a9. Measures peak inductor current after settling. Covers current limit threshold range 4.2\u20136.5 A; does not cover temperature range. Note conflict: output current rating 3.5 A is below minimum current limit.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": false,
+          "additional_signals": [],
+          "end": 0.001,
+          "level": null,
+          "offset": 0.0,
+          "operation": "max",
+          "reference": null,
+          "rising": true,
+          "scale": 1.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "I(L1)",
+          "start": 0.0005,
+          "trigger": null,
+          "trigger_level": null,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "V(COMP)": 2.0,
+          "V(SS)": 0.8,
+          "V(VSENSE)": 0.8,
+          "VIN": 12.0
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure peak inductor current under overload to assess current limit threshold.",
+        "step": 1e-08,
+        "stop": 0.001,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "BOOT",
+          "COMP": "COMP",
+          "EN": "EN",
+          "GND": "0",
+          "PH": "PH",
+          "POWERPAD": "0",
+          "SS": "SS",
+          "VIN": "VIN",
+          "VSENSE": "VSENSE"
+        },
+        "unit": "A"
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 5,
+      "statement": "Current limit threshold is 4.2 A minimum and 6.5 A maximum.",
+      "target": null,
+      "typ_value": null,
+      "unit": "A"
+    },
+    {
+      "char_id": "B002_REQ-018",
+      "conditions": [],
+      "excerpt": "Thermal Shutdown 165 \u00b0C",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Thermal shutdown temperature is 165 \u00b0C typical; temperature verification restricted to nominal 25 \u00b0C, so wider thermal range is not testable.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 5,
+      "statement": "Thermal shutdown temperature is 165 \u00b0C typical.",
+      "target": 165.0,
+      "typ_value": 165.0,
+      "unit": "C"
+    },
+    {
+      "char_id": "B002_REQ-019",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "V(SS) = 0.4 V"
+        }
+      ],
+      "excerpt": "Charge current V(SS) = 0.4 V 2 \u03bcA",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V1 VIN 0 12",
+          "V2 EN 0 12",
+          "V3 SS 0 0.4",
+          "V4 VSENSE 0 0.8",
+          "Cboot BOOT PH 0.1u",
+          "Rph PH 0 1k",
+          "Ccomp COMP 0 10n"
+        ],
+        "condition_evidence": "Conditions from B002_REQ-019: V(SS)=0.4 V. Fixture forces VIN=12 V, EN high, VSENSE=0.8 V, SS=0.4 V, PH tied to ground via 1 k\u03a9, COMP compensation 10 nF. Measures current through SS forcing source after settling. Covers typical SS charge current; does not cover temperature or other SS voltages.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": true,
+          "additional_signals": [],
+          "end": 0.001,
+          "level": null,
+          "offset": 0.0,
+          "operation": "mean",
+          "reference": null,
+          "rising": true,
+          "scale": 1.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "I(V3)",
+          "start": 0.0005,
+          "trigger": null,
+          "trigger_level": null,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "V(SS)": 0.4,
+          "V(VSENSE)": 0.8,
+          "VIN": 12.0
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure slow-start charge current at V(SS)=0.4 V.",
+        "step": 1e-08,
+        "stop": 0.001,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "BOOT",
+          "COMP": "COMP",
+          "EN": "EN",
+          "GND": "0",
+          "PH": "PH",
+          "POWERPAD": "0",
+          "SS": "SS",
+          "VIN": "VIN",
+          "VSENSE": "VSENSE"
+        },
+        "unit": "A"
+      },
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 5,
+      "statement": "Slow-start charge current is 2 \u00b5A typical.",
+      "target": 2e-06,
+      "typ_value": 2e-06,
+      "unit": "A"
+    },
+    {
+      "char_id": "B002_REQ-020",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "V(SS) = 0.4 V"
+        }
+      ],
+      "excerpt": "SS to VSENSE matching V(SS) = 0.4 V 10 mV",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V1 VIN 0 12",
+          "V2 EN 0 12",
+          "V3 SS 0 0.4",
+          "Cboot BOOT PH 0.1u",
+          "L1 PH OUT 10u",
+          "C1 OUT 0 22u",
+          "Rload OUT 0 10",
+          "Bdiode PH 0 I=if(V(PH)<0, V(PH)/0.1, 0)",
+          "R1 OUT VSENSE 31.25k",
+          "R2 VSENSE 0 10k",
+          "Ccomp COMP 0 10n"
+        ],
+        "condition_evidence": "Conditions from B002_REQ-020: V(SS)=0.4 V. Fixture forces VIN=12 V, EN high, SS=0.4 V, feedback divider R1=31.25 k\u03a9, R2=10 k\u03a9 sets nominal output for VSENSE\u22480.4 V. Measures VSENSE after settling. Covers typical SS-to-VSENSE matching; does not cover temperature or other SS voltages.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": false,
+          "additional_signals": [],
+          "end": 0.002,
+          "level": null,
+          "offset": 0.0,
+          "operation": "mean",
+          "reference": null,
+          "rising": true,
+          "scale": 1.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "V(VSENSE)",
+          "start": 0.0015,
+          "trigger": null,
+          "trigger_level": null,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "V(SS)": 0.4,
+          "VIN": 12.0
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure VSENSE voltage while SS is held at 0.4 V to assess SS-to-VSENSE matching.",
+        "step": 1e-08,
+        "stop": 0.002,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "BOOT",
+          "COMP": "COMP",
+          "EN": "EN",
+          "GND": "0",
+          "PH": "PH",
+          "POWERPAD": "0",
+          "SS": "SS",
+          "VIN": "VIN",
+          "VSENSE": "VSENSE"
+        },
+        "unit": "V"
+      },
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 5,
+      "statement": "SS to VSENSE matching is 10 mV typical.",
+      "target": 0.01,
+      "typ_value": 0.01,
+      "unit": "V"
+    },
+    {
+      "char_id": "B002_REQ-021",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "VIN = 12 V, 25\u00b0C"
+        }
+      ],
+      "excerpt": "TPS54332 Switching Frequency VIN = 12 V, 25\u00b0C 800 1000 1200 kHz",
+      "max_value": 1200000.0,
+      "min_value": 800000.0,
+      "not_testable_reason": "No frequency measurement operation is available; delay yields time, not Hz, and switching frequency requires period-to-frequency conversion not supported by the measurement schema.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 5,
+      "statement": "TPS54332 switching frequency is 800 kHz minimum, 1000 kHz typical, and 1200 kHz maximum.",
+      "target": 1000000.0,
+      "typ_value": 1000000.0,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "B002_REQ-022",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "VIN = 12 V, 25\u00b0C"
+        }
+      ],
+      "excerpt": "Minimum controllable on time VIN = 12 V, 25\u00b0C 110 135 ns",
+      "max_value": 1.35e-07,
+      "min_value": 1.1e-07,
+      "not_testable_reason": "invalid test fixture: 1 validation error for CircuitRecipe\n  Value error, transient needs 1 to 1,000,000 maximum-step intervals [type=value_error, input_value={'purpose': 'Measure mini...rollable on time only.'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error; no measurement accepted",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 5,
+      "statement": "Minimum controllable on time is 110 ns minimum and 135 ns maximum.",
+      "target": null,
+      "typ_value": null,
+      "unit": "s"
+    },
+    {
+      "char_id": "B002_REQ-023",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "BOOT-PH = 6 V; Specified by design"
+        }
+      ],
+      "excerpt": "Maximum controllable duty ratio(1) BOOT-PH = 6 V 90% 93%",
+      "max_value": 93.0,
+      "min_value": 90.0,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V_VIN VIN 0 12",
+          "C_VIN VIN 0 10u",
+          "R_EN VIN EN 100k",
+          "C_SS SS 0 10n",
+          "C_BOOT BOOT PH 0.1u",
+          "R_COMP COMP COMP_MID 10k",
+          "C_COMP COMP_MID 0 1n",
+          "L_OUT PH VOUT 10u",
+          "C_OUT VOUT 0 100u",
+          "R_FB1 VOUT VSENSE 133.75k",
+          "R_FB2 VSENSE 0 10k",
+          "R_LOAD VOUT 0 50"
+        ],
+        "condition_evidence": "Datasheet B002_REQ-023: maximum controllable duty ratio 90% min, 93% max at BOOT-PH=6 V (specified by design). Fixture VIN=12 V (>6 V to ensure BOOT-PH=6 V), forces duty above max by setting VOUT=11.5 V (requires ~95.8% duty). Load 0.23 A. Measures average PH voltage / VIN * 100. Scope is max duty ratio limit.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": false,
+          "additional_signals": [],
+          "end": 0.006,
+          "level": null,
+          "offset": 0.0,
+          "operation": "mean",
+          "reference": null,
+          "rising": true,
+          "scale": 8.333333333333334,
+          "second_end": null,
+          "second_start": null,
+          "signal": "V(PH)",
+          "start": 0.005,
+          "trigger": null,
+          "trigger_level": null,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "VIN": 12.0,
+          "VOUT": 11.5
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure maximum controllable duty ratio by forcing high duty cycle and measuring PH average voltage.",
+        "step": 1e-08,
+        "stop": 0.006,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "BOOT",
+          "COMP": "COMP",
+          "EN": "EN",
+          "GND": "0",
+          "PH": "PH",
+          "POWERPAD": "0",
+          "SS": "SS",
+          "VIN": "VIN",
+          "VSENSE": "VSENSE"
+        },
+        "unit": "%"
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 5,
+      "statement": "Maximum controllable duty ratio is 90% minimum and 93% maximum. Specified by design.",
+      "target": null,
+      "typ_value": null,
+      "unit": "%"
+    },
+    {
+      "char_id": "B002_REQ-024",
+      "conditions": [],
+      "excerpt": "The integrated 80-m\u03a9 high-side MOSFET allows for high-efficiency power supply designs with continuous output currents up to 3.5 A.",
+      "max_value": 3.5,
+      "min_value": null,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 8,
+      "statement": "Continuous output currents are supported up to 3.5 A.",
+      "target": null,
+      "typ_value": null,
+      "unit": "A"
+    },
+    {
+      "char_id": "B002_REQ-025",
+      "conditions": [],
+      "excerpt": "The boot capacitor voltage is monitored by an UVLO circuit and turns the high-side MOSFET off when the voltage falls below a preset threshold of 2.1 V typically.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Typical internal boot-to-PH UVLO threshold; no direct pin to force BOOT-PH and observe high-side turn-off without unspecified internal probing.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 8,
+      "statement": "Boot-to-PH UVLO preset threshold is 2.1 V typical; high-side MOSFET turns off when BOOT-PH falls below this threshold.",
+      "target": 2.1,
+      "typ_value": 2.1,
+      "unit": "V"
+    },
+    {
+      "char_id": "B002_REQ-026",
+      "conditions": [],
+      "excerpt": "The EN pin has an internal pullup current source that provides the default condition of the TPS54332 operating when the EN pin floats.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 9,
+      "statement": "The EN pin has an internal pullup current source that provides the default condition of the TPS54332 operating when the EN pin floats.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B002_REQ-027",
+      "conditions": [],
+      "excerpt": "TI recommends using an external VIN UVLO to add Hysteresis unless VIN is greater than (V OUT + 2 V).",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 9,
+      "statement": "TI recommends using an external VIN UVLO to add hysteresis unless VIN is greater than (VOUT + 2 V).",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B002_REQ-028",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "EN voltage exceeds 1.25 V"
+        }
+      ],
+      "excerpt": "After the EN pin voltage exceeds 1.25 V, an additional 3 \u03bcA of hysteresis is added.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 10,
+      "statement": "After the EN pin voltage exceeds 1.25 V, an additional 3 \u00b5A of hysteresis is added.",
+      "target": 3e-06,
+      "typ_value": 3e-06,
+      "unit": "A"
+    },
+    {
+      "char_id": "B002_REQ-029",
+      "conditions": [],
+      "excerpt": "The VSTOP must always be greater than 3.5 V.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "no numeric limit; this fixture interpreter measures numeric characteristics",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 10,
+      "statement": "VSTOP must always be greater than 3.5 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B002_REQ-030",
+      "conditions": [],
+      "excerpt": "The slow-start time must be set between 1 ms to 10 ms to make sure of good start-up behavior.",
+      "max_value": 0.01,
+      "min_value": 0.001,
+      "not_testable_reason": "Slow-start time is an application design constraint set by external capacitor; not a DUT electrical characteristic measurable in a fixture.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 10,
+      "statement": "Slow-start time must be set between 1 ms and 10 ms.",
+      "target": null,
+      "typ_value": null,
+      "unit": "s"
+    },
+    {
+      "char_id": "B002_REQ-031",
+      "conditions": [],
+      "excerpt": "The slow-start capacitor must be no more than 27 nF.",
+      "max_value": 2.7e-08,
+      "min_value": null,
+      "not_testable_reason": "Slow-start capacitor maximum is a component selection constraint, not a DUT measurement.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 10,
+      "statement": "Slow-start capacitor must be no more than 27 nF.",
+      "target": null,
+      "typ_value": null,
+      "unit": "F"
+    },
+    {
+      "char_id": "B002_REQ-032",
+      "conditions": [],
+      "excerpt": "If during normal operation, the input voltage drops below the VIN UVLO threshold, or the EN pin is pulled below 1.25 V, or a thermal shutdown event occurs, the TPS54332 stops switching.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 10,
+      "statement": "If during normal operation the input voltage drops below the VIN UVLO threshold, or the EN pin is pulled below 1.25 V, or a thermal shutdown event occurs, the TPS54332 stops switching.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B002_REQ-033",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "between BOOT and PH pin"
+        }
+      ],
+      "excerpt": "The TPS54332 has an integrated boot regulator and requires a 0.1- \u03bcF ceramic capacitor between the BOOT and PH pin to provide the gate drive voltage for the high-side MOSFET.",
+      "max_value": 1e-07,
+      "min_value": 1e-07,
+      "not_testable_reason": "Bootstrap capacitor value is a required external component condition, not a DUT output measurement.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 9,
+      "statement": "Bootstrap requires a 0.1 \u00b5F ceramic capacitor between the BOOT and PH pin.",
+      "target": null,
+      "typ_value": null,
+      "unit": "F"
+    },
+    {
+      "char_id": "B002_REQ-034",
+      "conditions": [],
+      "excerpt": "A ceramic capacitor with an X7R or X5R grade dielectric is recommended because of the stable characteristics over temperature and voltage.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 9,
+      "statement": "A ceramic capacitor with an X7R or X5R grade dielectric is recommended for the BOOT capacitor because of stable characteristics over temperature and voltage.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B003_TPS54332DDA-VIN-RANGE",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "TPS54332 column of comparison table"
+        }
+      ],
+      "excerpt": "Input voltage range 3.5 V \u2013 28 V 3.5 V \u2013 28 V 3.5 V \u2013 28 V 3.5 V \u2013 28 V 3.5 V \u2013 28 V",
+      "max_value": 28.0,
+      "min_value": 3.5,
+      "not_testable_reason": "Recommended operating input voltage range; fixture condition, not a measurable DUT output.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 13,
+      "statement": "TPS54332DDA input voltage range is 3.5 V to 28 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-IO-MAX",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "TPS54332 column of comparison table"
+        }
+      ],
+      "excerpt": "IO(maximum) 2 A 2 A 2 A 3 A 3.5 A",
+      "max_value": 3.5,
+      "min_value": null,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V_VIN VIN 0 12",
+          "C_VIN VIN 0 10u",
+          "R_EN VIN EN 100k",
+          "C_SS SS 0 10n",
+          "C_BOOT BOOT PH 0.1u",
+          "R_COMP COMP COMP_MID 10k",
+          "C_COMP COMP_MID 0 1n",
+          "L_OUT PH VOUT 10u",
+          "C_OUT VOUT 0 100u",
+          "R_FB1 VOUT VSENSE 31.25k",
+          "R_FB2 VSENSE 0 10k",
+          "R_SENSE VOUT N_LOAD 0.1",
+          "R_LOAD N_LOAD 0 0.942857"
+        ],
+        "condition_evidence": "Datasheet B003_TPS54332DDA-IO-MAX: maximum output current 3.5 A (comparison table). Fixture VIN=12 V, VOUT=3.3 V, load resistor 0.942857 \u03a9 with 0.1 \u03a9 sense. Measures actual output current at the 3.5 A in-range point. Scope is maximum output current limit.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": false,
+          "additional_signals": [],
+          "end": 0.006,
+          "level": null,
+          "offset": 0.0,
+          "operation": "mean",
+          "reference": null,
+          "rising": true,
+          "scale": 10.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "V(VOUT,N_LOAD)",
+          "start": 0.005,
+          "trigger": null,
+          "trigger_level": null,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "IOUT": 3.5,
+          "VIN": 12.0,
+          "VOUT": 3.3
+        },
+        "points_per_decade": 60,
+        "purpose": "Verify device can supply 3.5 A continuous output current.",
+        "step": 1e-08,
+        "stop": 0.006,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "BOOT",
+          "COMP": "COMP",
+          "EN": "EN",
+          "GND": "0",
+          "PH": "PH",
+          "POWERPAD": "0",
+          "SS": "SS",
+          "VIN": "VIN",
+          "VSENSE": "VSENSE"
+        },
+        "unit": "A"
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 13,
+      "statement": "TPS54332DDA maximum output current IO(maximum) is 3.5 A.",
+      "target": null,
+      "typ_value": null,
+      "unit": "A"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-FSW-TYP",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "TPS54332 column of comparison table"
+        }
+      ],
+      "excerpt": "Switching frequency (typical) 570 kHz 1000 kHz 285 kHz 570 kHz 1000 kHz",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Switching frequency is a timing parameter; supported operations do not directly yield frequency in Hz (delay yields period in seconds, no inversion).",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 13,
+      "statement": "TPS54332DDA switching frequency is typically 1000 kHz.",
+      "target": 1000000.0,
+      "typ_value": 1000000.0,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-SWITCH-CURRENT-LIMIT-MIN",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "TPS54332 column of comparison table"
+        }
+      ],
+      "excerpt": "Switch current limit (minimum) 2.3 A 2.3 A 2.3 A 3.5 A 4.2 A",
+      "max_value": null,
+      "min_value": 4.2,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V_VIN VIN 0 12",
+          "C_VIN VIN 0 10u",
+          "R_EN VIN EN 100k",
+          "C_SS SS 0 10n",
+          "C_BOOT BOOT PH 0.1u",
+          "R_COMP COMP COMP_MID 10k",
+          "C_COMP COMP_MID 0 1n",
+          "L_OUT PH N_IND 10u",
+          "V_IND N_IND VOUT 0",
+          "C_OUT VOUT 0 100u",
+          "R_FB1 VOUT VSENSE 31.25k",
+          "R_FB2 VSENSE 0 10k",
+          "R_LOAD VOUT 0 0.66"
+        ],
+        "condition_evidence": "Datasheet B003_TPS54332DDA-SWITCH-CURRENT-LIMIT-MIN: switch current limit minimum 4.2 A at VIN=12 V (comparison table). Fixture VIN=12 V, VOUT nominal 3.3 V, load 0.66 \u03a9 to force current limit. Measures peak inductor current via 0 V sense source. Scope is minimum switch current limit.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": false,
+          "additional_signals": [],
+          "end": 0.006,
+          "level": null,
+          "offset": 0.0,
+          "operation": "max",
+          "reference": null,
+          "rising": true,
+          "scale": 1.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "I(V_IND)",
+          "start": 0.005,
+          "trigger": null,
+          "trigger_level": null,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "VIN": 12.0,
+          "VOUT": 3.3
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure peak switch/inductor current when device is forced into current limit.",
+        "step": 1e-08,
+        "stop": 0.006,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "BOOT",
+          "COMP": "COMP",
+          "EN": "EN",
+          "GND": "0",
+          "PH": "PH",
+          "POWERPAD": "0",
+          "SS": "SS",
+          "VIN": "VIN",
+          "VSENSE": "VSENSE"
+        },
+        "unit": "A"
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 13,
+      "statement": "TPS54332DDA switch current limit minimum is 4.2 A.",
+      "target": null,
+      "typ_value": null,
+      "unit": "A"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-FSW-FIXED",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "TPS54332"
+        }
+      ],
+      "excerpt": "The switching frequency for the TPS54332 is fixed at 1 MHz.",
+      "max_value": 1000000.0,
+      "min_value": 1000000.0,
+      "not_testable_reason": "Switching frequency is a timing parameter; supported operations do not directly yield frequency in Hz (delay yields period in seconds, no inversion).",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 14,
+      "statement": "TPS54332DDA switching frequency is fixed at 1 MHz.",
+      "target": null,
+      "typ_value": null,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-OC-COMP-CLAMP",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Overcurrent protection"
+        }
+      ],
+      "excerpt": "The COMP pin has a maximum clamp internally, which limit the \noutput current.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 11,
+      "statement": "The COMP pin has a maximum clamp internally, which limits the output current.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B003_TPS54332DDA-FREQ-SHIFT-SHORT",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Short-circuit conditions"
+        }
+      ],
+      "excerpt": "The TPS54332 solves this issue by increasing the off-time \nduring short circuit conditions by lowering the switching frequency. The switching frequency is divided by 8, 4, 2, \nand 1 as the voltage ramps from 0 V to 0.8 V on VSENSE pin.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 11,
+      "statement": "During short-circuit conditions, TPS54332 increases off-time by lowering switching frequency; switching frequency is divided by 8, 4, 2, and 1 as the voltage ramps from 0 V to 0.8 V on VSENSE pin.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B003_TPS54332DDA-FSW-VSENSE-0P6",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "VSENSE \u2265 0.6 V"
+        }
+      ],
+      "excerpt": "1 MHz VSENSE \u2265 0.6 V",
+      "max_value": 1000000.0,
+      "min_value": 1000000.0,
+      "not_testable_reason": "Switching frequency is a timing parameter; supported operations do not directly yield frequency in Hz (delay yields period in seconds, no inversion).",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 11,
+      "statement": "Switching frequency is 1 MHz when VSENSE is greater than or equal to 0.6 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-FSW-VSENSE-0P4-0P6",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "0.6 V > VSENSE \u2265 0.4 V"
+        }
+      ],
+      "excerpt": "1 MHz / 2 0.6 V > VSENSE \u2265 0.4 V",
+      "max_value": 500000.0,
+      "min_value": 500000.0,
+      "not_testable_reason": "Switching frequency measurement requires a frequency counter or period-to-frequency conversion not supported by the allowed measurement operations; also requires a complete buck power stage with external diode not available in allowed primitives.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 11,
+      "statement": "Switching frequency is 1 MHz / 2 (500 kHz) when 0.6 V > VSENSE \u2265 0.4 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-FSW-VSENSE-0P2-0P4",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "0.4 V > VSENSE \u2265 0.2 V"
+        }
+      ],
+      "excerpt": "1 MHz / 4 0.4 V > VSENSE \u2265 0.2 V",
+      "max_value": 250000.0,
+      "min_value": 250000.0,
+      "not_testable_reason": "Switching frequency measurement requires a frequency counter or period-to-frequency conversion not supported by the allowed measurement operations; also requires a complete buck power stage with external diode not available in allowed primitives.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 11,
+      "statement": "Switching frequency is 1 MHz / 4 (250 kHz) when 0.4 V > VSENSE \u2265 0.2 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-FSW-VSENSE-BELOW-0P2",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "0.2 V > VSENSE"
+        }
+      ],
+      "excerpt": "1 MHz / 8 0.2 V > VSENSE",
+      "max_value": 125000.0,
+      "min_value": 125000.0,
+      "not_testable_reason": "Switching frequency measurement requires a frequency counter or period-to-frequency conversion not supported by the allowed measurement operations; also requires a complete buck power stage with external diode not available in allowed primitives.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 11,
+      "statement": "Switching frequency is 1 MHz / 8 (125 kHz) when 0.2 V > VSENSE.",
+      "target": null,
+      "typ_value": null,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-OVTP-OFF",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Overvoltage transient protection"
+        }
+      ],
+      "excerpt": "When the VSENSE pin \nvoltage goes above 109% \u00d7 Vref, the high-side MOSFET is forced off.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "invalid test fixture: B003_TPS54332DDA-OVTP-OFF: relative bound requires explicit Vref; no measurement accepted",
+      "probe": null,
+      "probe_params": {},
+      "relative_limits": {
+        "min": {
+          "factor": 1.09,
+          "offset": 0.0,
+          "parameter": "Vref",
+          "schema_version": 2
+        }
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 11,
+      "statement": "When VSENSE goes above 109% \u00d7 Vref, the high-side MOSFET is forced off.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-OVTP-ENABLE",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Overvoltage transient protection"
+        }
+      ],
+      "excerpt": "When the VSENSE pin voltage falls below \n107% \u00d7 Vref, the high-side MOSFET is enabled again.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "invalid test fixture: B003_TPS54332DDA-OVTP-ENABLE: relative bound requires explicit Vref; no measurement accepted",
+      "probe": null,
+      "probe_params": {},
+      "relative_limits": {
+        "max": {
+          "factor": 1.07,
+          "offset": 0.0,
+          "parameter": "Vref",
+          "schema_version": 2
+        }
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 11,
+      "statement": "When VSENSE falls below 107% \u00d7 Vref, the high-side MOSFET is enabled again.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-THERMAL-SHUTDOWN",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Internal thermal shutdown"
+        }
+      ],
+      "excerpt": "The device implements an internal thermal shutdown to protect itself if the junction temperature exceeds 165\u00b0C. \nThe thermal shutdown forces the device to stop switching when the junction temperature exceeds the thermal \ntrip threshold. After the die temperature decreases below 165\u00b0C, the device reinitiates the power-up sequence.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "no numeric limit; this fixture interpreter measures numeric characteristics",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 11,
+      "statement": "Thermal shutdown forces the device to stop switching when junction temperature exceeds 165\u00b0C; after die temperature decreases below 165\u00b0C, the device reinitiates the power-up sequence.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B003_TPS54332DDA-UVLO-BEHAVIOR",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Operation With VIN < 3.5 V"
+        }
+      ],
+      "excerpt": "TI recommends the device operate with input voltages above 3.5 V. The typical VIN UVLO threshold is not \nspecified and the device can operate at input voltages down to the UVLO voltage. At input voltages below the \nactual UVLO voltage, the device does not switch.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 11,
+      "statement": "TI recommends operating with input voltages above 3.5 V; typical VIN UVLO threshold is not specified and the device can operate down to the UVLO voltage. At input voltages below the actual UVLO voltage, the device does not switch.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B003_TPS54332DDA-EN-THRESHOLD-TYP",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "EN control"
+        }
+      ],
+      "excerpt": "The enable threshold voltage is 1.25 V typical.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V1 nvin 0 12",
+          "C1 nvin 0 10e-6",
+          "Vramp nen 0 PWL(0 0 2e-3 2)",
+          "C2 nss 0 10e-9",
+          "Cboot nboot nph 0.1e-6",
+          "Rph nph 0 10",
+          "Vvsense nvsense 0 0.9",
+          "Rcomp ncomp 0 1000"
+        ],
+        "condition_evidence": "Datasheet section 7.4.2 (page 11) states enable threshold voltage is 1.25 V typical. Fixture: VIN=12 V, VSENSE forced to 0.9 V to inhibit high-side switching, BOOT cap 0.1 uF, PH loaded with 10 ohm to GND, SS cap 10 nF, EN ramped 0\u20132 V in 2 ms. Threshold measured as EN when SS pin crosses 0.1 V rising.",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": false,
+          "additional_signals": [],
+          "end": 0.004,
+          "level": null,
+          "offset": 0.0,
+          "operation": "crossing_value",
+          "reference": null,
+          "rising": true,
+          "scale": 1.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "V(nen)",
+          "start": 0.0,
+          "trigger": "V(nss)",
+          "trigger_level": 0.1,
+          "trigger_rising": true
+        },
+        "operating_point": {
+          "VIN": 12.0,
+          "VSENSE": 0.9
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure EN rising threshold voltage.",
+        "step": 1e-06,
+        "stop": 0.004,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "nboot",
+          "COMP": "ncomp",
+          "EN": "nen",
+          "GND": "0",
+          "PH": "nph",
+          "POWERPAD": "0",
+          "SS": "nss",
+          "VIN": "nvin",
+          "VSENSE": "nvsense"
+        },
+        "unit": "V"
+      },
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 11,
+      "statement": "Enable threshold voltage is 1.25 V typical.",
+      "target": 1.25,
+      "typ_value": 1.25,
+      "unit": "V"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-EN-BEHAVIOR",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "EN control"
+        }
+      ],
+      "excerpt": "With EN held below that voltage the device is disabled and \nswitching is inhibited even if VIN is above its UVLO threshold. The IC quiescent current is reduced in this state.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "UNKNOWN",
+      "source_page": 11,
+      "statement": "With EN held below the threshold, the device is disabled and switching is inhibited even if VIN is above its UVLO threshold; if EN is increased above the threshold while VIN is above UVLO, the device becomes active and switching is enabled, initiating soft-start.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B003_TPS54332DDA-ECOMODE-COMP-V",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Eco-mode light-load operation"
+        }
+      ],
+      "excerpt": "When the peak inductor current is lower than pulse skip threshold, the COMP pin voltage falls to 0.5 V (typical) \nand the device enters Eco-mode . When the device is in Eco-mode, the COMP pin voltage is clamped at 0.5 V \ninternally which prevents the high-side integrated MOSFET from switching.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Eco-mode light-load entry and COMP pin 0.5 V clamp require a complete buck power stage with inductor, output capacitor, and external catch diode to establish peak inductor current below the pulse-skip threshold; allowed primitives do not include a diode and the exact power-stage values are not provided in the evidence.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 12,
+      "statement": "When peak inductor current is lower than the pulse skip threshold, COMP pin voltage falls to 0.5 V typical and the device enters Eco-mode; COMP pin voltage is clamped at 0.5 V internally, preventing the high-side integrated MOSFET from switching.",
+      "target": 0.5,
+      "typ_value": 0.5,
+      "unit": "V"
+    },
+    {
+      "char_id": "B003_TPS54332DDA-ECOMODE-EXIT-IPEAK",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Eco-mode exit"
+        }
+      ],
+      "excerpt": "The peak inductor current must rise \nabove 160 mA for the COMP pin voltage to rise above 0.5 V and exit Eco-mode.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "no numeric limit; this fixture interpreter measures numeric characteristics",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 12,
+      "statement": "The peak inductor current must rise above 160 mA for COMP pin voltage to rise above 0.5 V and exit Eco-mode.",
+      "target": null,
+      "typ_value": null,
+      "unit": ""
+    },
+    {
+      "char_id": "B004_TPS54332DDA_VREF",
+      "conditions": [],
+      "excerpt": "VREF = 0.8 V",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "V1 nvin 0 12",
+          "C1 nvin 0 10e-6",
+          "V2 nen 0 2",
+          "C2 nss 0 10e-9",
+          "Cboot nboot nph 0.1e-6",
+          "Rph nph 0 10",
+          "Vramp nvsense 0 PWL(0 0.7 1e-3 0.9)",
+          "Vbias ncomp_bias 0 1",
+          "Rcomp ncomp ncomp_bias 100e3"
+        ],
+        "condition_evidence": "Datasheet section 8.2.2.8 Compensation Components (page 17) states VREF = 0.8 V. Fixture: VIN=12 V, EN=2 V, SS cap 10 nF, BOOT cap 0.1 uF, PH loaded with 10 ohm to GND, VSENSE ramped 0.7\u20130.9 V in 1 ms, COMP biased to 1 V through 100 kohm. VREF measured as VSENSE when COMP crosses 1 V (falling).",
+        "frequency_end": 100000000.0,
+        "frequency_start": 1.0,
+        "measurement": {
+          "absolute": false,
+          "additional_signals": [],
+          "end": 0.002,
+          "level": null,
+          "offset": 0.0,
+          "operation": "crossing_value",
+          "reference": null,
+          "rising": true,
+          "scale": 1.0,
+          "second_end": null,
+          "second_start": null,
+          "signal": "V(nvsense)",
+          "start": 0.0,
+          "trigger": "V(ncomp)",
+          "trigger_level": 1.0,
+          "trigger_rising": false
+        },
+        "operating_point": {
+          "EN": 2.0,
+          "VIN": 12.0
+        },
+        "points_per_decade": 60,
+        "purpose": "Measure internal reference voltage VREF via error amplifier crossover.",
+        "step": 1e-06,
+        "stop": 0.002,
+        "temperature": 25.0,
+        "terminals": {
+          "BOOT": "nboot",
+          "COMP": "ncomp",
+          "EN": "nen",
+          "GND": "0",
+          "PH": "nph",
+          "POWERPAD": "0",
+          "SS": "nss",
+          "VIN": "nvin",
+          "VSENSE": "nvsense"
+        },
+        "unit": "V"
+      },
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 17,
+      "statement": "Reference voltage VREF is 0.8 V.",
+      "target": 0.8,
+      "typ_value": 0.8,
+      "unit": "V"
+    },
+    {
+      "char_id": "B004_TPS54332DDA_GMCOMP",
+      "conditions": [],
+      "excerpt": "GMCOMP = 12 A/V",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "GMCOMP is a transconductance parameter (A/V) whose measurement requires observing internal switch current or modulator gain under switching operation; no supported measurement operation and no complete power-stage evidence are provided.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 18,
+      "statement": "Error amplifier transconductance GMCOMP is 12 A/V.",
+      "target": 12.0,
+      "typ_value": 12.0,
+      "unit": "A/V"
+    },
+    {
+      "char_id": "B004_TPS54332DDA_ROA",
+      "conditions": [],
+      "excerpt": "ROA = 8.696 M\u03a9.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 17,
+      "statement": "Compensation parameter ROA is 8.696 M\u03a9.",
+      "target": 8696000.0,
+      "typ_value": 8696000.0,
+      "unit": "ohm"
+    },
+    {
+      "char_id": "B004_TPS54332DDA_RSENSE",
+      "conditions": [],
+      "excerpt": "RSENSE = 1 \u03a9 / 12",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 17,
+      "statement": "Current-sense equivalent resistance RSENSE is 1 \u03a9 / 12.",
+      "target": 0.08333333333333333,
+      "typ_value": 0.08333333333333333,
+      "unit": "ohm"
+    },
+    {
+      "char_id": "B004_TPS54332DDA_FCO_MAX_75KHZ",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "for the TPS54332 TI recommends that the maximum\nclosed-loop crossover frequency be not greater than 75 kHz"
+        }
+      ],
+      "excerpt": "for the TPS54332 TI recommends that the maximum\nclosed-loop crossover frequency be not greater than 75 kHz.",
+      "max_value": 75000.0,
+      "min_value": null,
+      "not_testable_reason": "Closed-loop crossover frequency is a design recommendation dependent on external compensation; not a directly measurable device parameter with the supplied evidence and allowed primitives.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 17,
+      "statement": "TI recommends maximum closed-loop crossover frequency not greater than 75 kHz for TPS54332.",
+      "target": null,
+      "typ_value": null,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "B004_TPS54332DDA_FCO_LT_1_8_FSW_MIN",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "The closed-loop crossover frequency must be \nless than 1/8 of the minimum operating frequency"
+        }
+      ],
+      "excerpt": "The closed-loop crossover frequency must be \nless than 1/8 of the minimum operating frequency",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Design guideline relating closed-loop crossover frequency to minimum operating frequency; not a directly measurable device parameter.",
+      "probe": null,
+      "probe_params": {},
+      "relative_limits": {
+        "max": {
+          "factor": 0.125,
+          "offset": 0.0,
+          "parameter": "Fsw_min",
+          "schema_version": 2
+        }
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 17,
+      "statement": "Closed-loop crossover frequency must be less than 1/8 of the minimum operating frequency.",
+      "target": null,
+      "typ_value": null,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "B004_TPS54332DDA_FCO_DESIRABLE_LT_1_5_FSW",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "keeping the closed-loop crossover frequency at less than 1/5 of the switching frequency is desirable"
+        }
+      ],
+      "excerpt": "In general, keeping the\nclosed-loop crossover frequency at less than 1/5 of the switching frequency is desirable",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Desirable design guideline; not a directly measurable device parameter.",
+      "probe": null,
+      "probe_params": {},
+      "relative_limits": {
+        "max": {
+          "factor": 0.2,
+          "offset": 0.0,
+          "parameter": "Fsw",
+          "schema_version": 2
+        }
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 16,
+      "statement": "Keeping closed-loop crossover frequency at less than 1/5 of the switching frequency is desirable.",
+      "target": null,
+      "typ_value": null,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "B005_REQ-001",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Power Supply Recommendations"
+        }
+      ],
+      "excerpt": "The devices are designed to operate from an input voltage supply range between 3.5 V and 28 V. This input supply must be well regulated.",
+      "max_value": 28.0,
+      "min_value": 3.5,
+      "not_testable_reason": "Recommended operating input voltage range (3.5 V to 28 V) defines fixture conditions, not a DUT output measurement. The prompt states recommended operating ranges are unbound. No single in-range point can verify the full range, and it is not a measurable limit at a pin.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 22,
+      "statement": "The device is designed to operate from an input voltage supply range between 3.5 V and 28 V.",
+      "target": null,
+      "typ_value": null,
+      "unit": "V"
+    },
+    {
+      "char_id": "B005_REQ-002",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Every TPS54332 design; bootstrap capacitor located between PH and BOOT"
+        }
+      ],
+      "excerpt": "Every TPS54332 design requires a bootstrap capacitor, C4. The bootstrap capacitor must be 0.1 \u03bcF. The bootstrap capacitor is located between the PH pins and BOOT pin. The bootstrap capacitor must be a high-quality, ceramic type with X7R or X5R grade dielectric for temperature stability.",
+      "max_value": 1e-07,
+      "min_value": 1e-07,
+      "not_testable_reason": "citation_unverified: test circuit cannot be grounded in the cited page",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 19,
+      "statement": "Every TPS54332 design requires a bootstrap capacitor of 0.1 \u00b5F located between the PH pins and BOOT pin, and it must be a high-quality ceramic type with X7R or X5R grade dielectric.",
+      "target": null,
+      "typ_value": null,
+      "unit": "F"
+    },
+    {
+      "char_id": "B005_REQ-003",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Output Voltage Limitations, upper limit constrained by maximum duty cycle"
+        }
+      ],
+      "excerpt": "The upper limit of the output voltage set point is constrained by the maximum duty cycle of 91% and is given by Equation 32.",
+      "max_value": 91.0,
+      "min_value": null,
+      "not_testable_reason": "Design constraint on output voltage set point (maximum duty cycle 91%) without a specified VIN, load, or BOOT-PH operating point in the verified evidence. The context max duty ratio condition is BOOT-PH = 6 V, which is not established by simple VIN connection. Cannot build a unique fixture.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 19,
+      "statement": "The upper output voltage set point is constrained by a maximum duty cycle of 91%.",
+      "target": null,
+      "typ_value": null,
+      "unit": "%"
+    },
+    {
+      "char_id": "B005_REQ-004",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Output Voltage Limitations, lower limit constrained by minimum controllable on time"
+        }
+      ],
+      "excerpt": "The lower limit is constrained by the minimum controllable on time which can be as high as 130 ns.",
+      "max_value": 1.3e-07,
+      "min_value": null,
+      "not_testable_reason": "invalid test fixture: 1 validation error for CircuitRecipe\nmeasurement\n  Value error, this measurement needs an explicit output level; zero is not a default [type=value_error, input_value={'operation': 'delay', 's...: 0.0011, 'end': 0.0015}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2; no measurement accepted",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 20,
+      "statement": "The minimum controllable on time can be as high as 130 ns, which constrains the lower output voltage limit.",
+      "target": null,
+      "typ_value": null,
+      "unit": "s"
+    },
+    {
+      "char_id": "B005_REQ-005",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Power Dissipation Estimate, TJMAX = 150\u00b0C"
+        }
+      ],
+      "excerpt": "For given TJMAX = 150\u00b0C, TAMAX = TJMAX\u2013 Rth \u00d7 Ptot.",
+      "max_value": 150.0,
+      "min_value": null,
+      "not_testable_reason": "unknown classification or absolute stress rating, not an operating target",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "ABSOLUTE_MAXIMUM",
+      "source_page": 20,
+      "statement": "Maximum junction temperature TJMAX is 150\u00b0C.",
+      "target": null,
+      "typ_value": null,
+      "unit": "C"
+    },
+    {
+      "char_id": "B005_REQ-006",
+      "conditions": [
+        {
+          "parameter_overrides": {},
+          "text": "Layout Guidelines, VIN bypass to ground"
+        }
+      ],
+      "excerpt": "The typical recommended bypass capacitance is 10- \u03bcF ceramic with a X5R or X7R dielectric and the optimum placement is closest to the VIN pins and the source of the anode of the catch diode.",
+      "max_value": null,
+      "min_value": null,
+      "not_testable_reason": "Typical recommended external VIN bypass capacitance (10 \u00b5F ceramic) is a layout/component recommendation, not a DUT electrical characteristic measurable at pins. It defines a fixture condition, not a DUT response.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "TYPICAL_VALUE",
+      "source_page": 22,
+      "statement": "The typical recommended VIN bypass capacitance is 10 \u00b5F ceramic with X5R or X7R dielectric.",
+      "target": 9.999999999999999e-06,
+      "typ_value": 9.999999999999999e-06,
+      "unit": "F"
+    }
+  ],
+  "doc_id": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D",
+  "part": "TPS54332DDA",
+  "pin_map": [
+    {
+      "behavior": [],
+      "connection_requirement": "required",
+      "direction": "output",
+      "evidence": [
+        {
+          "doc_id": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D",
+          "excerpt": "BOOT 1 O\nA 0.1-\u03bcF bootstrap capacitor is required between BOOT and PH. If the voltage on this capacitor falls \nbelow the minimum requirement, the high-side MOSFET is forced to switch off until the capacitor is \nrefreshed.",
+          "extraction": "embedded_text",
+          "figure": null,
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null,
+            "schema_version": 2
+          },
+          "schema_version": 2,
+          "section": "5 Pin Configuration and Functions",
+          "table": "Table 5-1. Pin Functions"
+        }
+      ],
+      "function": "A 0.1-\u03bcF bootstrap capacitor is required between BOOT and PH. If the voltage on this capacitor falls below the minimum requirement, the high-side MOSFET is forced to switch off until the capacitor is refreshed.",
+      "mapped_symbol_pin": null,
+      "name": "BOOT",
+      "output_topology": "power",
+      "part_id": "TPS54332DDA",
+      "physical_pin": "1",
+      "polarity": "not_applicable",
+      "schema_version": 2,
+      "supply_domain": "BOOT-PH",
+      "unused_pin_treatment": null
+    },
+    {
+      "behavior": [],
+      "connection_requirement": "required",
+      "direction": "power",
+      "evidence": [
+        {
+          "doc_id": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D",
+          "excerpt": "VIN 2 I Input supply voltage, 3.5 V to 28 V.",
+          "extraction": "embedded_text",
+          "figure": null,
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null,
+            "schema_version": 2
+          },
+          "schema_version": 2,
+          "section": "5 Pin Configuration and Functions",
+          "table": "Table 5-1. Pin Functions"
+        }
+      ],
+      "function": "Input supply voltage, 3.5 V to 28 V.",
+      "mapped_symbol_pin": null,
+      "name": "VIN",
+      "output_topology": "power",
+      "part_id": "TPS54332DDA",
+      "physical_pin": "2",
+      "polarity": "not_applicable",
+      "schema_version": 2,
+      "supply_domain": "VIN",
+      "unused_pin_treatment": null
+    },
+    {
+      "behavior": [],
+      "connection_requirement": "optional",
+      "direction": "input",
+      "evidence": [
+        {
+          "doc_id": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D",
+          "excerpt": "EN 3 I Enable pin. Pull below 1.25 V to disable. Float to enable. TI recommends programming the input \nundervoltage lockout with two resistors.",
+          "extraction": "embedded_text",
+          "figure": null,
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null,
+            "schema_version": 2
+          },
+          "schema_version": 2,
+          "section": "5 Pin Configuration and Functions",
+          "table": "Table 5-1. Pin Functions"
+        }
+      ],
+      "function": "Enable pin. Pull below 1.25 V to disable. Float to enable. TI recommends programming the input undervoltage lockout with two resistors.",
+      "mapped_symbol_pin": null,
+      "name": "EN",
+      "output_topology": "input_only",
+      "part_id": "TPS54332DDA",
+      "physical_pin": "3",
+      "polarity": "active_high",
+      "schema_version": 2,
+      "supply_domain": "VIN",
+      "unused_pin_treatment": null
+    },
+    {
+      "behavior": [],
+      "connection_requirement": "conditional",
+      "direction": "input",
+      "evidence": [
+        {
+          "doc_id": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D",
+          "excerpt": "SS 4 I Slow-start pin. An external capacitor connected to this pin sets the output rise time.",
+          "extraction": "embedded_text",
+          "figure": null,
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null,
+            "schema_version": 2
+          },
+          "schema_version": 2,
+          "section": "5 Pin Configuration and Functions",
+          "table": "Table 5-1. Pin Functions"
+        }
+      ],
+      "function": "Slow-start pin. An external capacitor connected to this pin sets the output rise time.",
+      "mapped_symbol_pin": null,
+      "name": "SS",
+      "output_topology": "input_only",
+      "part_id": "TPS54332DDA",
+      "physical_pin": "4",
+      "polarity": "not_applicable",
+      "schema_version": 2,
+      "supply_domain": null,
+      "unused_pin_treatment": null
+    },
+    {
+      "behavior": [],
+      "connection_requirement": "required",
+      "direction": "input",
+      "evidence": [
+        {
+          "doc_id": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D",
+          "excerpt": "VSENSE 5 I Inverting node of the gm error amplifier.",
+          "extraction": "embedded_text",
+          "figure": null,
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null,
+            "schema_version": 2
+          },
+          "schema_version": 2,
+          "section": "5 Pin Configuration and Functions",
+          "table": "Table 5-1. Pin Functions"
+        }
+      ],
+      "function": "Inverting node of the gm error amplifier.",
+      "mapped_symbol_pin": null,
+      "name": "VSENSE",
+      "output_topology": "input_only",
+      "part_id": "TPS54332DDA",
+      "physical_pin": "5",
+      "polarity": "not_applicable",
+      "schema_version": 2,
+      "supply_domain": null,
+      "unused_pin_treatment": null
+    },
+    {
+      "behavior": [],
+      "connection_requirement": "required",
+      "direction": "output",
+      "evidence": [
+        {
+          "doc_id": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D",
+          "excerpt": "COMP 6 O Error amplifier output, and input to the PWM comparator. Connect frequency compensation \ncomponents to this pin.",
+          "extraction": "embedded_text",
+          "figure": null,
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null,
+            "schema_version": 2
+          },
+          "schema_version": 2,
+          "section": "5 Pin Configuration and Functions",
+          "table": "Table 5-1. Pin Functions"
+        }
+      ],
+      "function": "Error amplifier output, and input to the PWM comparator. Connect frequency compensation components to this pin.",
+      "mapped_symbol_pin": null,
+      "name": "COMP",
+      "output_topology": "unknown",
+      "part_id": "TPS54332DDA",
+      "physical_pin": "6",
+      "polarity": "not_applicable",
+      "schema_version": 2,
+      "supply_domain": null,
+      "unused_pin_treatment": null
+    },
+    {
+      "behavior": [],
+      "connection_requirement": "required",
+      "direction": "ground",
+      "evidence": [
+        {
+          "doc_id": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D",
+          "excerpt": "GND 7 \u2014 Ground",
+          "extraction": "embedded_text",
+          "figure": null,
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null,
+            "schema_version": 2
+          },
+          "schema_version": 2,
+          "section": "5 Pin Configuration and Functions",
+          "table": "Table 5-1. Pin Functions"
+        }
+      ],
+      "function": "Ground",
+      "mapped_symbol_pin": null,
+      "name": "GND",
+      "output_topology": "power",
+      "part_id": "TPS54332DDA",
+      "physical_pin": "7",
+      "polarity": "not_applicable",
+      "schema_version": 2,
+      "supply_domain": "GND",
+      "unused_pin_treatment": null
+    },
+    {
+      "behavior": [],
+      "connection_requirement": "required",
+      "direction": "output",
+      "evidence": [
+        {
+          "doc_id": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D",
+          "excerpt": "PH 8 O The source of the internal high-side power MOSFET",
+          "extraction": "embedded_text",
+          "figure": null,
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null,
+            "schema_version": 2
+          },
+          "schema_version": 2,
+          "section": "5 Pin Configuration and Functions",
+          "table": "Table 5-1. Pin Functions"
+        }
+      ],
+      "function": "The source of the internal high-side power MOSFET",
+      "mapped_symbol_pin": null,
+      "name": "PH",
+      "output_topology": "power",
+      "part_id": "TPS54332DDA",
+      "physical_pin": "8",
+      "polarity": "not_applicable",
+      "schema_version": 2,
+      "supply_domain": "PH",
+      "unused_pin_treatment": null
+    },
+    {
+      "behavior": [],
+      "connection_requirement": "required",
+      "direction": "ground",
+      "evidence": [
+        {
+          "doc_id": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D",
+          "excerpt": "PowerPAD 9 \u2014 GND pin must be connected to the exposed pad for proper operation.",
+          "extraction": "embedded_text",
+          "figure": null,
+          "page": {
+            "pdf_page": 2,
+            "printed_label": null,
+            "schema_version": 2
+          },
+          "schema_version": 2,
+          "section": "5 Pin Configuration and Functions",
+          "table": "Table 5-1. Pin Functions"
+        }
+      ],
+      "function": "GND pin must be connected to the exposed pad for proper operation.",
+      "mapped_symbol_pin": null,
+      "name": "PowerPAD",
+      "output_topology": "power",
+      "part_id": "TPS54332DDA",
+      "physical_pin": "9",
+      "polarity": "not_applicable",
+      "schema_version": 2,
+      "supply_domain": "GND",
+      "unused_pin_treatment": null
+    }
+  ],
+  "subckt": "TPS54332DDA"
+}

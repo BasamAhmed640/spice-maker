@@ -1,0 +1,68 @@
+* LM358 behavioral macromodel
+* Pins: OUT1 IN1M IN1P VEE IN2P IN2M OUT2 VCC
+.subckt LM358 OUT1 IN1M IN1P VEE IN2P IN2M OUT2 VCC
+
+* Parameters
+.param gm=0.001
+.param Cint=227.4p
+.param Imax=68.22u
+.param VOS=3m
+.param IB=20n
+.param IOS=1n
+.param VOL=5m
+.param Gclamp=1m
+.param Vw=5m
+
+* Supply-dependent output high headroom (VOH)
+Bvoh voh GND V = 1.5 + 0.5*limit((V(VCC,GND)-V(VEE,GND)-5)/25,0,1)
+Rdc_voh voh GND 1G
+
+* High and low clamp references
+Bvhigh vhigh GND V = V(VCC,GND)-V(voh,GND)
+Rdc_vhigh vhigh GND 1G
+
+Bvlow vlow GND V = V(VEE,GND)+{VOL}
+Rdc_vlow vlow GND 1G
+
+* Quiescent current (total for both amplifiers, 350uA per amp at VS=5)
+Iq VCC VEE DC 700u
+
+* Channel 1
+* Input bias and offset currents (current flows out of input pins)
+Iib1p VEE IN1P DC {IB}
+Iib1m VEE IN1M DC {IB}
+Iios1 IN1M IN1P DC {IOS}
+
+* Transconductance stage: I = gm*(V(INP)-V(INM)-VOS), limited for slew rate
+Bgm1 GND int1 I = limit(gm*(V(IN1P,GND)-V(IN1M,GND)-VOS), -Imax, Imax)
+Cint1 int1 GND {Cint}
+Rint1 int1 GND 115Meg
+
+* Internal clamp to supply rails (smooth transition, width Vw)
+Bclamp1 clamp1 GND I = 0.5*{Gclamp}*( (V(int1,GND)-V(vhigh,GND) + sqrt((V(int1,GND)-V(vhigh,GND))**2 + {Vw}**2)) + (V(int1,GND)-V(vlow,GND) - sqrt((V(int1,GND)-V(vlow,GND))**2 + {Vw}**2)) )
+Rclamp1 clamp1 int1 1
+Rdc_clamp1 clamp1 GND 1G
+
+* Output buffer with clamp and small series resistance
+Bout1 out1_int GND V = limit(V(int1,GND), V(VEE,GND)+{VOL}, V(VCC,GND)-V(voh,GND))
+Rout1 OUT1 out1_int 0.01
+Rdc_out1 out1_int GND 1G
+
+* Channel 2
+Iib2p VEE IN2P DC {IB}
+Iib2m VEE IN2M DC {IB}
+Iios2 IN2M IN2P DC {IOS}
+
+Bgm2 GND int2 I = limit(gm*(V(IN2P,GND)-V(IN2M,GND)-VOS), -Imax, Imax)
+Cint2 int2 GND {Cint}
+Rint2 int2 GND 115Meg
+
+Bclamp2 clamp2 GND I = 0.5*{Gclamp}*( (V(int2,GND)-V(vhigh,GND) + sqrt((V(int2,GND)-V(vhigh,GND))**2 + {Vw}**2)) + (V(int2,GND)-V(vlow,GND) - sqrt((V(int2,GND)-V(vlow,GND))**2 + {Vw}**2)) )
+Rclamp2 clamp2 int2 1
+Rdc_clamp2 clamp2 GND 1G
+
+Bout2 out2_int GND V = limit(V(int2,GND), V(VEE,GND)+{VOL}, V(VCC,GND)-V(voh,GND))
+Rout2 OUT2 out2_int 0.01
+Rdc_out2 out2_int GND 1G
+
+.ends LM358

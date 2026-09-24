@@ -1,0 +1,16 @@
+LTspice 26.0.0 for Windows
+Circuit: C:\Users\basam\src\.smsnap\general\models\B-tps54332-full\build\validation-cache\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\probes\circuit_measurement-61e437a9e452\deck.cir
+Start Time: Thu Sep 24 02:14:39 2026
+Options:plotwinsize=0 numdgt=15
+solver = Alternate
+Maximum thread count: 16
+tnom = 27
+temp = 25
+method = trap
+Direct Newton iteration succeeded in finding operating point.
+Total elapsed time: 0.117 seconds.
+
+Files loaded:
+C:\Users\basam\src\.smsnap\general\models\B-tps54332-full\build\validation-cache\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\probes\circuit_measurement-61e437a9e452\deck.cir
+C:\Users\basam\src\.smsnap\general\models\B-tps54332-full\build\model\TPS54332DDA.lib
+

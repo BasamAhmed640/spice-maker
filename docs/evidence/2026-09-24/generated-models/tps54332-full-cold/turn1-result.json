@@ -1,0 +1,330 @@
+{
+  "turn": 1,
+  "elapsed_s": 604.7524794000201,
+  "usage": {
+    "prompt_tokens": 8214.0,
+    "completion_tokens": 62776.0,
+    "total_tokens": 70990.0
+  },
+  "score": [
+    9,
+    2,
+    3.499666959341
+  ],
+  "reused_simulation": false,
+  "report": {
+    "model_sha256": "6c1114c4bbec32601f054211c233d50899128c1d5c1cc21aa5ae2a06e50a590a",
+    "outcomes": [
+      {
+        "artifacts": {
+          "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-61e437a9e452\\deck.log": "9f53e3945fe90eeb137fc463d1a90e6ff3cae57c2236b609ba329d497e5f8095",
+          "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-61e437a9e452\\deck.raw": "e85874e18940fc5482cd076d37a9f16ecb757611c6701842948dacb5bb28c3ae"
+        },
+        "cause": "measured -2.22223e-06 A deviates 3.22223e-06 A from the 1e-06 A typical (10 % band 1e-07 A): the model's recipe_value is not centred on the datasheet value",
+        "char_ids": [
+          "B001_FEAT_IQ_SHUTDOWN"
+        ],
+        "citations": [
+          "B001_FEAT_IQ_SHUTDOWN requires typ 1e-06 A (+/-10 %) (PDF page 0) \u2014 \"Typical 1-\u03bcA shutdown quiescent current\""
+        ],
+        "detail": "B001_FEAT_IQ_SHUTDOWN [TYPICAL_VALUE]: measured recipe_value=-2.22223e-06 A, |measured - typ 1e-06| = 3.22223e-06 A versus the 10 % band 1e-07 A (typical-value comparison, not a min/max limit check)",
+        "judged": "recipe_value = -2.22223e-06 A",
+        "measured": {
+          "recipe_value": -2.2222341010374533e-06
+        },
+        "operating_point": {
+          "EN": 0.0,
+          "VIN": 12.0,
+          "temperature_C": 25.0,
+          "tmax_s": 1e-06,
+          "tstop_s": 0.001
+        },
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-61e437a9e452",
+        "status": "FAIL",
+        "unknown_reason": null
+      },
+      {
+        "artifacts": {
+          "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-7b1ac1a7317a\\deck.log": "17ec1dfdc192a1f0afbe431b323980ce6c248e0658b40dbabe5425057f2d41c0",
+          "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-7b1ac1a7317a\\deck.raw": "87b9c69656171bf07df68df4a367cd50f4605a13d469ed44d2671150e2b69d7d"
+        },
+        "cause": null,
+        "char_ids": [
+          "B002_REQ-003"
+        ],
+        "citations": [
+          "B002_REQ-003 requires <= 4e-06 A (PDF page 5) \u2014 \"Shutdown supply current EN = 0 V, VIN = 12 V, \u201340\u00b0C to 85\u00b0C 1 4 \u03bcA\""
+        ],
+        "detail": "B002_REQ-003 [DOCUMENTED_LIMIT]: measured recipe_value=-2.22223e-06 A within <= 4e-06 A",
+        "judged": "recipe_value = -2.22223e-06 A",
+        "measured": {
+          "recipe_value": -2.2222341010374533e-06
+        },
+        "operating_point": {
+          "EN": 0.0,
+          "VIN": 12.0,
+          "temperature_C": 25.0,
+          "tmax_s": 1e-06,
+          "tstop_s": 0.001
+        },
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-7b1ac1a7317a",
+        "status": "PASS",
+        "unknown_reason": null
+      },
+      {
+        "artifacts": {
+          "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-0156ef75a6e3\\deck.log": "9f1879a078bc3cd6d79b6c8cb07a46a134a0778f20f9597aff3e32977ef8aaa4",
+          "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-0156ef75a6e3\\deck.raw": "cf7c8fe4db6d018c2106f1caa376eae68e187c655cc05185670302677e3cd4ab"
+        },
+        "cause": null,
+        "char_ids": [
+          "B002_REQ-004"
+        ],
+        "citations": [
+          "B002_REQ-004 requires <= 0.00012 A (PDF page 5) \u2014 \"Operating \u2013 non switching supply current VSENSE = 0.85 V 82 120 \u03bcA\""
+        ],
+        "detail": "B002_REQ-004 [DOCUMENTED_LIMIT]: measured recipe_value=-8.32161e-05 A within <= 0.00012 A",
+        "judged": "recipe_value = -8.32161e-05 A",
+        "measured": {
+          "recipe_value": -8.321612298991804e-05
+        },
+        "operating_point": {
+          "EN": 3.3,
+          "VIN": 12.0,
+          "VSENSE": 0.85,
+          "temperature_C": 25.0,
+          "tmax_s": 1e-06,
+          "tstop_s": 0.001
+        },
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-0156ef75a6e3",
+        "status": "PASS",
+        "unknown_reason": null
+      },
+      {
+        "artifacts": {
+          "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-3c79904b4207\\deck.log": "e218507c8b10acad2e823d4a4bacbc80704f3ef2843c87bd2fec049ccf95c62b",
+          "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-3c79904b4207\\deck.raw": "339023a8895542a971daa954bc9c07def955e5e7c333df1aa656c28adebdb723"
+        },
+        "cause": "measured -1.8274e-06 A deviates 8.274e-07 A from the -1e-06 A typical (10 % band 1e-07 A): the model's recipe_value is not centred on the datasheet value",
+        "char_ids": [
+          "B002_REQ-006"
+        ],
+        "citations": [
+          "B002_REQ-006 requires typ -1e-06 A (+/-10 %) (PDF page 5) \u2014 \"Input current Enable threshold \u2013 50 mV -1 \u03bcA\""
+        ],
+        "detail": "B002_REQ-006 [TYPICAL_VALUE]: measured recipe_value=-1.8274e-06 A, |measured - typ -1e-06| = 8.274e-07 A versus the 10 % band 1e-07 A (typical-value comparison, not a min/max limit check)",
+        "judged": "recipe_value = -1.8274e-06 A",
+        "measured": {
+          "recipe_value": -1.8273995542375772e-06
+        },
+        "operating_point": {
+          "EN": 1.2,
+          "VIN": 12.0,
+          "temperature_C": 25.0,
+          "tmax_s": 1e-06,
+          "tstop_s": 0.001
+        },
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-3c79904b4207",
+        "status": "FAIL",
+        "unknown_reason": null
+      },
+      {
+        "artifacts": {
+          "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-60bf94e8fecf\\deck.log": "e64ab08c5bfab91cbe9eaaee63903f8ad745f00984a5325918b1160d167857af",
+          "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-60bf94e8fecf\\deck.raw": "de859f99065a1fd7ca20db1e3d271cb34c56e644480aa871f6bc711f8e51c8dc"
+        },
+        "cause": null,
+        "char_ids": [
+          "B002_REQ-007"
+        ],
+        "citations": [
+          "B002_REQ-007 requires typ -4e-06 A (+/-10 %) (PDF page 5) \u2014 \"Input current Enable threshold + 50 mV -4 \u03bcA\""
+        ],
+        "detail": "B002_REQ-007 [TYPICAL_VALUE]: measured recipe_value=-4.00322e-06 A, |measured - typ -4e-06| = 3.22185e-09 A versus the 10 % band 4e-07 A (typical-value comparison, not a min/max limit check)",
+        "judged": "recipe_value = -4.00322e-06 A",
+        "measured": {
+          "recipe_value": -4.003221850233099e-06
+        },
+        "operating_point": {
+          "EN": 1.3,
+          "VIN": 12.0,
+          "temperature_C": 25.0,
+          "tmax_s": 1e-06,
+          "tstop_s": 0.001
+        },
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-60bf94e8fecf",
+        "status": "PASS",
+        "unknown_reason": null
+      },
+      {
+        "artifacts": {},
+        "cause": null,
+        "char_ids": [
+          "B002_REQ-014"
+        ],
+        "citations": [
+          "B002_REQ-014 requires typ 7e-06 A (+/-10 %) (PDF page 5) \u2014 \"Error amplifier source/sink current V(COMP) = 1.0 V, 100-mV overdrive \u00b17 \u03bcA\""
+        ],
+        "detail": "",
+        "judged": "",
+        "measured": {},
+        "operating_point": {},
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-1b1bab6acde5",
+        "status": "UNKNOWN",
+        "unknown_reason": "run_timeout: exit_code=15; wall=120.06s; raw=yes; log=yes; TIMED_OUT"
+      },
+      {
+        "artifacts": {},
+        "cause": null,
+        "char_ids": [
+          "B002_REQ-017"
+        ],
+        "citations": [
+          "B002_REQ-017 requires 4.2 .. 6.5 A (PDF page 5) \u2014 \"Current limit threshold VIN = 12 V 4.2 6.5 A\""
+        ],
+        "detail": "",
+        "judged": "",
+        "measured": {},
+        "operating_point": {},
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-8c9a5127b67c",
+        "status": "UNKNOWN",
+        "unknown_reason": "deferred_after_invalid_simulation: run_timeout: exit_code=15; wall=120.06s; raw=yes; log=yes; TIMED_OUT"
+      },
+      {
+        "artifacts": {},
+        "cause": null,
+        "char_ids": [
+          "B002_REQ-019"
+        ],
+        "citations": [
+          "B002_REQ-019 requires typ 2e-06 A (+/-10 %) (PDF page 5) \u2014 \"Charge current V(SS) = 0.4 V 2 \u03bcA\""
+        ],
+        "detail": "",
+        "judged": "",
+        "measured": {},
+        "operating_point": {},
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-c39217a18505",
+        "status": "UNKNOWN",
+        "unknown_reason": "deferred_after_invalid_simulation: run_timeout: exit_code=15; wall=120.06s; raw=yes; log=yes; TIMED_OUT"
+      },
+      {
+        "artifacts": {},
+        "cause": null,
+        "char_ids": [
+          "B002_REQ-020"
+        ],
+        "citations": [
+          "B002_REQ-020 requires typ 0.01 V (+/-10 %) (PDF page 5) \u2014 \"SS to VSENSE matching V(SS) = 0.4 V 10 mV\""
+        ],
+        "detail": "",
+        "judged": "",
+        "measured": {},
+        "operating_point": {},
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-f27c231adac9",
+        "status": "UNKNOWN",
+        "unknown_reason": "deferred_after_invalid_simulation: run_timeout: exit_code=15; wall=120.06s; raw=yes; log=yes; TIMED_OUT"
+      },
+      {
+        "artifacts": {},
+        "cause": null,
+        "char_ids": [
+          "B002_REQ-023"
+        ],
+        "citations": [
+          "B002_REQ-023 requires 90 .. 93 % (PDF page 5) \u2014 \"Maximum controllable duty ratio(1) BOOT-PH = 6 V 90% 93%\""
+        ],
+        "detail": "",
+        "judged": "",
+        "measured": {},
+        "operating_point": {},
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-89fff59b33d4",
+        "status": "UNKNOWN",
+        "unknown_reason": "deferred_after_invalid_simulation: run_timeout: exit_code=15; wall=120.06s; raw=yes; log=yes; TIMED_OUT"
+      },
+      {
+        "artifacts": {},
+        "cause": null,
+        "char_ids": [
+          "B003_TPS54332DDA-IO-MAX"
+        ],
+        "citations": [
+          "B003_TPS54332DDA-IO-MAX requires <= 3.5 A (PDF page 13) \u2014 \"IO(maximum) 2 A 2 A 2 A 3 A 3.5 A\""
+        ],
+        "detail": "",
+        "judged": "",
+        "measured": {},
+        "operating_point": {},
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-13ab621d9f36",
+        "status": "UNKNOWN",
+        "unknown_reason": "deferred_after_invalid_simulation: run_timeout: exit_code=15; wall=120.06s; raw=yes; log=yes; TIMED_OUT"
+      },
+      {
+        "artifacts": {},
+        "cause": null,
+        "char_ids": [
+          "B003_TPS54332DDA-SWITCH-CURRENT-LIMIT-MIN"
+        ],
+        "citations": [
+          "B003_TPS54332DDA-SWITCH-CURRENT-LIMIT-MIN requires >= 4.2 A (PDF page 13) \u2014 \"Switch current limit (minimum) 2.3 A 2.3 A 2.3 A 3.5 A 4.2 A\""
+        ],
+        "detail": "",
+        "judged": "",
+        "measured": {},
+        "operating_point": {},
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-2dc228983b68",
+        "status": "UNKNOWN",
+        "unknown_reason": "deferred_after_invalid_simulation: run_timeout: exit_code=15; wall=120.06s; raw=yes; log=yes; TIMED_OUT"
+      },
+      {
+        "artifacts": {},
+        "cause": null,
+        "char_ids": [
+          "B003_TPS54332DDA-EN-THRESHOLD-TYP"
+        ],
+        "citations": [
+          "B003_TPS54332DDA-EN-THRESHOLD-TYP requires typ 1.25 V (+/-10 %) (PDF page 11) \u2014 \"The enable threshold voltage is 1.25 V typical.\""
+        ],
+        "detail": "",
+        "judged": "",
+        "measured": {},
+        "operating_point": {},
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-136894bb902b",
+        "status": "UNKNOWN",
+        "unknown_reason": "deferred_after_invalid_simulation: run_timeout: exit_code=15; wall=120.06s; raw=yes; log=yes; TIMED_OUT"
+      },
+      {
+        "artifacts": {},
+        "cause": null,
+        "char_ids": [
+          "B004_TPS54332DDA_VREF"
+        ],
+        "citations": [
+          "B004_TPS54332DDA_VREF requires typ 0.8 V (+/-10 %) (PDF page 17) \u2014 \"VREF = 0.8 V\""
+        ],
+        "detail": "",
+        "judged": "",
+        "measured": {},
+        "operating_point": {},
+        "probe_id": "circuit_measurement",
+        "run_dir": "C:\\Users\\basam\\src\\.smsnap\\general\\models\\B-tps54332-full\\build\\validation-cache\\8402ef0c3cf0b2a2bc723b6125d08f7412139f12ddbab856ae4d596c11c5d1e7\\probes\\circuit_measurement-d49686c3201e",
+        "status": "UNKNOWN",
+        "unknown_reason": "deferred_after_invalid_simulation: run_timeout: exit_code=15; wall=120.06s; raw=yes; log=yes; TIMED_OUT"
+      }
+    ],
+    "part": "TPS54332DDA",
+    "spec_digest": "04eb038f7006de7967cc6c7fd02e457f8a73a2a8ddb26883a90a377eb8402f51"
+  }
+}

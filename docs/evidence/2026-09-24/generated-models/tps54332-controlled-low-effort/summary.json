@@ -1,0 +1,26 @@
+{
+  "part": "tps54332-controlled-low-effort",
+  "status": "RUNNING_AT_COLLECTION",
+  "counts": null,
+  "detail": null,
+  "iterations": null,
+  "wall_time_s": null,
+  "exit_code": null,
+  "turns": [
+    {
+      "turn": 1,
+      "elapsed_s": 283.3,
+      "usage": {
+        "prompt_tokens": 14067.0,
+        "completion_tokens": 36960.0,
+        "total_tokens": 51027.0
+      },
+      "outcomes": {
+        "UNKNOWN": 27
+      },
+      "reused_simulation": false,
+      "candidate_sha256": "93d94658b5d4838f83457df14a8cc016fe9985f178a4dc7aa6c9eec0097ade06"
+    }
+  ],
+  "history": null
+}

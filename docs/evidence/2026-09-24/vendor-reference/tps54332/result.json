@@ -1,0 +1,178 @@
+{
+  "label": "vendor model - NOT the AI-generated model",
+  "part": "TPS54332 (TI official PSpice transient model TPS54332_TRANS)",
+  "vendor_model": {
+    "path": "C:\\Users\\basam\\Documents\\Codex\\2026-09-24\\spice-generator-update-for-both-versions\\work\\ti_verification\\model\\TPS54332_PSPICE_TRANS\\TPS54332_TRANS.LIB",
+    "sha256": "c5e22f1d7930ffe598c793dd254dd568aba9cc453ad0c59e6f37c3d43b844091",
+    "note": "referenced by absolute path; TI's model files are NOT copied into this repo",
+    "folder": "C:\\Users\\basam\\Documents\\Codex\\2026-09-24\\spice-generator-update-for-both-versions\\work\\ti_verification\\model\\TPS54332_PSPICE_TRANS"
+  },
+  "datasheet_bound": {
+    "statement": "settled V(out) >= 0.772 V x (1 + 10.2k/4.75k) (minimum VSENSE reference 0.772 V from the TPS54332 datasheet electrical characteristics, 'Voltage reference 0.772 0.8 0.828 V', PDF page 5, times the 10.2k/4.75k divider from the datasheet's 2.5 V design example)",
+    "lower_bound_V": 2.4297684210526316,
+    "conditions": "VIN = 12 V, Rload = 2.5 ohm (~1 A), Vout nominal 2.5 V"
+  },
+  "run_A_ti_reference_deck": {
+    "deck_in_evidence": "tps54332_ti_reference.cir",
+    "deck_sha256": "0af1d15d591e51bae65b882554990b6c97d128594591daaa26fd9c044d7c8a2f",
+    "deck_source": "C:\\Users\\basam\\Documents\\Codex\\2026-09-24\\spice-generator-update-for-both-versions\\work\\ti_verification\\tps54332_ti_reference.cir",
+    "deck_source_sha256": "4971e161bcb34d7b632f5a467f2437c38965283ce5e76afc64d351c8ac7b211c",
+    "deck_source_include_line": ".include \"model/TPS54332_PSPICE_TRANS/TPS54332_TRANS.LIB\"",
+    "deck_run_include_line": ".include \"C:/Users/basam/Documents/Codex/2026-09-24/spice-generator-update-for-both-versions/work/ti_verification/model/TPS54332_PSPICE_TRANS/TPS54332_TRANS.LIB\"",
+    "deck_changes": "only the .include line was rewritten from the relative path to the absolute path of TI's LIB; circuit, .tran and .meas are unchanged (no .temp line, so LTspice runs at its default 27 C)",
+    "ran_from_temp_copy": "C:\\Users\\basam\\AppData\\Local\\Temp\\ltev0924\\vendorA\\tps54332_ti_reference.cir",
+    "command": "\"C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\LTspice.exe\" -b \"C:\\Users\\basam\\AppData\\Local\\Temp\\ltev0924\\vendorA\\tps54332_ti_reference.cir\"",
+    "timeout_s": 900.0,
+    "timed_out": false,
+    "returncode": 0,
+    "elapsed_s": 419.848,
+    "env_keys_passed": [
+      "APPDATA",
+      "LOCALAPPDATA",
+      "PATH",
+      "SYSTEMDRIVE",
+      "SystemRoot",
+      "TEMP",
+      "TMP",
+      "USERPROFILE"
+    ],
+    "log_in_evidence": "tps54332_ti_reference.log.txt",
+    "log_txt_sha256": "01c6ca2939cb7a117da947c4a10cd496625d1248ecb80ebff57b1356c12d2f5f",
+    "ltspice_log_original_sha256": "97b7c398c1d12612a219793266da0a18b4d7c614cc6c7deb0ae90965ac46cd90",
+    "ltspice_log_original_encoding": "utf-8",
+    "raw_files_deleted": {
+      "tps54332_ti_reference.raw": 685347670,
+      "tps54332_ti_reference.op.raw": 2656
+    },
+    "log_header": [
+      "LTspice 26.0.0 for Windows",
+      "solver = Alternate",
+      "tnom = 27",
+      "temp = 27",
+      "method = trap",
+      "dd: Emission coefficient, N=0.001, too small, this might lead to numerical problems.",
+      "dd: Emission coefficient, N=0.01, too small, this might lead to numerical problems.",
+      "Direct Newton iteration succeeded in finding operating point.",
+      "Total elapsed time: 415.679 seconds."
+    ],
+    "measurements": {
+      "vout_avg": {
+        "value": 2.51532354769,
+        "raw": "vout_avg: AVG(V(out) )=2.51532354769 FROM 0.01 TO 0.012"
+      },
+      "vout_max": {
+        "value": 2.52204871178,
+        "raw": "vout_max: MAX(V(out) )=2.52204871178 FROM 0.011 TO 0.012"
+      },
+      "vout_min": {
+        "value": 2.5095102787,
+        "raw": "vout_min: MIN(V(out) )=2.5095102787 FROM 0.011 TO 0.012"
+      },
+      "ph_first": {
+        "value": 0.0110000317901,
+        "raw": "ph_first: V(ph)=6  AT 0.0110000317901"
+      },
+      "ph_second": {
+        "value": 0.0110010319065,
+        "raw": "ph_second: V(ph)=6  AT 0.0110010319065"
+      },
+      "fsw": {
+        "value": 999883.591206,
+        "raw": "fsw: 1/(ph_second-ph_first)=999883.591206"
+      }
+    },
+    "previous_run_log": {
+      "path": "C:\\Users\\basam\\Documents\\Codex\\2026-09-24\\spice-generator-update-for-both-versions\\work\\ti_verification\\tps54332_ti_reference.log",
+      "sha256": "eb3205b38b596621899f9e82ee8aa733c818e2f24d2387a0d5abc2f609661be0",
+      "measurements": {
+        "vout_avg": 2.51532354769,
+        "vout_max": 2.52204871178,
+        "vout_min": 2.5095102787,
+        "ph_first": 0.0110000317901,
+        "ph_second": 0.0110010319065,
+        "fsw": 999883.591206
+      }
+    },
+    "delta_vs_previous_run": {
+      "vout_avg": 0.0,
+      "vout_max": 0.0,
+      "vout_min": 0.0,
+      "ph_first": 0.0,
+      "ph_second": 0.0,
+      "fsw": 0.0
+    },
+    "check": {
+      "quantity": "min V(out) over 11-12 ms (vout_min, the deck's own measurement window)",
+      "measured_V": 2.5095102787,
+      "lower_bound_V": 2.4297684210526316,
+      "verdict": "PASS",
+      "margin_V": 0.07974185764736852
+    }
+  },
+  "run_B_prior_harness_deck_8_9ms_25C": {
+    "deck_in_evidence": "tps54332_ti_harness_8to9ms.cir",
+    "deck_sha256": "b18156fbcb344be6edc5b5d03668a836036ed397c15421b0510bf4720fe336d8",
+    "deck_source": "C:\\Users\\basam\\Documents\\Codex\\2026-09-24\\spice-generator-update-for-both-versions\\work\\ti_verification\\fresh_product_96d52a5\\spice-maker-96d52a5\\models\\TPS54332DDA_official\\harness\\probes\\circuit_measurement\\deck.cir",
+    "deck_source_sha256": "b4809fc78c54dadfd12e36eb97ad553f95d354cb14649fbfb35e4c2ce37df1bb",
+    "deck_source_include_line": ".include \"C:/Users/basam/Documents/Codex/2026-09-24/spice-generator-update-for-both-versions/work/ti_verification/fresh_product_96d52a5/spice-maker-96d52a5/models/TPS54332DDA_official/TPS54332_TRANS.LIB\"",
+    "deck_run_include_line": ".include \"C:/Users/basam/Documents/Codex/2026-09-24/spice-generator-update-for-both-versions/work/ti_verification/model/TPS54332_PSPICE_TRANS/TPS54332_TRANS.LIB\"",
+    "deck_changes": "the .include was pointed at the byte-identical TI LIB (same sha256) in ti_verification/model; two .meas lines were appended (vout_min_8_9, vout_avg_8_9) so the 8-9 ms minimum is read from the log instead of the .raw; circuit/.temp 25/.tran/.save unchanged",
+    "ran_from_temp_copy": "C:\\Users\\basam\\AppData\\Local\\Temp\\ltev0924\\vendorB\\tps54332_ti_harness_8to9ms.cir",
+    "command": "\"C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\LTspice.exe\" -b \"C:\\Users\\basam\\AppData\\Local\\Temp\\ltev0924\\vendorB\\tps54332_ti_harness_8to9ms.cir\"",
+    "timeout_s": 900.0,
+    "timed_out": false,
+    "returncode": 0,
+    "elapsed_s": 355.834,
+    "env_keys_passed": [
+      "APPDATA",
+      "LOCALAPPDATA",
+      "PATH",
+      "SYSTEMDRIVE",
+      "SystemRoot",
+      "TEMP",
+      "TMP",
+      "USERPROFILE"
+    ],
+    "log_in_evidence": "tps54332_ti_harness_8to9ms.log.txt",
+    "log_txt_sha256": "9f41e23698a4673f254d03e778d8a394a7ec439b98f884a0e58dcecb2f44fe85",
+    "ltspice_log_original_sha256": "8382f131e3dd04bcf7cf55eaf20ae0ae74cff5d979a940d23fbceb6f07b8cc33",
+    "ltspice_log_original_encoding": "utf-8",
+    "raw_files_deleted": {
+      "tps54332_ti_harness_8to9ms.raw": 108508810,
+      "tps54332_ti_harness_8to9ms.op.raw": 818
+    },
+    "log_header": [
+      "LTspice 26.0.0 for Windows",
+      "solver = Alternate",
+      "tnom = 27",
+      "temp = 25",
+      "method = trap",
+      "dd: Emission coefficient, N=0.001, too small, this might lead to numerical problems.",
+      "dd: Emission coefficient, N=0.01, too small, this might lead to numerical problems.",
+      "Direct Newton iteration succeeded in finding operating point.",
+      "Total elapsed time: 354.931 seconds."
+    ],
+    "measurements": {
+      "vout_min_8_9": {
+        "value": 2.51304654898,
+        "raw": "vout_min_8_9: MIN(V(out) )=2.51304654898 FROM 0.008 TO 0.009"
+      },
+      "vout_avg_8_9": {
+        "value": 2.51534033463,
+        "raw": "vout_avg_8_9: AVG(V(out) )=2.51534033463 FROM 0.008 TO 0.009"
+      }
+    },
+    "check": {
+      "quantity": "min V(out) over 8-9 ms at 25 C, 12 V in, 2.5 ohm load (the previous session's harness measurement)",
+      "measured_V": 2.51304654898,
+      "lower_bound_V": 2.4297684210526316,
+      "verdict": "PASS",
+      "margin_V": 0.08327812792736822,
+      "previous_session_value_V": 2.5130465489837532,
+      "previous_session_source": "C:\\Users\\basam\\Documents\\Codex\\2026-09-24\\spice-generator-update-for-both-versions\\work\\ti_verification\\fresh_product_96d52a5\\spice-maker-96d52a5\\models\\TPS54332DDA_official\\harness-report.json",
+      "difference_vs_previous_V": -3.753442001652729e-12,
+      "previous_value_confirmed": true
+    }
+  },
+  "overall_verdict": "PASS"
+}
