@@ -1293,8 +1293,14 @@ Observed on this machine:
 | Rebuilt `Install.exe` | 89,511,936 bytes; SHA256 `a37f7da4cd84667f98ed1efadcc0c60ec59ac7b53ff8a14c30d725a60b6e1d34` |
 | Fresh GitHub source ZIP, project-local `.venv` and `doctor` | PASS in the separate end-to-end check; model authoring stopped at DeepSeek HTTP 402, insufficient balance |
 
-No TPS54332DDA generated-model simulation PASS is claimed: the provider refused
-authoring before there was a candidate to simulate. A separate run of TI's official
-unmodified TPS54332 model is reference evidence, not verification of an authored
-model. The current installer passed this machine's security policy; unsigned
-executables may still require organizational approval on another computer.
+The final TPS54332DDA check from a fresh GitHub ZIP of code-equivalent commit
+`44a1d3c` used OpenCode Go after the DeepSeek account returned HTTP 402. It
+produced an AI-authored `.lib`, but two verification turns ended `UNKNOWN`:
+PASS 0, FAIL 0, UNKNOWN 66, NOT_APPLICABLE 93, BLOCKED 0. LTspice could not find
+an operating point for the first probe, so the generated model is **not verified**.
+An unchanged official TI model did pass one product-harness output condition from
+a fresh ZIP of this release: minimum V(out) at 8–9 ms was 2.51304655 V against
+the 2.42977 V lower bound (12 V input, 2.5-ohm load, 25 C). That single result
+does not verify the AI-authored model or wider electrical behavior. The current
+installer passed this machine's security policy; unsigned executables may still
+require organizational approval on another computer.
