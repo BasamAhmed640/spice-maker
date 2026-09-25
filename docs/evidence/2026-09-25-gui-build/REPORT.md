@@ -27,3 +27,8 @@ The [finished GUI screenshot](finished.png) was taken before the stage-display
 fix: it still showed `judge` as running after the saved result was UNKNOWN. That
 display bug was observed here and is addressed in the subsequent source change;
 this screenshot remains the unaltered evidence from the live run.
+
+A [read-only replay in the patched GUI](judge-after-ui-fix-replay.png) shows
+`judge=UNKNOWN` after completion. The replay loaded the saved result; it did not
+make another provider request or simulator run, and its reset elapsed clock is
+not the live run's timing evidence.
