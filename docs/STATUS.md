@@ -1335,7 +1335,7 @@ Decisions D-037–D-040.
 | `pytest -q` (all markers) with `LTSPICE_EXE` set | 1757 passed, 15 skipped, 0 failed |
 | `tools/shared_core.py --compare ..\spice-maker-bob` | identical: 41 files |
 
-## 2026-09-25 — template-first buck checkpoint (release pending)
+## 2026-09-25 — template-first buck release (1.7.0)
 
 Decisions D-041–D-043 govern the deterministic buck seed, physical fixture checks,
 and scoped verdicts. Detailed measured evidence is in
@@ -1378,5 +1378,15 @@ delivered a convergent model in 1,230.314 s (20m30s), with 10 PASS, 1 FAIL,
 verdict is UNKNOWN and its time missed the few-minute goal. The initially
 stale `judge=running` display was corrected and tested using a read-only
 replay of the saved result; final local installer checks above include that
-UI fix and the fail-closed Internet setting. Verification from a fresh GitHub
-Download ZIP and the GitHub push remain pending.
+UI fix and the fail-closed Internet setting.
+
+Main was pushed at `fbcae51039e6c9ca3146ae49b9455a4bf92d9ca7`. A fresh GitHub
+Code → Download ZIP of that commit passed archive hash/version checks, extraction,
+`Install.exe --silent --no-launch`, bundled Python 3.14.2 and in-folder `.venv`,
+explicit LTspice path selection, offline fixture model build, eight measured
+LTspice retests, and reopening the saved model. The downloaded GUI also opened
+and responded; [release evidence and screenshot](evidence/2026-09-25-release/REPORT.md).
+The fresh-ZIP check used a synthetic TPS54320 fixture to test the installation
+and model pipeline. It is not a full datasheet accuracy result. The verifier's
+new-ZIP rebuild and cleanup stages were intentionally skipped; the local
+installer build had already produced `releases/SpiceMaker-1.7.0-Windows-x64.zip`.

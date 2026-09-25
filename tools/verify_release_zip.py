@@ -249,8 +249,8 @@ def clean_environment(root: Path | None = None, ltspice: str | None = None) -> d
 
     ``SPICE_MAKER_ROOT`` is what ``Boardmodeler.cmd`` sets and what makes the copy's
     package resolve its own ``data/``; without it a bare ``python -m boardmodeler.cli``
-    resolves ``app_root()`` to ``.venv/Lib``. ``LTSPICE_EXE`` is set only when a probe
-    deliberately wants the override instead of the saved setting.
+    resolves ``app_root()`` to ``.venv/Lib``. ``LTSPICE_EXE`` is set only for the
+    probe that checks inherited variables cannot silently select a simulator.
     """
     env = os.environ.copy()
     for name in list(env):
@@ -998,20 +998,20 @@ def stage_environment(ctx: Context, stage: Stage) -> dict[str, Any]:
             cwd=root,
             env=override_env,
             timeout=PROBE_TIMEOUT_S,
-            what="the copy's doctor command with LTSPICE_EXE",
+            what="the copy's doctor command with an inherited LTSPICE_EXE",
         )
         override = parse_json(override_record.stdout) or {}
-        found = (override.get("ltspice") or {}).get("path")
+        ltspice_status = override.get("ltspice") or {}
+        found = ltspice_status.get("path")
         override_probe = {
             "ran": True,
             "path": found,
-            "env_override": (override.get("ltspice") or {}).get("env_override"),
-            "matches": str(found or "") == str(ctx.ltspice["path"]),
+            "found": ltspice_status.get("found"),
+            "ignored": not found and not ltspice_status.get("found"),
         }
-        if not override_probe["matches"]:
+        if not override_probe["ignored"]:
             raise StageFailure(
-                f"doctor did not honour LTSPICE_EXE: reported {found!r}, "
-                f"expected {ctx.ltspice['path']!r}"
+                f"doctor selected an inherited LTSPICE_EXE without Setup: {found!r}"
             )
     else:
         override_probe = {"ran": False, "reason": "no LTspice executable was detected"}

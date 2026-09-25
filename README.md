@@ -2,6 +2,8 @@
 
 Source and checked-in installer version: **1.7.0**. Check `SHA256SUMS.txt`
 against the installer in the ZIP you download.
+The [fresh GitHub ZIP installation and model check](docs/evidence/2026-09-25-release/REPORT.md)
+passed on Windows, including GUI startup and a saved-model LTspice retest.
 
 ## Windows setup and model verification
 
