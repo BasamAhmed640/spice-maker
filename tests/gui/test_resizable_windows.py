@@ -148,17 +148,17 @@ def test_the_setup_key_hint_gets_its_full_wrapped_height(qtbot, isolated_config:
             qtbot.wait(10)
         status = page.key_status
         hint = page.key_hint
-        model = page.model_edit
+        next_row = page.model_edit if page.model_edit.isVisible() else page.model_dir_edit
         status_bottom = status.mapTo(page, status.rect().bottomLeft()).y()
         hint_top = hint.mapTo(page, hint.rect().topLeft()).y()
         hint_bottom = hint.mapTo(page, hint.rect().bottomLeft()).y()
-        model_top = model.mapTo(page, model.rect().topLeft()).y()
+        next_row_top = next_row.mapTo(page, next_row.rect().topLeft()).y()
 
         assert hint.height() >= hint.heightForWidth(hint.width()), (
             f"hint is clipped at window size {page.size()}: "
             f"{hint.width()}x{hint.height()} needs {hint.heightForWidth(hint.width())} high"
         )
-        assert status_bottom < hint_top < hint_bottom < model_top
+        assert status_bottom < hint_top < hint_bottom < next_row_top
 
 
 def test_the_scroll_area_rule_does_not_repaint_the_settings_buttons(
