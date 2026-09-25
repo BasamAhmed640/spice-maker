@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import tempfile
 import threading
 from dataclasses import dataclass
@@ -25,6 +26,7 @@ from pathlib import Path
 __all__ = [
     "CAPABILITY_PROMPT",
     "Check",
+    "agent_light_label",
     "local_checks",
     "overall",
     "verify_all",
@@ -59,11 +61,31 @@ def overall(checks: list[Check]) -> str:
     return "ok"
 
 
+def _configured_provider(config):
+    try:
+        from boardmodeler.settings_summary import configured_provider
+    except ImportError:  # the Bob edition keeps this helper on its setup page
+        from boardmodeler.ui.setup_dialog import configured_provider
+    return configured_provider(config)
+
+
+def _cli_provider():
+    """The one CLI-driven provider this build accepts (Bob Shell), else ``None``."""
+    from boardmodeler import agent_providers
+
+    only = agent_providers.only_provider()
+    return only if only is not None and only.uses_cli else None
+
+
+def agent_light_label() -> str:
+    """``BOB SHELL`` where the agent is a CLI, ``MODEL`` where it is an HTTP model."""
+    return "BOB SHELL" if _cli_provider() is not None else "MODEL"
+
+
 def _provider_and_key(config):
     from boardmodeler.security.credentials import get_credential
-    from boardmodeler.settings_summary import configured_provider
 
-    provider, problem = configured_provider(config)
+    provider, problem = _configured_provider(config)
     if provider is None:
         return None, None, problem or "no agent provider is configured; open SETUP"
     try:
@@ -159,6 +181,25 @@ def _internet(config) -> Check:
     )
 
 
+def _agent_local() -> Check:
+    if _cli_provider() is None:
+        return Check("model", "MODEL", "unchecked", "press VERIFY to test the model's reply format")
+    executable = shutil.which("bob")
+    if executable is None:
+        return Check(
+            "model",
+            "BOB SHELL",
+            "fail",
+            "IBM Bob Shell (bob) is not installed or not on PATH — install it, then reopen",
+        )
+    return Check(
+        "model",
+        "BOB SHELL",
+        "unchecked",
+        f"found {executable} — press VERIFY to run it once with every tool group disabled",
+    )
+
+
 def local_checks(config=None) -> list[Check]:
     """Everything that can be known without sending a request. Never raises."""
     if config is None:
@@ -167,7 +208,7 @@ def local_checks(config=None) -> list[Check]:
         config = load_config()
     checks = [
         _key_stored(config),
-        Check("model", "MODEL", "unchecked", "press VERIFY to test the model's reply format"),
+        _agent_local(),
         _ltspice_located(config),
         _pdf_reader(),
         _ocr(),
@@ -286,6 +327,86 @@ def verify_provider_tools(
     )
 
 
+#: Every ``bob run`` option a build passes (``authoring/backends.py``); a Bob Shell whose
+#: ``run --help`` lacks one would refuse the build's first turn.
+BOB_RUN_FLAGS = (
+    "--format",
+    "--mode",
+    "--max-turns",
+    "--max-cost",
+    "--disable-mcp",
+    "--disable-subagents",
+    "--disable-tool-groups",
+)
+
+
+def _bob_flags_missing(cancel=None) -> list[str]:
+    """The build's ``bob run`` options this Bob Shell does not list (read offline)."""
+    executable = shutil.which("bob")
+    if executable is None:
+        return list(BOB_RUN_FLAGS)
+    try:
+        import os
+
+        from boardmodeler.authoring.backends import run_bob_shell
+
+        process = run_bob_shell(
+            [executable, "run", "--help"],
+            cwd=Path(tempfile.gettempdir()),
+            timeout_s=30.0,
+            env={name: value for name, value in os.environ.items() if "KEY" not in name.upper()},
+            cancel=cancel,
+        )
+        listed = process.stdout + process.stderr
+    except Exception:
+        return []  # could not ask; the key check below still runs the real command
+    return [flag for flag in BOB_RUN_FLAGS if flag not in listed]
+
+
+def _verify_cli_agent(provider, key: str, cancel) -> tuple[Check, Check]:
+    """Bob Shell: installed, key accepted, and one answer with every tool group disabled."""
+    if shutil.which("bob") is None:
+        return (
+            Check("key", "API KEY", "unchecked", "not tested: IBM Bob Shell is not installed"),
+            Check("model", "BOB SHELL", "fail", "IBM Bob Shell (bob) is not on PATH"),
+        )
+    missing = _bob_flags_missing(cancel)
+    if missing:
+        return (
+            Check("key", "API KEY", "unchecked", "not tested: Bob Shell needs updating first"),
+            Check(
+                "model",
+                "BOB SHELL",
+                "fail",
+                f"this Bob Shell's `bob run` lacks {', '.join(missing)}, which every build "
+                "passes — update IBM Bob Shell",
+            ),
+        )
+    from boardmodeler.security.key_verification import verify_key
+
+    result = verify_key(provider, key, cancel=cancel)
+    if result.status == "verified":
+        return (
+            Check("key", "API KEY", "ok", result.detail),
+            Check(
+                "model",
+                "BOB SHELL",
+                "ok",
+                "Bob Shell answered with read, edit, execute, MCP and every other tool group "
+                "disabled — exactly how a build runs it",
+            ),
+        )
+    if result.status == "rejected":
+        return (
+            Check("key", "API KEY", "fail", result.detail),
+            Check("model", "BOB SHELL", "unchecked", "not tested: the key was rejected"),
+        )
+    return (
+        Check("key", "API KEY", "warn", result.detail),
+        Check("model", "BOB SHELL", "warn", result.detail),
+    )
+
+
 def _ltspice_smoke(config) -> Check:
     located = _ltspice_located(config)
     if located.state == "fail":
@@ -320,17 +441,7 @@ def verify_all(
                 "key", "API KEY", "unchecked", "not tested: INTERNET ACCESS is off"
             )
         elif provider.uses_cli:
-            from boardmodeler.security.key_verification import verify_key
-
-            result = verify_key(provider, credential.value, cancel=cancel)
-            state = {"verified": "ok", "rejected": "fail"}.get(result.status, "warn")
-            checks["key"] = Check("key", "API KEY", state, result.detail)
-            checks["model"] = Check(
-                "model",
-                "MODEL",
-                state,
-                result.detail if state != "ok" else "the agent answered the check",
-            )
+            checks["key"], checks["model"] = _verify_cli_agent(provider, credential.value, cancel)
         else:
             model = (getattr(config, "agent_model", None) or "").strip() or None
             checks["key"], checks["model"] = verify_provider_tools(

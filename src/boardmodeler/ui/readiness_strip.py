@@ -15,7 +15,13 @@ import time
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
-from boardmodeler.security.readiness import Check, local_checks, overall, verify_all
+from boardmodeler.security.readiness import (
+    Check,
+    agent_light_label,
+    local_checks,
+    overall,
+    verify_all,
+)
 from boardmodeler.ui.theme import CGA
 
 __all__ = ["STATE_COLOURS", "ReadinessStrip"]
@@ -47,7 +53,7 @@ class ReadinessStrip(QWidget):
         self.lights: dict[str, QLabel] = {}
         for key, label in (
             ("key", "API KEY"),
-            ("model", "MODEL"),
+            ("model", agent_light_label()),
             ("ltspice", "LTSPICE"),
             ("pdf", "PDF"),
             ("ocr", "OCR"),
@@ -86,6 +92,7 @@ class ReadinessStrip(QWidget):
             if light is None:
                 continue
             colour = STATE_COLOURS.get(check.state, CGA["grey"])
+            light.setText(f"● {check.label}")
             light.setStyleSheet(f"color: {colour}; font-family: Consolas; font-size: 9pt;")
             light.setToolTip(
                 f"{check.label}: {_STATE_WORDS.get(check.state, check.state)} — {check.detail}"
