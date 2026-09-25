@@ -66,3 +66,8 @@ The JSON contract and each generated `template-parameters.json` distinguish
 is excluded from `cited_row`. The template has no electrical verdict until the
 normal LTspice harness runs, and its model card must retain every measured
 FAIL, UNKNOWN and untestable row.
+
+The [generated TPS54332DDA symbol](symbol-tps54332.png) was rendered from the
+product output and visually reviewed: VIN is on top, GND and POWERPAD are on the
+bottom, controls are on the left, and PH plus feedback/compensation are on the
+right. Pin numbers match the nine declared physical ports.
