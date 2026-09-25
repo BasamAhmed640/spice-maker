@@ -4,6 +4,7 @@ usage: python ltrun.py <deck.cir> <timeout_s> <out.json> [--keep-log]
 Writes <deck>.log.txt (UTF-8) next to the deck, deletes <deck>.raw/.op.raw,
 and writes a JSON summary (never includes environment values).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -46,7 +47,9 @@ def decode_log(b: bytes) -> tuple[str, str]:
             i = j
             continue
         k = i
-        while k < n and not (k + 3 < n and b[k] != 0 and b[k + 1] == 0 and b[k + 2] != 0 and b[k + 3] == 0):
+        while k < n and not (
+            k + 3 < n and b[k] != 0 and b[k + 1] == 0 and b[k + 2] != 0 and b[k + 3] == 0
+        ):
             k += 1
         if k == i:
             k = i + 1
@@ -75,8 +78,9 @@ def main() -> None:
     t0 = time.perf_counter()
     timed_out = False
     try:
-        proc = subprocess.run(cmd, cwd=str(deck.parent), env=minimal_env(), timeout=timeout,
-                              capture_output=True)
+        proc = subprocess.run(
+            cmd, cwd=str(deck.parent), env=minimal_env(), timeout=timeout, capture_output=True
+        )
         rc = proc.returncode
     except subprocess.TimeoutExpired:
         timed_out, rc = True, None
@@ -97,8 +101,13 @@ def main() -> None:
         text, enc = decode_log(raw)
         txt = deck.with_name(deck.stem + ".log.txt")
         txt.write_text(text, encoding="utf-8", newline="\n")
-        res.update(log_original_encoding=enc, log_original_sha256=hashlib.sha256(raw).hexdigest(),
-                   log_txt=str(txt), log_txt_sha256=sha256(txt), log_text=text)
+        res.update(
+            log_original_encoding=enc,
+            log_original_sha256=hashlib.sha256(raw).hexdigest(),
+            log_txt=str(txt),
+            log_txt_sha256=sha256(txt),
+            log_text=text,
+        )
         if not keep_log:
             log.unlink()
     else:

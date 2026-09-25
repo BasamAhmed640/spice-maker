@@ -253,7 +253,7 @@ CATALOG: tuple[AgentProvider, ...] = (
         docs="https://opencode.ai/docs/go/",
         endpoint="https://opencode.ai/zen/go/v1",
         model="deepseek-v4.1-flash",
-        env_aliases=("OPENCODE_API_KEY",),
+        env_aliases=("OPENCODE_API_KEY", "OPENCODE_GO_API_KEY"),
         session_header="x-opencode-session",
         extra_body={
             "thinking": {"type": "enabled"},
