@@ -1357,5 +1357,21 @@ The offline product build used `BOARDMODELER_NO_NETWORK=1`, the official local
 TPS54332 PDF, frozen local requirements and bindings, and an explicitly selected
 LTspice executable. The TPS54331 result verifies only its three measured rows;
 it does not establish full TPS54331 accuracy. The general and Bob product builds
-still have an UNKNOWN model verdict. Current GUI, full-suite, installer and
-fresh-download checks remain pending, as does the GitHub push.
+still have an UNKNOWN model verdict.
+
+Subsequent release checks on this machine:
+
+| Check | Observed result |
+|---|---|
+| Full suite | 1,784 passed / 15 skipped / 0 failed in 375.68 s |
+| Extended button test | 10 passed in 58.41 s |
+| Direct GUI control sweep | 5 surfaces, 57 controls, 37 clicked, 0 errors |
+| Published LM358 re-verification with current source and explicit LTspice selection | 19 PASS / 0 FAIL / 0 UNKNOWN in 13.623 s |
+| Shared core comparison with Bob | 41 files byte-identical |
+| `ruff check .` | Clean; `ruff format --check .` still has older unrelated formatting drift |
+| Local v1.7.0 `Install.exe` | PASS: GUI startup, install, update, two isolated copies, no outside-folder additions; 89,636,352 bytes; SHA256 `c8b90250c7132f5b92509447af05767695de956248bc6091c817d06c5534ded3` |
+| Final release/source credential scan | 0 findings in 15,225 files |
+
+A live GUI model-build verdict, verification from a fresh GitHub Download ZIP,
+and the GitHub push remain pending. The local installer result does not cover
+the fresh-download path.
