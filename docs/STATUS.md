@@ -1369,9 +1369,14 @@ Subsequent release checks on this machine:
 | Published LM358 re-verification with current source and explicit LTspice selection | 19 PASS / 0 FAIL / 0 UNKNOWN in 13.623 s |
 | Shared core comparison with Bob | 41 files byte-identical |
 | `ruff check .` | Clean; `ruff format --check .` still has older unrelated formatting drift |
-| Local v1.7.0 `Install.exe` | PASS: GUI startup, install, update, two isolated copies, no outside-folder additions; 89,636,352 bytes; SHA256 `c8b90250c7132f5b92509447af05767695de956248bc6091c817d06c5534ded3` |
-| Final release/source credential scan | 0 findings in 15,225 files |
+| Final local v1.7.0 `Install.exe` | PASS: GUI startup, install, update, two isolated copies, no outside-folder additions; 89,636,352 bytes; SHA256 `dd6784e3d642c3e4746887f213b9269295ea2365242f1a26a1c2f5a1100d47e0` |
+| Final release/source credential scan | 0 findings in 16,454 files |
 
-A live GUI model-build verdict, verification from a fresh GitHub Download ZIP,
-and the GitHub push remain pending. The local installer result does not cover
-the fresh-download path.
+The [full TPS54332DDA GUI build](evidence/2026-09-25-gui-build/REPORT.md)
+delivered a convergent model in 1,230.314 s (20m30s), with 10 PASS, 1 FAIL,
+53 UNKNOWN and 55 NOT_APPLICABLE across its fresh 119-row plan. Its overall
+verdict is UNKNOWN and its time missed the few-minute goal. The initially
+stale `judge=running` display was corrected and tested using a read-only
+replay of the saved result; final local installer checks above include that
+UI fix and the fail-closed Internet setting. Verification from a fresh GitHub
+Download ZIP and the GitHub push remain pending.
