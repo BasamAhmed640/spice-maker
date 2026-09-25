@@ -1390,3 +1390,20 @@ The fresh-ZIP check used a synthetic TPS54320 fixture to test the installation
 and model pipeline. It is not a full datasheet accuracy result. The verifier's
 new-ZIP rebuild and cleanup stages were intentionally skipped; the local
 installer build had already produced `releases/SpiceMaker-1.7.0-Windows-x64.zip`.
+
+## 2026-09-25 — buck template slice: ground-node and soft-start defects corrected
+
+Evidence: [`docs/evidence/2026-09-25-buck-slice/REPORT.md`](evidence/2026-09-25-buck-slice/REPORT.md);
+next families: [`docs/TEMPLATE_CATALOG.md`](TEMPLATE_CATALOG.md). Decisions D-045–D-047.
+No provider request was made; LTspice 26.0.0 selected explicitly.
+
+| Check | Result |
+|---|---|
+| Saved GUI current-limit deck, saved model (`d9b0b5e3…`) | 0 PH edges, `run` = 0, 1.21198e-9 A — reproduces the saved FAIL |
+| Same deck, gates on the model's GND + bench tied to node 0 | 500 edges in 0.5 ms (1.000 MHz), peak 5.3516 A |
+| Corrected current-limit bench, TPS54332DDA (4.2–6.5 A) | PASS 5.3513 A, window 4.86–6.86 ms, 9.2 s |
+| Same bench and template, TPS54331 (≥ 3.5 A, own cited 5.8 A) | PASS 5.8013 A, 7.0 s |
+| Template parameters on the saved GUI spec | before 0 cited / 23 defaults; after 18 cited, 2 derived, 3 defaults (10 ms) |
+| Frozen 19-row TPS54332DDA spec, corrected template | 12 PASS / 4 FAIL / 3 UNKNOWN, 109.8 s — every verdict unchanged |
+| `pytest tests/authoring tests/models tests/pipeline tests/ltspice tests/test_shared_core.py` (`LTSPICE_EXE`) | 725 passed, 0 failed |
+| `tools/shared_core.py --compare ..\spice-maker-bob` | identical: 42 files |

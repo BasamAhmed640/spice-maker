@@ -1,0 +1,23 @@
+* Frozen fixture: Measure switch current limit threshold
+.include "model_saved.lib"
+V1 vin bm_fixture_ground 12
+V2 en bm_fixture_ground 3.3
+Cboot boot ph 0.1u
+Dcatch bm_fixture_ground ph BM_CATCH
+Rsense ph sw 0.02
+L1 sw vout 10u
+C1 vout bm_fixture_ground 22u
+Rload vout bm_fixture_ground 0.5
+R1 vout vsense 31.25k
+R2 vsense bm_fixture_ground 10k
+C2 ss bm_fixture_ground 10n
+Rcomp comp comp_c 10k
+Ccomp comp_c bm_fixture_ground 1n
+.model BM_CATCH D(Is=1u N=1.05 Rs=0.05)
+Vtie bm_fixture_ground 0 0
+Xdut boot vin en ss vsense comp bm_fixture_ground ph bm_fixture_ground TPS54332DDA
+.temp 25
+.options plotwinsize=0 numdgt=15
+.tran 0 0.001 0 5e-08
+.save V(ph) V(sw) V(vout) V(ss) V(comp) V(xdut:run) V(xdut:q) V(xdut:en_ok) V(xdut:uv_ok) V(bm_fixture_ground)
+.end

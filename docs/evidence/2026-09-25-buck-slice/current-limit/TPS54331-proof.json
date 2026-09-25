@@ -1,0 +1,43 @@
+{
+ "part": "TPS54331",
+ "model_sha256": "96c29bc66cee5e505a1e7426131e1c1fe7fa04ff1d81759f30d5f77c3da3e7ca",
+ "row": "TPS54331_ILIM",
+ "row_statement": "Current limit threshold at VIN=12 V is 3.5 A minimum, 5.8 A typical.",
+ "row_page": 4,
+ "limits": {
+  "min": 3.5,
+  "typ": 5.8,
+  "max": null,
+  "unit": "A"
+ },
+ "parameter_ILIM": {
+  "value": 5.8,
+  "origin": "cited_row",
+  "row": "TPS54331_ILIM"
+ },
+ "parameter_ISS": {
+  "value": 2e-06,
+  "origin": "template_default",
+  "row": null
+ },
+ "window_s": [
+  0.004860000000000001,
+  0.006860000000000001
+ ],
+ "pre_freeze_check": "accepted",
+ "status": "PASS",
+ "measured": {
+  "recipe_value": 5.801342696825612
+ },
+ "detail": "TPS54331_ILIM [DOCUMENTED_LIMIT]: measured recipe_value=5.80134 A within >= 3.5 A",
+ "unknown_reason": null,
+ "artifacts": {
+  "C:\\Users\\basam\\src\\.smsnap\\gnd\\p331\\harness\\probes\\circuit_measurement\\deck.raw": "569e4e8e94921063b1ced3edf871c42c97c02e78d53d1db81d62c4dd7c5da0df",
+  "C:\\Users\\basam\\src\\.smsnap\\gnd\\p331\\harness\\probes\\circuit_measurement\\deck.log": "7b7921e495f64a80f8b8210634781b720fb406882849486ff4eee77f47520db1"
+ },
+ "seed_and_fixture_s": 0.0134,
+ "harness_s": 7.01,
+ "notes": [
+  "SS charge current is not cited in this spec; the template default 2e-06 A only places the measurement window (it sets no limit)."
+ ]
+}

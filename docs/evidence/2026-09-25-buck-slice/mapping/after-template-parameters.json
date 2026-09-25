@@ -1,0 +1,254 @@
+{
+ "schema_version": 1,
+ "template_kind": "peak_current_buck",
+ "contract_id": "peak_current_buck_v1",
+ "contract_sha256": "dbc93edec197dc7d3f3d353c29bab02eaa9890b4d08f3d0d2039fcaa80ab317f",
+ "spec_digest": "a7eb258408e3eab73aa6667074061ebccbdc2ab3eaf5e6c11816cc8b25083e0c",
+ "part": "TPS54332DDA",
+ "subckt": "TPS54332DDA",
+ "ports": [
+  "BOOT",
+  "VIN",
+  "EN",
+  "SS",
+  "VSENSE",
+  "COMP",
+  "GND",
+  "PH",
+  "POWERPAD"
+ ],
+ "parameters": [
+  {
+   "name": "VREF",
+   "value": 0.8,
+   "unit": "V",
+   "origin": "cited_row",
+   "row_id": "B002_REQ_007",
+   "page": 5,
+   "excerpt": "Voltage reference 0.772 0.8 0.828 V",
+   "transform": "none"
+  },
+  {
+   "name": "FSW",
+   "value": 1000000.0,
+   "unit": "Hz",
+   "origin": "cited_row",
+   "row_id": "B001_REQ-FEAT-FSW",
+   "page": 0,
+   "excerpt": "Fixed 1-MHz switching frequency",
+   "transform": "none"
+  },
+  {
+   "name": "TONMIN",
+   "value": 1.1e-07,
+   "unit": "s",
+   "origin": "cited_row",
+   "row_id": "B002_REQ_021",
+   "page": 5,
+   "excerpt": "Minimum controllable on time VIN = 12 V, 25°C 110 135 ns",
+   "transform": "none"
+  },
+  {
+   "name": "DMAX",
+   "value": 0.915,
+   "unit": "ratio",
+   "origin": "derived_from_bounds",
+   "row_id": "B002_REQ_022",
+   "page": 5,
+   "excerpt": "Maximum controllable duty ratio(1) BOOT-PH = 6 V 90% 93%",
+   "transform": "midpoint of cited minimum and maximum; scaled by 0.01"
+  },
+  {
+   "name": "ILIM",
+   "value": 5.35,
+   "unit": "A",
+   "origin": "derived_from_bounds",
+   "row_id": "B002_REQ_016",
+   "page": 5,
+   "excerpt": "Current limit threshold VIN = 12 V 4.2 6.5 A",
+   "transform": "midpoint of cited minimum and maximum"
+  },
+  {
+   "name": "GMCS",
+   "value": 12.0,
+   "unit": "A/V",
+   "origin": "cited_row",
+   "row_id": "B002_REQ_014",
+   "page": 5,
+   "excerpt": "Switch current to COMP transconductance VIN = 12 V 12 A/V",
+   "transform": "none"
+  },
+  {
+   "name": "VECO",
+   "value": 0.5,
+   "unit": "V",
+   "origin": "cited_row",
+   "row_id": "B003_TPS54332DDA-ECOMODE-ENTRY",
+   "page": 12,
+   "excerpt": "When the peak inductor current is lower than pulse skip threshold, the COMP pin voltage falls to 0.5 V (typical) \nand the device enters Eco-mode .",
+   "transform": "none"
+  },
+  {
+   "name": "ECO_I",
+   "value": 0.16,
+   "unit": "A",
+   "origin": "cited_row",
+   "row_id": "B002_REQ_015",
+   "page": 5,
+   "excerpt": "Pulse-skipping Eco-mode switch current threshold 160 mA",
+   "transform": "none"
+  },
+  {
+   "name": "EAGM",
+   "value": 9.2e-05,
+   "unit": "S",
+   "origin": "cited_row",
+   "row_id": "B002_REQ_010",
+   "page": 5,
+   "excerpt": "Error amplifier transconductance (gm) –2 μA < ICOMP < 2 μA, V(COMP) = 1 V 92 μmhos",
+   "transform": "scaled by 1e-06"
+  },
+  {
+   "name": "EAI",
+   "value": 7e-06,
+   "unit": "A",
+   "origin": "cited_row",
+   "row_id": "B002_REQ_013",
+   "page": 5,
+   "excerpt": "Error amplifier source/sink current V(COMP) = 1.0 V, 100-mV overdrive ±7 μA",
+   "transform": "none"
+  },
+  {
+   "name": "ISS",
+   "value": 2e-06,
+   "unit": "A",
+   "origin": "cited_row",
+   "row_id": "B002_REQ_018",
+   "page": 5,
+   "excerpt": "Charge current V(SS) = 0.4 V 2 μA",
+   "transform": "none"
+  },
+  {
+   "name": "SSOFS",
+   "value": 0.01,
+   "unit": "V",
+   "origin": "cited_row",
+   "row_id": "B002_REQ_019",
+   "page": 5,
+   "excerpt": "SS to VSENSE matching V(SS) = 0.4 V 10 mV",
+   "transform": "none"
+  },
+  {
+   "name": "ENTH",
+   "value": 1.25,
+   "unit": "V",
+   "origin": "cited_row",
+   "row_id": "B003_TPS54332DDA-EN-THRESHOLD",
+   "page": 11,
+   "excerpt": "The enable threshold voltage is 1.25 V typical.",
+   "transform": "none"
+  },
+  {
+   "name": "ENHYS",
+   "value": 0.05,
+   "unit": "V",
+   "origin": "template_default",
+   "row_id": null,
+   "page": null,
+   "excerpt": null,
+   "transform": null
+  },
+  {
+   "name": "UVTH",
+   "value": 3.5,
+   "unit": "V",
+   "origin": "cited_row",
+   "row_id": "B002_REQ_001",
+   "page": 5,
+   "excerpt": "Internal undervoltage lockout threshold Rising and Falling 3.5 V",
+   "transform": "none"
+  },
+  {
+   "name": "UVHYS",
+   "value": 0.2,
+   "unit": "V",
+   "origin": "template_default",
+   "row_id": null,
+   "page": null,
+   "excerpt": null,
+   "transform": null
+  },
+  {
+   "name": "IQOP",
+   "value": 8.2e-05,
+   "unit": "A",
+   "origin": "cited_row",
+   "row_id": "B002_REQ_003",
+   "page": 5,
+   "excerpt": "Operating – non switching supply current VSENSE = 0.85 V 82 120 μA",
+   "transform": "none"
+  },
+  {
+   "name": "IQSD_BASE",
+   "value": 0.0,
+   "unit": "A",
+   "origin": "template_default",
+   "row_id": null,
+   "page": null,
+   "excerpt": null,
+   "transform": null
+  },
+  {
+   "name": "EN_PULLUP",
+   "value": 1e-06,
+   "unit": "A",
+   "origin": "cited_row",
+   "row_id": "B002_REQ_005",
+   "page": 5,
+   "excerpt": "Input current Enable threshold – 50 mV -1 μA",
+   "transform": "magnitude of cited signed current"
+  },
+  {
+   "name": "RON",
+   "value": 0.115,
+   "unit": "ohm",
+   "origin": "cited_row",
+   "row_id": "B002_REQ_008",
+   "page": 5,
+   "excerpt": "On resistance BOOT-PH = 3 V, VIN = 3.5 V 115 200 mΩ",
+   "transform": "none"
+  },
+  {
+   "name": "FOLD6",
+   "value": 0.6,
+   "unit": "V",
+   "origin": "cited_row",
+   "row_id": "B003_TPS54332DDA-FSW-VSENSE-1MHZ",
+   "page": 11,
+   "excerpt": "1 MHz VSENSE ≥ 0.6 V",
+   "transform": "literal value in cited excerpt"
+  },
+  {
+   "name": "FOLD4",
+   "value": 0.4,
+   "unit": "V",
+   "origin": "cited_row",
+   "row_id": "B003_TPS54332DDA-FSW-VSENSE-HALF",
+   "page": 11,
+   "excerpt": "1 MHz / 2 0.6 V > VSENSE ≥ 0.4 V",
+   "transform": "literal value in cited excerpt"
+  },
+  {
+   "name": "FOLD2",
+   "value": 0.2,
+   "unit": "V",
+   "origin": "cited_row",
+   "row_id": "B003_TPS54332DDA-FSW-VSENSE-QUARTER",
+   "page": 11,
+   "excerpt": "1 MHz / 4 0.4 V > VSENSE ≥ 0.2 V",
+   "transform": "literal value in cited excerpt"
+  }
+ ],
+ "verdict": "UNJUDGED",
+ "verdict_note": "Run the LTspice harness; parameter provenance is not electrical proof."
+}

@@ -1,0 +1,73 @@
+* Reduced peak-current-mode buck template; electrical verdict comes from LTspice.
+* Parameter origins are recorded in template-parameters.json beside the delivered model.
+.subckt TPS54331 BOOT VIN EN SS VSENSE COMP GND PH
+.param VREF=0.8 FSW=570000 TONMIN=1.1e-07 DMAX=0.91 ILIM=5.8
+.param GMCS=12 VECO=0.5 ECO_I=0.16 EAGM=9.2e-05 EAI=7e-06
+.param ISS=2e-06 SSOFS=0.01 ENTH=1.25 ENHYS=0.05 UVTH=3.5
+.param UVHYS=0.2 IQOP=8.2e-05 IQSD_BASE=0 EN_PULLUP=1e-06 RON=0.08
+.param FOLD6=0.6 FOLD4=0.4 FOLD2=0.2
+* EN bias permits a floating EN; the externally held-low pull-up draw is part of IQSD.
+Bpu VIN EN I={EN_PULLUP}*limit((5-V(EN,GND))/0.2,0,1)
+Ren EN GND 100Meg
+* Unused logic inputs sit on each gate's own common node (GND). LTspice ignores an
+* input only there; an input on global node 0 counts as logic low whenever the
+* fixture's ground is a different node, which held every AND gate off.
+Aen EN GND GND GND GND nc_en en_ok GND SCHMITT Vt={ENTH-ENHYS/2} Vh={ENHYS/2} Vhigh=1 Vlow=0
+Auv VIN GND GND GND GND nc_uv uv_ok GND SCHMITT Vt={UVTH-UVHYS/2} Vh={UVHYS/2} Vhigh=1 Vlow=0
+Aon en_ok uv_ok GND GND GND nc_on run GND AND Vhigh=1 Vlow=0
+Rrun run GND 1Meg
+Bq VIN GND I={IQSD_BASE}+({IQOP}-{IQSD_BASE})*V(run,GND)
+* SS and error-amplifier current are bounded by cited rows when present.
+Bss VIN SS I={ISS}*V(run,GND)*limit((3-V(SS,GND))/0.1,0,1)
+Sss SS GND nrun GND SSOFF
+Rss SS GND 1G
+Bref ref GND V=min(V(SS,GND)+{SSOFS},{VREF})
+Rref ref GND 1Meg
+Bea GND COMP I=limit({EAGM}*(V(ref,GND)-V(VSENSE,GND)),-{EAI},{EAI})*V(run,GND)
+Rvs VSENSE GND 100Meg
+Dchi COMP chi DCL
+Vchi chi GND 2.5
+Dclo clo COMP DCL
+Vclo clo GND {VECO}
+Rcomp COMP GND 100Meg
+* Peak switch-current command. Eco clamp permits pulse skipping at light load.
+Bipk ipk GND V=limit({GMCS}*(V(COMP,GND)-{VECO}),0,{ILIM})
+Ripk ipk GND 1Meg
+Aeco COMP GND GND GND GND nc_eco eco_ok GND SCHMITT Vt={VECO} Vh=10m Vhigh=1 Vlow=0
+Becomand eco_demand GND V=limit((V(ipk,GND)-{ECO_I})/20m,0,1)
+* At enable, soft-start allows minimum-width pulses before COMP has charged;
+* after SS reaches its reference region, Eco-mode suppresses unwanted pulses.
+Bstartup startup GND V=limit(({VREF}/2-V(SS,GND))/10m,0,1)
+Ballow allow GND V=max(V(startup,GND),V(eco_ok,GND)*V(eco_demand,GND))
+* Four synchronized clocks implement the documented 1, 1/2, 1/4, 1/8 foldback.
+Vclk1 clk1 GND PULSE(0 1 0 2n 2n 20n {1/FSW})
+Vclk2 clk2 GND PULSE(0 1 0 2n 2n 20n {2/FSW})
+Vclk4 clk4 GND PULSE(0 1 0 2n 2n 20n {4/FSW})
+Vclk8 clk8 GND PULSE(0 1 0 2n 2n 20n {8/FSW})
+Bfold1 f1 GND V=limit((V(VSENSE,GND)-{FOLD6})/5m,0,1)
+Bfold2 f2 GND V=limit((V(VSENSE,GND)-{FOLD4})/5m,0,1)*(1-V(f1,GND))
+Bfold4 f4 GND V=limit((V(VSENSE,GND)-{FOLD2})/5m,0,1)*(1-V(f1,GND))*(1-V(f2,GND))
+Bfold8 f8 GND V=(1-V(f1,GND))*(1-V(f2,GND))*(1-V(f4,GND))
+Bclk clk GND V=V(clk1,GND)*V(f1,GND)+V(clk2,GND)*V(f2,GND)+V(clk4,GND)*V(f4,GND)+V(clk8,GND)*V(f8,GND)
+Vmaxd1 maxd1 GND PULSE(0 1 {DMAX/FSW} 2n 2n 20n {1/FSW})
+Vmaxd2 maxd2 GND PULSE(0 1 {2*DMAX/FSW} 2n 2n 20n {2/FSW})
+Vmaxd4 maxd4 GND PULSE(0 1 {4*DMAX/FSW} 2n 2n 20n {4/FSW})
+Vmaxd8 maxd8 GND PULSE(0 1 {8*DMAX/FSW} 2n 2n 20n {8/FSW})
+Bmaxd maxd GND V=V(maxd1,GND)*V(f1,GND)+V(maxd2,GND)*V(f2,GND)+V(maxd4,GND)*V(f4,GND)+V(maxd8,GND)*V(f8,GND)
+Aset clk run allow GND GND nc_set set GND AND Vhigh=1 Vlow=0
+Ablank q GND GND GND GND nc_bl blank_ok GND BUF Vhigh=1 Vlow=0 Td={TONMIN}
+Bcmp cmp GND V=0.5*(1+tanh((I(Vsns)-V(ipk,GND))/0.02))
+Rcmp cmp GND 1Meg
+Areset maxd pk nrun GND GND nc_rst rst GND OR Vhigh=1 Vlow=0
+Apk cmp blank_ok GND GND GND nc_pk pk GND AND Vhigh=1 Vlow=0
+Anrun run GND GND GND GND nrun nc_nrun GND BUF Vhigh=1 Vlow=0
+Alatch set rst GND GND GND qb q GND SRFLOP Vhigh=1 Vlow=0 Trise=2n Tfall=2n
+Rq q GND 1Meg
+Rqb qb GND 1Meg
+Vsns VIN swin 0
+Shs swin PH q GND SWHS
+Rboot BOOT PH 10Meg
+.model SWHS SW(Ron={RON} Roff=10G Vt=0.5 Vh=-0.1)
+.model SSOFF SW(Ron=100 Roff=1G Vt=0.5 Vh=-0.1)
+.model DCL D(Is=1e-14 N=0.05)
+.ends TPS54331

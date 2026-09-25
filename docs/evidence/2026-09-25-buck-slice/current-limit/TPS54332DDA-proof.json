@@ -1,0 +1,41 @@
+{
+ "part": "TPS54332DDA",
+ "model_sha256": "e551d86ada96db18e18ade714dab65783bce9281c58376b4b99c4faa97849494",
+ "row": "B002_REQ_016",
+ "row_statement": "Current limit threshold is 4.2 A minimum and 6.5 A maximum at VIN = 12 V.",
+ "row_page": 5,
+ "limits": {
+  "min": 4.2,
+  "typ": null,
+  "max": 6.5,
+  "unit": "A"
+ },
+ "parameter_ILIM": {
+  "value": 5.35,
+  "origin": "derived_from_bounds",
+  "row": "B002_REQ_016"
+ },
+ "parameter_ISS": {
+  "value": 2e-06,
+  "origin": "cited_row",
+  "row": "B002_REQ_018"
+ },
+ "window_s": [
+  0.004860000000000001,
+  0.006860000000000001
+ ],
+ "pre_freeze_check": "accepted",
+ "status": "PASS",
+ "measured": {
+  "recipe_value": 5.351314046902017
+ },
+ "detail": "B002_REQ_016 [DOCUMENTED_LIMIT]: measured recipe_value=5.35131 A within 4.2 .. 6.5 A",
+ "unknown_reason": null,
+ "artifacts": {
+  "C:\\Users\\basam\\src\\.smsnap\\gnd\\p332\\harness\\probes\\circuit_measurement\\deck.raw": "43dc912807668960ee46a08768861a1197b6411ab7283700cb817363d5429af0",
+  "C:\\Users\\basam\\src\\.smsnap\\gnd\\p332\\harness\\probes\\circuit_measurement\\deck.log": "d0818e9045ee41976e2ccaf84b840cf95217b8c2a0fcd4db2bd404b0d106d684"
+ },
+ "seed_and_fixture_s": 0.0119,
+ "harness_s": 9.16,
+ "notes": []
+}
