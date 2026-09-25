@@ -2057,7 +2057,10 @@ class _Run:
                 self.log.emit("judge", "ok", "reused revalidated simulator evidence")
                 return
         if cached is None or not cached.passed():
-            usable, reason = backend.availability()
+            if _author_needs_network(self.request) and not internet_allowed():
+                usable, reason = False, refusal_detail("authoring a model through the provider")
+            else:
+                usable, reason = backend.availability()
             if not usable:
                 if seed_report is not None and any(
                     row.status in (Status.PASS.value, Status.FAIL.value) and row.artifacts
@@ -2153,17 +2156,13 @@ class _Run:
         reported as such, and the run continues. ``cancel`` is the build's event; it and
         ``reinforce_timeout_s`` bound only this search, never the author loop.
         """
-        enabled = self.request.reinforce
-        if enabled is None:
-            # The one switch governs this stage too, and skipping with the reason is
-            # honest: supporting material never feeds a verdict, so the build continues
-            # instead of pretending a search ran (or dialling out with the switch off).
-            try:
-                require_network("the supporting-material search")
-            except NetworkRefused as refused:
-                self.log.emit("reinforce", "skipped", refused.detail[:160])
-                return
-            enabled = True
+        # Explicit --reinforce never overrides the one SETUP Internet switch.
+        try:
+            require_network("the supporting-material search")
+        except NetworkRefused as refused:
+            self.log.emit("reinforce", "skipped", refused.detail[:160])
+            return
+        enabled = self.request.reinforce is not False
         digest = self.spec.digest() if self.spec is not None else ""
         try:
             report = reinforce(

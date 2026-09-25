@@ -91,6 +91,7 @@ from boardmodeler.security.credentials import (
     get_credential,
     redact,
 )
+from boardmodeler.security.network import internet_allowed, refusal_detail
 
 __all__ = [
     "DEFAULT_RETRIES",
@@ -502,6 +503,8 @@ class ApiKeyBackend:
 
     def availability(self) -> tuple[bool, str]:
         """``(usable, reason)``; the reason names every source and never a value."""
+        if not internet_allowed():
+            return False, refusal_detail("authoring a model over the API")
         if by_id(self.provider.id) is None:
             accepted = ", ".join(repr(name) for name in ids()) or "none"
             return False, (

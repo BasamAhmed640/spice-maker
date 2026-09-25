@@ -150,21 +150,28 @@ def test_the_switch_off_stops_the_build_before_any_socket(config_off: None, tmp_
 def test_the_switch_off_refuses_the_api_backend_but_not_the_offline_author(
     config_off: None, tmp_path: Path
 ) -> None:
+    from boardmodeler.authoring.api_backend import build_api_backend
+
     with tripwire() as reached:
         api = build_backend(_request(tmp_path))
         usable, reason = api.availability()
+        direct_api = build_api_backend("openai")
+        direct_usable, direct_reason = direct_api.availability()
         offline = build_backend(_request(tmp_path, backend_name="fixture"))
     assert reached == [], f"building a backend dialled out: {reached}"
     assert usable is False
     assert "internet_access_off" in reason
     assert "INTERNET ACCESS" in reason
+    assert direct_usable is False
+    assert "internet_access_off" in direct_reason
     # The bundled offline author writes the template locally and must keep working: the
     # switch governs the network, not the product.
     assert "internet_access_off" not in offline.availability()[1]
 
 
+@pytest.mark.parametrize("reinforce", [None, True])
 def test_the_supporting_material_stage_skips_with_the_stated_reason(
-    config_off: None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    config_off: None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, reinforce: bool | None
 ) -> None:
     """The stage that reads the vendor's site must skip, not search with the switch off."""
     called: list[dict[str, Any]] = []
@@ -175,7 +182,7 @@ def test_the_supporting_material_stage_skips_with_the_stated_reason(
 
     monkeypatch.setattr(engine, "reinforce", must_not_run)
     events: list[engine.StageEvent] = []
-    run = engine._Run(_request(tmp_path), engine._StageLog(events.append))
+    run = engine._Run(_request(tmp_path, reinforce=reinforce), engine._StageLog(events.append))
     with tripwire() as reached:
         run._gather_supporting_material(None)
 
