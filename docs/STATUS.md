@@ -1334,3 +1334,28 @@ Decisions D-037–D-040.
 | Template prototype, same 19 frozen fixtures, 0 API calls | 7 PASS / 8 FAIL / 4 UNKNOWN in 77.7 s (after the log fix; 19 UNKNOWN before it) |
 | `pytest -q` (all markers) with `LTSPICE_EXE` set | 1757 passed, 15 skipped, 0 failed |
 | `tools/shared_core.py --compare ..\spice-maker-bob` | identical: 41 files |
+
+## 2026-09-25 — template-first buck checkpoint (release pending)
+
+Decisions D-041–D-043 govern the deterministic buck seed, physical fixture checks,
+and scoped verdicts. Detailed measured evidence is in
+[`docs/evidence/2026-09-25-buck-template/REPORT.md`](evidence/2026-09-25-buck-template/REPORT.md)
+and [`docs/evidence/2026-09-25-tps54331-second-device/REPORT.md`](evidence/2026-09-25-tps54331-second-device/REPORT.md).
+The 19 TPS54332DDA fixtures were frozen before the new planner checks; their
+known physical and timing defects remain recorded rather than being repaired
+silently or counted as passes.
+
+| Check | Observed result |
+|---|---|
+| TPS54332DDA deterministic seed against 19 frozen rows | 103.5 s; 12 PASS / 4 FAIL / 3 UNKNOWN; 0 API turns |
+| TPS54331 second-device seed from official TI PDF, three cited rows | 14.049 s in LTspice 26.0.0.3; 3 PASS / 0 FAIL / 0 UNKNOWN; no API key; current-limit row not bound |
+| Offline general product build, `--backend api --no-reinforce --iterations 1 --json` | Exit 0 in 153.4 s; published `.lib` and model card under `C:\Users\basam\src\.smsnap\r2\models\T3-template-product`; status UNKNOWN, 12 PASS / 4 FAIL / 3 UNKNOWN; no API request |
+| Focused pipeline/card tests | 55 passed, 5 deselected |
+| Release/source credential scan | 0 findings in 13,978 files |
+
+The offline product build used `BOARDMODELER_NO_NETWORK=1`, the official local
+TPS54332 PDF, frozen local requirements and bindings, and an explicitly selected
+LTspice executable. The TPS54331 result verifies only its three measured rows;
+it does not establish full TPS54331 accuracy. The general and Bob product builds
+still have an UNKNOWN model verdict. Current GUI, full-suite, installer and
+fresh-download checks remain pending, as does the GitHub push.
