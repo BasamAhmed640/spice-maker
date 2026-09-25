@@ -131,6 +131,18 @@ def test_the_environment_pin_forces_it_off_whatever_the_file_says(
     assert internet_allowed() is True
 
 
+def test_unreadable_config_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(NETWORK_ENV_VAR, raising=False)
+
+    def unreadable(*_args: Any, **_kwargs: Any) -> Any:
+        raise ValueError("invalid settings")
+
+    monkeypatch.setattr("boardmodeler.config.load_config", unreadable)
+    assert internet_allowed() is False
+    with pytest.raises(NetworkRefused, match="internet_access_off"):
+        require_network("authoring")
+
+
 # --------------------------------------------------------------------------- #
 # (c) the tripwire: switch off, nothing dials
 
