@@ -86,12 +86,47 @@ def test_comp_shunt_cannot_hold_cited_pulse_skip_level():
     assert accepted[0]["recipe"]["measurement"]["end"] == 0.001
 
 
+def test_correctly_oriented_legacy_behavioral_catch_path_is_accepted():
+    data = _recipe()
+    data["components"][7] = "Rcomp comp 0 100k"
+    data["components"].append("Bdiode ph 0 I=if(V(ph)<0, V(ph)/0.1, 0)")
+    assert _validate(data)[0]["probe"] == "circuit_measurement"
+    data["components"][-1] = "Bdiode ph 0 I=if(V(ph)>0, V(ph)/0.1, 0)"
+    with pytest.raises(ValueError, match="buck_fixture_missing_catch_diode"):
+        _validate(data)
+
+
 def test_active_buck_fixture_needs_an_output_capacitor():
     data = _recipe()
     data["components"] = [line for line in data["components"] if not line.startswith("Cout ")]
     data["components"].append("Dcatch 0 ph BM_CATCH")
     with pytest.raises(ValueError, match="buck_fixture_missing_output_capacitor"):
         _validate(data)
+
+
+def test_steady_state_window_cannot_precede_cited_soft_start_charging():
+    data = _recipe()
+    data["components"][7] = "Rcomp comp 0 100k"
+    data["components"].extend(["Dcatch 0 ph BM_CATCH", "Css ss 0 10n"])
+    data["terminals"]["SS"] = "ss"
+    context = [
+        *_context(),
+        {
+            "statement": "Slow-start (SS) pin charge current: 2 uA typical.",
+            "limits": Limit(typ=2e-6, unit="A").model_dump(),
+            "citation_verified": True,
+        },
+        {
+            "statement": "Voltage reference: 0.772 V min, 0.8 V typical.",
+            "limits": Limit(min=0.772, typ=0.8, unit="V").model_dump(),
+            "citation_verified": True,
+        },
+    ]
+    with pytest.raises(ValueError, match=r"buck_fixture_soft_start.*0\.00386 s"):
+        _validate(data, context=context)
+    data["stop"] = 0.006
+    data["measurement"].update(start=0.005, end=0.006)
+    assert _validate(data, context=context)[0]["probe"] == "circuit_measurement"
 
 
 def test_invalid_fixture_becomes_an_explicit_gap_without_changing_the_limit():

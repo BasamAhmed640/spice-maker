@@ -447,12 +447,22 @@ def _numeric_limit(limits, side):
         return None
 
 
-def _spice_resistance(token):
+def _spice_scalar(token):
     match = re.fullmatch(r"([+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)([A-Za-z]*)", token)
     if not match:
         return None
     suffix = match[2].lower()
-    factor = {"": 1, "m": 1e-3, "k": 1e3, "meg": 1e6, "g": 1e9}.get(suffix)
+    factor = {
+        "": 1,
+        "f": 1e-15,
+        "p": 1e-12,
+        "n": 1e-9,
+        "u": 1e-6,
+        "m": 1e-3,
+        "k": 1e3,
+        "meg": 1e6,
+        "g": 1e9,
+    }.get(suffix)
     return None if factor is None else float(match[1]) * factor
 
 
@@ -476,7 +486,32 @@ def _fixture_disabled(recipe):
     return False
 
 
-def _buck_fixture_issue(recipe, source_rows):
+def _has_catch_diode(lines, ph, ground):
+    if any(
+        parts[0][0].upper() == "D" and parts[1].casefold() == ground and parts[2].casefold() == ph
+        for parts in lines
+        if len(parts) >= 4
+    ):
+        return True
+    # Existing frozen benches used a one-way resistor as a simple catch
+    # diode. Admit only this exact negative-PH conduction law and polarity;
+    # a general B source is not evidence that the catch path is correct.
+    voltage = rf"V\({re.escape(ph)}(?:,{re.escape(ground)})?\)"
+    law = re.compile(rf"I=if\({voltage}<0,{voltage}/([0-9.eE+]+),0\)", re.I)
+    for parts in lines:
+        if (
+            parts[0][0].upper() == "B"
+            and len(parts) >= 4
+            and parts[1].casefold() == ph
+            and parts[2].casefold() == ground
+        ):
+            match = law.fullmatch("".join(parts[3:]))
+            if match and (resistance := _spice_scalar(match[1])) and resistance > 0:
+                return True
+    return False
+
+
+def _buck_fixture_issue(recipe, source_rows, statement):
     """Reject a physically impossible active asynchronous-buck bench before freezing it.
 
     This applies only where verified source rows establish the external diode or
@@ -501,8 +536,7 @@ def _buck_fixture_issue(recipe, source_rows):
         re.search(r"\b(?:external\s+)?catch\s+diode\b", text, re.I) for text, _ in source_rows
     )
     if has_catch_requirement:
-        diodes = [parts for parts in lines if parts[0][0].upper() == "D"]
-        if not any(parts[1].casefold() == ground and parts[2].casefold() == ph for parts in diodes):
+        if not _has_catch_diode(lines, ph, ground):
             return (
                 "buck_fixture_missing_catch_diode: cited external catch diode must connect "
                 "anode to ground and cathode to PH"
@@ -518,6 +552,45 @@ def _buck_fixture_issue(recipe, source_rows):
                 "buck_fixture_missing_output_capacitor: active PH-to-output inductor "
                 "needs an output capacitor to ground"
             )
+
+    if not re.search(r"(?:slow|soft)[ -]?start", statement, re.I):
+        charge_currents = [
+            value
+            for text, limits in source_rows
+            if re.search(r"(?:slow|soft)[ -]?start.*\bcharge\s+current\b", text, re.I)
+            for side in ("max", "typ", "min")
+            if (value := _numeric_limit(limits, side)) is not None and value > 0
+        ]
+        references = [
+            value
+            for text, limits in source_rows
+            if re.search(r"\bvoltage\s+reference\b", text, re.I)
+            for side in ("min", "typ", "max")
+            if (value := _numeric_limit(limits, side)) is not None and value > 0
+        ]
+        ss = terminals.get("SS")
+        if ss and charge_currents and references:
+            fastest_charge = max(charge_currents)
+            lowest_reference = min(references)
+            for parts in lines:
+                if (
+                    parts[0][0].upper() == "C"
+                    and len(parts) >= 4
+                    and {parts[1].casefold(), parts[2].casefold()} == {ss, ground}
+                ):
+                    capacitance = _spice_scalar(parts[3])
+                    if capacitance is None or capacitance <= 0:
+                        return (
+                            "buck_fixture_soft_start: SS capacitance is not a positive fixed value"
+                        )
+                    charge_time = capacitance * lowest_reference / fastest_charge
+                    if recipe.measurement.start < charge_time:
+                        return (
+                            "buck_fixture_soft_start: steady-state measurement starts at "
+                            f"{recipe.measurement.start:g} s before cited SS charging can reach "
+                            f"minimum reference ({charge_time:g} s with {capacitance:g} F, "
+                            f"{fastest_charge:g} A and {lowest_reference:g} V)"
+                        )
 
     ea_currents = [
         value
@@ -545,7 +618,7 @@ def _buck_fixture_issue(recipe, source_rows):
                 continue
             if {parts[1].casefold(), parts[2].casefold()} != {comp, ground}:
                 continue
-            resistance = _spice_resistance(parts[3])
+            resistance = _spice_scalar(parts[3])
             if resistance is None or resistance <= 0:
                 return "buck_fixture_comp_shunt: COMP-to-ground resistance is not a positive fixed value"
             if drive * resistance <= needed:
@@ -673,7 +746,7 @@ def validate_plan(payload, requirements, terminals, unverified, pin_map=None, *,
         recipe = CircuitRecipe.model_validate(declared_delay_threshold(entry["recipe"], req))
         recipe = _ac_open_loop(recipe, pin_map)
         m = recipe.measurement
-        issue = _buck_fixture_issue(recipe, source_rows)
+        issue = _buck_fixture_issue(recipe, source_rows, req.statement)
         if issue:
             raise ValueError(f"{req.req_id}: {issue}")
         if recipe.unit == "A" and m.absolute and _current_polarity_cited(req):
