@@ -144,3 +144,23 @@ schematic. After: supplies on top, grounds/pads at the bottom, inputs left, outp
 one op-amp per block (IN+, OUT, IN−), boot and switch node together above the feedback pins.
 Remaining limits: multi-unit parts are still one rectangle (no separate op-amp triangles), and
 the preview PNG is a review tool (`tools/render_symbol.py`), not part of the deliverable.
+
+## 6. Installers and the GitHub startup path
+
+`installer/build.ps1` rebuilt both editions from `main`; each build froze the GUI, opened it
+(screenshot), packaged `Install.exe` and passed `verify_portable.py` (install, update,
+two copies at once, fresh copy). Then the owner's own path was run against GitHub
+(`user_path_check.sh`): **Download ZIP of `main` → `Install.exe --silent --no-launch` → start**.
+
+| Check | Spice Maker (`9fe042a`) | Spice Maker Bob (`1aea81f`) |
+|---|---|---|
+| ZIP from `github.com/BasamAhmed640/<repo>/archive/refs/heads/main.zip` | 91.7 MB | 90.7 MB |
+| `Install.exe` matches the committed `SHA256SUMS.txt` | PASS (89.6 MB) | PASS (89.4 MB) |
+| `Install.exe --silent --no-launch` | exit 0, 37 s | exit 0, 35 s |
+| `app\SpiceMaker.exe`, `Start.cmd`, `Boardmodeler.cmd`, `.venv` present | PASS | PASS |
+| `app\SpiceMaker.exe --cli version` / `Boardmodeler.cmd version` | 1.6.0 / 1.6.0 | 1.5.0 / 1.5.0 |
+| `Boardmodeler.cmd doctor --json` | LTspice `unset` (no search), telemetry none | same |
+| Frozen GUI opens (first launch shows SETUP) | PASS — `github-install-startup-general.png` | PASS — `github-install-startup-bob.png` |
+
+Seen in those screenshots and not yet fixed: SETUP's long key-hint paragraph overlaps the rows
+above and below it at the default size (a wrapped label in a grid row).
