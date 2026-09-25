@@ -1189,3 +1189,12 @@ datasheet's 3.5 A current-limit figure is a minimum and 5.8 A is typical, so
 the template's current-limit default was not presented as a cited maximum or
 included in those three measured rows. These results demonstrate the bounded
 seed path, not a verified full-device model or a completed release gate.
+
+## D-044 — Treat unreadable Internet settings as off (2026-09-25)
+
+Both editions now refuse provider and supporting-material requests when the
+single Internet setting cannot be read. A damaged settings file cannot turn a
+previously saved off choice into permission to send a request. The refusal
+names the SETUP switch, environment override and invalid settings as possible
+causes. Focused tests cover the unreadable-config path and the explicitly
+enabled supporting-material path while network access is off.
