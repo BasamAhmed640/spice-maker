@@ -1,9 +1,7 @@
 # Spice Maker
 
-Source version: **1.7.0**. The checked-in `Install.exe` is still the **1.6.0**
-build shown in `INSTALL.txt`; it will contain the new source only after the
-1.7.0 installer is rebuilt and committed. Check `SHA256SUMS.txt` against the
-installer in the ZIP you download.
+Source and checked-in installer version: **1.7.0**. Check `SHA256SUMS.txt`
+against the installer in the ZIP you download.
 
 ## Windows setup and model verification
 
@@ -98,10 +96,10 @@ final duration. See [what the agents and simulator do](docs/AGENT_WORKFLOW.md).
 selected. Extract the ZIP, open the extracted repository folder, and double-click
 **Install.exe** beside this README. The installer is included in the ZIP.
 
-The checked-in installer currently identifies itself as **1.6.0** in `INSTALL.txt`;
-it does not yet contain the 1.7.0 source changes. Python is bundled; LTspice is a
-separate prerequisite; this edition installs no CLI agent. `SHA256SUMS.txt` holds
-the checksum of the checked-in installer.
+The checked-in installer identifies itself as **1.7.0** in `INSTALL.txt` and
+includes the template-first model path. Python is bundled; LTspice is a separate
+prerequisite; this edition installs no CLI agent. `SHA256SUMS.txt` holds the
+checksum of the checked-in installer.
 
 **Give it a datasheet and a part number; an agent authors an LTspice model. The GUI defaults to full electrical verification. Quick structural checks are an explicit unverified draft choice. You get a `.lib`, a symbol and a card that states what was checked and what remains unverified.** That is the product. Everything below the fold is
 supporting machinery, and the board/circuit/UI layers date from an earlier, wider spec.
