@@ -1,0 +1,258 @@
+{
+  "characteristics": [
+    {
+      "char_id": "TPS54331_IQ_SHUTDOWN",
+      "conditions": [],
+      "excerpt": "Shutdown supply current EN = 0 V, VIN = 12 V, \u201340\u00b0C to 85\u00b0C 1 4 \u03bcA",
+      "max_value": 4e-06,
+      "min_value": null,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "Vvin vin 0 12",
+          "Ven en 0 0",
+          "Rph ph 0 1Meg",
+          "Rcomp comp 0 1Meg",
+          "Rss ss 0 1Meg",
+          "Rvsense vsense 0 1Meg",
+          "Cboot boot ph 100n"
+        ],
+        "condition_evidence": "Cited shutdown row specifies EN=0 V, VIN=12 V; this test is at 25 C only, not the full -40 to 85 C range.",
+        "measurement": {
+          "end": 0.001,
+          "operation": "mean",
+          "signal": "I(Vvin)",
+          "start": 0.0008
+        },
+        "operating_point": {
+          "EN": 0.0,
+          "VIN": 12.0
+        },
+        "purpose": "Shutdown VIN supply current with EN=0 at 12 V, nominal 25 C",
+        "step": 1e-06,
+        "stop": 0.001,
+        "terminals": {
+          "BOOT": "boot",
+          "COMP": "comp",
+          "EN": "en",
+          "GND": "0",
+          "PH": "ph",
+          "SS": "ss",
+          "VIN": "vin",
+          "VSENSE": "vsense"
+        },
+        "unit": "A"
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 4,
+      "statement": "Shutdown supply current at EN=0 V, VIN=12 V.",
+      "target": 1e-06,
+      "typ_value": 1e-06,
+      "unit": "A"
+    },
+    {
+      "char_id": "TPS54331_FSW",
+      "conditions": [],
+      "excerpt": "Switching frequency VIN = 12 V, 25\u00b0C 456 570 684 kHz",
+      "max_value": 684000.0,
+      "min_value": 456000.0,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "Vvin vin 0 12",
+          "Cin vin 0 10u",
+          "Ven en 0 5",
+          "Cboot boot ph 100n",
+          "Css ss 0 2.5n",
+          "Lout ph out 10u",
+          "Dcatch 0 ph BM_CATCH",
+          "Cout out 0 47u",
+          "Rload out 0 3.3",
+          "Rfb1 out vsense 31.25k",
+          "Rfb2 vsense 0 10k",
+          "Rc comp comp_mid 10k",
+          "Cc comp_mid 0 1n",
+          "Cc2 comp 0 100p"
+        ],
+        "condition_evidence": "VIN=12 V and nominal 25 C are on the cited switching row. A 3.3 V / about 1 A application bench exercises PH switching and VSENSE feedback; the datasheet row does not claim this one load covers all conditions. The catch diode, bootstrap capacitor and power-stage values are test-bench choices.",
+        "measurement": {
+          "end": 0.004,
+          "level": 2.0,
+          "operation": "frequency",
+          "rising": true,
+          "signal": "V(ph)",
+          "start": 0.003
+        },
+        "operating_point": {
+          "ILOAD": 1.0,
+          "VIN": 12.0,
+          "VOUT_SET": 3.3
+        },
+        "purpose": "PH switching frequency at 12 V, 25 C, 3.3 V / about 1 A bench",
+        "step": 5e-08,
+        "stop": 0.0042,
+        "terminals": {
+          "BOOT": "boot",
+          "COMP": "comp",
+          "EN": "en",
+          "GND": "0",
+          "PH": "ph",
+          "SS": "ss",
+          "VIN": "vin",
+          "VSENSE": "vsense"
+        },
+        "unit": "Hz"
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 5,
+      "statement": "Switching frequency is 570 kHz typical at VIN=12 V, 25 C.",
+      "target": 570000.0,
+      "typ_value": 570000.0,
+      "unit": "Hz"
+    },
+    {
+      "char_id": "TPS54331_VREF",
+      "conditions": [],
+      "excerpt": "Voltage reference 0.772 0.8 0.828 V",
+      "max_value": 0.828,
+      "min_value": 0.772,
+      "not_testable_reason": null,
+      "probe": "circuit_measurement",
+      "probe_params": {},
+      "probe_recipe": {
+        "analysis": "tran",
+        "components": [
+          "Vvin vin 0 12",
+          "Cin vin 0 10u",
+          "Ven en 0 5",
+          "Cboot boot ph 100n",
+          "Css ss 0 2.5n",
+          "Lout ph out 10u",
+          "Dcatch 0 ph BM_CATCH",
+          "Cout out 0 47u",
+          "Rload out 0 3.3",
+          "Rfb1 out vsense 31.25k",
+          "Rfb2 vsense 0 10k",
+          "Rc comp comp_mid 10k",
+          "Cc comp_mid 0 1n",
+          "Cc2 comp 0 100p"
+        ],
+        "condition_evidence": "VIN=12 V and nominal 25 C are on the cited switching row. A 3.3 V / about 1 A application bench exercises PH switching and VSENSE feedback; the datasheet row does not claim this one load covers all conditions. The catch diode, bootstrap capacitor and power-stage values are test-bench choices.",
+        "measurement": {
+          "end": 0.004,
+          "operation": "mean",
+          "signal": "V(vsense)",
+          "start": 0.003
+        },
+        "operating_point": {
+          "ILOAD": 1.0,
+          "VIN": 12.0,
+          "VOUT_SET": 3.3
+        },
+        "purpose": "VSENSE reference in regulation at 12 V, 25 C",
+        "step": 5e-08,
+        "stop": 0.0042,
+        "terminals": {
+          "BOOT": "boot",
+          "COMP": "comp",
+          "EN": "en",
+          "GND": "0",
+          "PH": "ph",
+          "SS": "ss",
+          "VIN": "vin",
+          "VSENSE": "vsense"
+        },
+        "unit": "V"
+      },
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 4,
+      "statement": "Voltage reference is 0.8 V typical.",
+      "target": 0.8,
+      "typ_value": 0.8,
+      "unit": "V"
+    },
+    {
+      "char_id": "TPS54331_ILIM",
+      "conditions": [],
+      "excerpt": "Current-limit threshold VIN = 12 V 3.5 5.8 A",
+      "max_value": null,
+      "min_value": 3.5,
+      "not_testable_reason": "The compact second-device check did not establish a direct fixture for this internal threshold.",
+      "probe": null,
+      "probe_params": {},
+      "req_class": "DOCUMENTED_LIMIT",
+      "source_page": 4,
+      "statement": "Current limit threshold at VIN=12 V is 3.5 A minimum, 5.8 A typical.",
+      "target": 5.8,
+      "typ_value": 5.8,
+      "unit": "A"
+    }
+  ],
+  "doc_id": "TI-SLVS839H-SHA256-cf72dfd0ac69eec6",
+  "part": "TPS54331",
+  "pin_map": [
+    {
+      "direction": "output",
+      "name": "BOOT",
+      "physical_pin": "1",
+      "source_excerpt": "A 0.1-\u03bcF bootstrap capacitor is required between the BOOT and PH pins.",
+      "source_page": 2
+    },
+    {
+      "direction": "input",
+      "name": "VIN",
+      "physical_pin": "2",
+      "source_excerpt": "This pin is the 3.5-V to 28-V input supply voltage.",
+      "source_page": 2
+    },
+    {
+      "direction": "input",
+      "name": "EN",
+      "physical_pin": "3",
+      "source_excerpt": "This pin is the enable pin. To disable, pull below 1.25 V.",
+      "source_page": 2
+    },
+    {
+      "direction": "input",
+      "name": "SS",
+      "physical_pin": "4",
+      "source_excerpt": "This pin is slow-start pin. An external capacitor connected to this pin sets the output rise time.",
+      "source_page": 2
+    },
+    {
+      "direction": "input",
+      "name": "VSENSE",
+      "physical_pin": "5",
+      "source_excerpt": "This pin is the inverting node of the transconductance (gm) error amplifier.",
+      "source_page": 2
+    },
+    {
+      "direction": "output",
+      "name": "COMP",
+      "physical_pin": "6",
+      "source_excerpt": "This pin is the error-amplifier output and the input to the PWM comparator.",
+      "source_page": 2
+    },
+    {
+      "direction": "ground",
+      "name": "GND",
+      "physical_pin": "7",
+      "source_excerpt": "Ground pin",
+      "source_page": 2
+    },
+    {
+      "direction": "output",
+      "name": "PH",
+      "physical_pin": "8",
+      "source_excerpt": "The PH pin is the source of the internal high-side power MOSFET.",
+      "source_page": 2
+    }
+  ],
+  "subckt": "TPS54331"
+}

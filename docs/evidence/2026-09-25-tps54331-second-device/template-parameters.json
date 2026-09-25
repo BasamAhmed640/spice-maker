@@ -1,0 +1,253 @@
+{
+  "contract_id": "peak_current_buck_v1",
+  "contract_sha256": "77eff657bbb76f50ca8497e84465aa2fbf28564e208bc37f6c4b3faf47d33699",
+  "parameters": [
+    {
+      "excerpt": "Voltage reference 0.772 0.8 0.828 V",
+      "name": "VREF",
+      "origin": "cited_row",
+      "page": 4,
+      "row_id": "TPS54331_VREF",
+      "transform": "none",
+      "unit": "V",
+      "value": 0.8
+    },
+    {
+      "excerpt": "Switching frequency VIN = 12 V, 25°C 456 570 684 kHz",
+      "name": "FSW",
+      "origin": "cited_row",
+      "page": 5,
+      "row_id": "TPS54331_FSW",
+      "transform": "none",
+      "unit": "Hz",
+      "value": 570000.0
+    },
+    {
+      "excerpt": null,
+      "name": "TONMIN",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "s",
+      "value": 1.1e-07
+    },
+    {
+      "excerpt": null,
+      "name": "DMAX",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "ratio",
+      "value": 0.91
+    },
+    {
+      "excerpt": null,
+      "name": "ILIM",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "A",
+      "value": 5.35
+    },
+    {
+      "excerpt": null,
+      "name": "GMCS",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "A/V",
+      "value": 12.0
+    },
+    {
+      "excerpt": null,
+      "name": "VECO",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "V",
+      "value": 0.5
+    },
+    {
+      "excerpt": null,
+      "name": "ECO_I",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "A",
+      "value": 0.16
+    },
+    {
+      "excerpt": null,
+      "name": "EAGM",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "S",
+      "value": 9.2e-05
+    },
+    {
+      "excerpt": null,
+      "name": "EAI",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "A",
+      "value": 7e-06
+    },
+    {
+      "excerpt": null,
+      "name": "ISS",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "A",
+      "value": 2e-06
+    },
+    {
+      "excerpt": null,
+      "name": "SSOFS",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "V",
+      "value": 0.01
+    },
+    {
+      "excerpt": null,
+      "name": "ENTH",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "V",
+      "value": 1.25
+    },
+    {
+      "excerpt": null,
+      "name": "ENHYS",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "V",
+      "value": 0.05
+    },
+    {
+      "excerpt": null,
+      "name": "UVTH",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "V",
+      "value": 3.5
+    },
+    {
+      "excerpt": null,
+      "name": "UVHYS",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "V",
+      "value": 0.2
+    },
+    {
+      "excerpt": null,
+      "name": "IQOP",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "A",
+      "value": 8.2e-05
+    },
+    {
+      "excerpt": null,
+      "name": "IQSD_BASE",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "A",
+      "value": 0.0
+    },
+    {
+      "excerpt": null,
+      "name": "EN_PULLUP",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "A",
+      "value": 1e-06
+    },
+    {
+      "excerpt": null,
+      "name": "RON",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "ohm",
+      "value": 0.08
+    },
+    {
+      "excerpt": null,
+      "name": "FOLD6",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "V",
+      "value": 0.6
+    },
+    {
+      "excerpt": null,
+      "name": "FOLD4",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "V",
+      "value": 0.4
+    },
+    {
+      "excerpt": null,
+      "name": "FOLD2",
+      "origin": "template_default",
+      "page": null,
+      "row_id": null,
+      "transform": null,
+      "unit": "V",
+      "value": 0.2
+    }
+  ],
+  "part": "TPS54331",
+  "ports": [
+    "BOOT",
+    "VIN",
+    "EN",
+    "SS",
+    "VSENSE",
+    "COMP",
+    "GND",
+    "PH"
+  ],
+  "schema_version": 1,
+  "spec_digest": "cf835332ac20f40f909aee5a8c0e3879746a864ca68901fb6ba7cddf11a57925",
+  "subckt": "TPS54331",
+  "template_kind": "peak_current_buck",
+  "verdict": "UNJUDGED",
+  "verdict_note": "Run the LTspice harness; parameter provenance is not electrical proof."
+}
