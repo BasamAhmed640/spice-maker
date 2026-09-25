@@ -1,5 +1,10 @@
 # Spice Maker
 
+Source version: **1.7.0**. The checked-in `Install.exe` is still the **1.6.0**
+build shown in `INSTALL.txt`; it will contain the new source only after the
+1.7.0 installer is rebuilt and committed. Check `SHA256SUMS.txt` against the
+installer in the ZIP you download.
+
 ## Windows setup and model verification
 
 From a GitHub **Code → Download ZIP** archive, extract the folder and run its included
@@ -10,6 +15,12 @@ a model folder in this copy, and save an API key for the selected provider. LTsp
 never searched for or selected from an inherited environment variable. The current
 general edition sends authoring requests directly to the selected provider's HTTPS API;
 it does not give the authoring model command or file-system tools.
+
+The installer carries a CPython 3.14 runtime, hash-checked wheels and its generated
+`env/requirements.txt`. It installs those pins into this folder's `.venv` with no
+package download during installation. `Boardmodeler.cmd` uses that environment for
+command-line work; `Start.cmd` opens the separately frozen GUI, because the `.venv`
+does not include Qt.
 
 For a Python 3.14 source setup using IBM Bob's standard project pattern, run these
 commands in PowerShell from the extracted folder. They create and install into this
@@ -38,6 +49,15 @@ The model build requires a real TPS54332DDA datasheet PDF, a selected provider k
 and an LTspice path saved in this copy's SETUP. The generated `MODEL_CARD.md` records
 the measured and untested rows. [IBM Bob's workspace rule format](https://bob.ibm.com/docs/shell/configuration/bobshell-custom-rules)
 is represented by `AGENTS.md` and `.bob/rules/`; the application itself does not run Bob.
+
+**1.7.0: template-first buck models.** For a supported buck-converter pinout, the app
+starts with a known-convergent circuit template. It fills parameters from cited
+datasheet rows where available, labels any remaining template defaults, and runs
+the same LTspice harness before involving the agent. The agent receives measured
+failures for bounded repair; if it cannot improve the result, the measured template
+can still be delivered with its FAIL and UNKNOWN rows visible. Other device classes
+continue through the existing authoring path. A template parameter is provenance,
+not proof of accuracy: only simulator evidence can make a requirement PASS.
 
 **1.5.0: containment, one network switch, and models you can reopen.** This edition now ships **no CLI agent at all** — IBM Bob lives only in the separate Bob-only build, so nothing in this copy installs or executes a third-party agent, and every provider is a plain HTTPS request to the host its vendor documents. Egress has exactly **one control**: SETUP's `INTERNET ACCESS`, which governs the provider API and the part vendor's own site for supporting material; with it off the app sends nothing and refuses a build with that reason (proved by a test that runs the refusal path behind a socket tripwire).
 
@@ -78,11 +98,10 @@ final duration. See [what the agents and simulator do](docs/AGENT_WORKFLOW.md).
 selected. Extract the ZIP, open the extracted repository folder, and double-click
 **Install.exe** beside this README. The installer is included in the ZIP.
 
-The tracked **Install.exe** is the verified 1.5.0 build: its file version is 1.5.0, and the
-hash in SHA256SUMS.txt is the SHA256 of the installer inside
-`releases/SpiceMaker-1.5.0-Windows-x64.zip`. Python is bundled; LTspice is a separate
-prerequisite; this edition installs no CLI agent. See INSTALL.txt for instructions and
-SHA256SUMS.txt for the installer hash.
+The checked-in installer currently identifies itself as **1.6.0** in `INSTALL.txt`;
+it does not yet contain the 1.7.0 source changes. Python is bundled; LTspice is a
+separate prerequisite; this edition installs no CLI agent. `SHA256SUMS.txt` holds
+the checksum of the checked-in installer.
 
 **Give it a datasheet and a part number; an agent authors an LTspice model. The GUI defaults to full electrical verification. Quick structural checks are an explicit unverified draft choice. You get a `.lib`, a symbol and a card that states what was checked and what remains unverified.** That is the product. Everything below the fold is
 supporting machinery, and the board/circuit/UI layers date from an earlier, wider spec.
@@ -111,9 +130,12 @@ Windows and the file is **not encrypted**: anyone who can read this folder can r
 the copy private. Setup is one page and holds only what persists: the LTspice
 path (with a smoke test), the agent provider and key, the model id when the provider takes one,
 the folder finished models go to, the read-only LTspice user library path, and the
-web-reinforcement switch. Installing a finished model is always the window's **Install into
-LTspice** action, which copies into this folder's `library/`; add its `sym` and `sub` folders to LTspice's search paths once. The main window holds nothing but the
-part number, the datasheet, the save location, **GO** and the progress detail. Without an agent
+single **INTERNET ACCESS** switch for provider requests and supporting material.
+Installing a finished model is the window's **Install into LTspice** action,
+which copies into this folder's `library/`; add its `sym` and `sub` folders to
+LTspice's search paths once. The main window holds the
+part number, the datasheet, the save location, **FULL VERIFICATION** beside **GO**,
+and the progress and result controls. Without an agent
 the run stops immediately with `BLOCKED` naming what is missing — it never substitutes another
 provider. The selected key now handles extraction and authoring. Four extraction tasks
 share one request, repairs receive the current model, and verified repeat builds reuse
@@ -159,7 +181,7 @@ application writes files (decks and the candidate model). The key file, `data/cr
 is plain text inside this folder. The optional `sim` extra (`spicelib`, not in `requirements.txt`) checks LTspice's default
 install locations when it is imported; the app imports it only after an LTspice path is set.
 
-To rebuild, run `installer\build.ps1 -Version 1.5.0`; see
+To rebuild, run `installer\build.ps1 -Version 1.7.0`; see
 [installer details](installer/README.md). The build refreshes the root installer,
 instructions and checksum so committing those files updates Code → Download ZIP.
 
