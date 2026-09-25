@@ -1,0 +1,124 @@
+{
+ "elapsed_s": 87.54367889999412,
+ "counts": {
+  "FAIL": 8,
+  "PASS": 8,
+  "UNKNOWN": 3
+ },
+ "rows": [
+  [
+   "B001_FEAT_VOUT_MIN",
+   "FAIL",
+   "recipe_value = 0.799839 V",
+   "B001_FEAT_VOUT_MIN [DOCUMENTED_LIMIT]: measured recipe_value=0.799839 V is below the required minimum 0.8 V"
+  ],
+  [
+   "B001_FEAT_FSW",
+   "FAIL",
+   "recipe_value = 0 Hz",
+   "B001_FEAT_FSW [TYPICAL_VALUE]: measured recipe_value=0 Hz, |measured - typ 1e+06| = 1e+06 Hz versus the 10 % band 100000 Hz (typical-value comparison, not a min/max limit check)"
+  ],
+  [
+   "B001_FEAT_IQ_SHUTDOWN",
+   "FAIL",
+   "recipe_value = -1.00121e-06 A",
+   "B001_FEAT_IQ_SHUTDOWN [TYPICAL_VALUE]: measured recipe_value=-1.00121e-06 A, |measured - typ 1e-06| = 2.00121e-06 A versus the 10 % band 1e-07 A (typical-value comparison, not a min/max limit check)"
+  ],
+  [
+   "B002_TPS54332DDA_UVLO_VIN",
+   "PASS",
+   "recipe_value = 3.65001 V",
+   "B002_TPS54332DDA_UVLO_VIN [DOCUMENTED_LIMIT]: measured recipe_value=3.65001 V within >= 3.5 V"
+  ],
+  [
+   "B002_TPS54332DDA_ISHDN",
+   "PASS",
+   "recipe_value = -1.00121e-06 A",
+   "B002_TPS54332DDA_ISHDN [DOCUMENTED_LIMIT]: measured recipe_value=-1.00121e-06 A within <= 4e-06 A"
+  ],
+  [
+   "B002_TPS54332DDA_IOP_NONSW",
+   "PASS",
+   "recipe_value = -8.30071e-05 A",
+   "B002_TPS54332DDA_IOP_NONSW [DOCUMENTED_LIMIT]: measured recipe_value=-8.30071e-05 A within <= 0.00012 A"
+  ],
+  [
+   "B002_TPS54332DDA_EN_TH",
+   "FAIL",
+   "recipe_value = 1.36 V",
+   "B002_TPS54332DDA_EN_TH [DOCUMENTED_LIMIT]: measured recipe_value=1.36 V exceeds the required maximum 1.35 V"
+  ],
+  [
+   "B002_TPS54332DDA_VREF",
+   "UNKNOWN",
+   "",
+   "recipe_not_settled"
+  ],
+  [
+   "B002_TPS54332DDA_EA_ISOURCE_SINK",
+   "PASS",
+   "recipe_value = 6.98999e-06 A",
+   "B002_TPS54332DDA_EA_ISOURCE_SINK [TYPICAL_VALUE]: measured recipe_value=6.98999e-06 A, |measured - typ 7e-06| = 1.0006e-08 A versus the 10 % band 7e-07 A (typical-value comparison, not a min/max limit check)"
+  ],
+  [
+   "B002_TPS54332DDA_SW_CURRENT_TO_COMP",
+   "FAIL",
+   "recipe_value = 9 A/V",
+   "B002_TPS54332DDA_SW_CURRENT_TO_COMP [TYPICAL_VALUE]: measured recipe_value=9 A/V, |measured - typ 12| = 3 A/V versus the 10 % band 1.2 A/V (typical-value comparison, not a min/max limit check)"
+  ],
+  [
+   "B002_TPS54332DDA_ILIM",
+   "FAIL",
+   "recipe_value = 10.6092 A",
+   "B002_TPS54332DDA_ILIM [DOCUMENTED_LIMIT]: measured recipe_value=10.6092 A exceeds the required maximum 6.5 A"
+  ],
+  [
+   "B002_TPS54332DDA_SS_CHARGE",
+   "PASS",
+   "recipe_value = 1.9992e-06 A",
+   "B002_TPS54332DDA_SS_CHARGE [TYPICAL_VALUE]: measured recipe_value=1.9992e-06 A, |measured - typ 2e-06| = 8.024e-10 A versus the 10 % band 2e-07 A (typical-value comparison, not a min/max limit check)"
+  ],
+  [
+   "B002_TPS54332DDA_SS_VSENSE_MATCH",
+   "FAIL",
+   "recipe_value = -0.4 V",
+   "B002_TPS54332DDA_SS_VSENSE_MATCH [TYPICAL_VALUE]: measured recipe_value=-0.4 V, |measured - typ 0.01| = 0.41 V versus the 10 % band 0.001 V (typical-value comparison, not a min/max limit check)"
+  ],
+  [
+   "B002_TPS54332DDA_MIN_ON_TIME",
+   "UNKNOWN",
+   "",
+   "recipe_crossing_missing: the requested device transition did not occur"
+  ],
+  [
+   "B003_REQ_TPS54332_OUTPUT_CURRENT_MAX",
+   "PASS",
+   "recipe_value = 3.49933 A",
+   "B003_REQ_TPS54332_OUTPUT_CURRENT_MAX [DOCUMENTED_LIMIT]: measured recipe_value=3.49933 A within <= 3.5 A"
+  ],
+  [
+   "B003_REQ_TPS54332_SWITCH_CURRENT_LIMIT_MIN",
+   "PASS",
+   "recipe_value = 5.3514 A",
+   "B003_REQ_TPS54332_SWITCH_CURRENT_LIMIT_MIN [DOCUMENTED_LIMIT]: measured recipe_value=5.3514 A within >= 4.2 A"
+  ],
+  [
+   "B003_REQ_TPS54332_EN_THRESHOLD",
+   "FAIL",
+   "recipe_value = 1.602 V",
+   "B003_REQ_TPS54332_EN_THRESHOLD [TYPICAL_VALUE]: measured recipe_value=1.602 V, |measured - typ 1.25| = 0.352004 V versus the 10 % band 0.125 V (typical-value comparison, not a min/max limit check)"
+  ],
+  [
+   "B003_REQ_TPS54332_ECOMODE_COMP_0P5V",
+   "PASS",
+   "recipe_value = 0.465924 V",
+   "B003_REQ_TPS54332_ECOMODE_COMP_0P5V [TYPICAL_VALUE]: measured recipe_value=0.465924 V, |measured - typ 0.5| = 0.034076 V versus the 10 % band 0.05 V (typical-value comparison, not a min/max limit check)"
+  ],
+  [
+   "B004_REQ_TPS54332DDA_DUTY_MAX",
+   "UNKNOWN",
+   "",
+   "recipe_not_settled"
+  ]
+ ]
+}

@@ -1,0 +1,64 @@
+.subckt TPS54332DDA BOOT VIN EN SS VSENSE COMP GND PH POWERPAD
+* Ground and pad
+Rpad POWERPAD GND 0.001
+Rboot BOOT GND 100Meg
+Rss SS GND 100Meg
+Rvs VSENSE GND 100Meg
+Ren EN GND 100Meg
+Rcomp COMP GND 100Meg
+
+* EN pull-up
+Bpu VIN EN I=1u*min(max((5-V(EN,GND))/0.2,0),1)
+
+* Enable logic
+Ben en_ok GND V=0.5*(1+tanh((V(EN,GND)-1.25)/0.05))
+Bvin vin_ok GND V=0.5*(1+tanh((V(VIN,GND)-3.5)/0.05))
+Benall en_all GND V=V(en_ok,GND)*V(vin_ok,GND)
+
+* Supply current
+Biq VIN GND I=79u*V(en_all,GND)
+
+* SS charge
+Bss VIN SS I=(2u+100u*min(max((0.4-V(SS,GND))/0.05,0),1))*min(max((0.8-V(SS,GND))/0.02,0),1)*V(en_all,GND)
+
+* Error amp target from SS
+Bvtgt vtgt GND V=min(max(V(SS,GND)+0.01,0),0.8)
+* Error amp
+Bea GND COMP I=min(max(70u*(V(vtgt,GND)-V(VSENSE,GND)),-200u),200u)*V(en_all,GND)
+
+* Eco-mode latch
+Bssdone ssdone GND V=0.5*(1+tanh((V(SS,GND)-0.78)/0.01))
+Bset set GND V=V(ssdone,GND)*0.5*(1+tanh((0.01-V(COMP,GND))/0.005))
+Vlogic logic GND 1
+Aeco set 0 logic GND eco eco_n GND SRFLOP Vhigh=1 Vlow=0
+
+* Eco-mode COMP clamp
+Vref05 ref05 GND 0.5
+Seco COMP ref05 eco GND SWM
+
+* Clock
+Vclk clk GND PULSE(0 1 0 1n 1n 10n 1u)
+
+* PWM current comparator
+Bipk ipk GND V=min(max(12*V(COMP,GND),0),5.0)
+Bclkset clkset GND V=V(clk,GND)*V(en_all,GND)*(1-V(eco,GND))*(V(COMP,GND)>0.02)
+Breset reset GND V=if(V(eco,GND)>0.5, 1, if(V(ton_max,GND)>0.9, 1, if(V(ton_min,GND)>0.5, 0.5*(1+tanh((I(Vsen)-V(ipk,GND))/0.05)), 0)))
+A1 clkset reset logic GND gate gate_n GND SRFLOP Vhigh=1 Vlow=0
+Bgate_en gate_en GND V=V(gate,GND)*V(en_all,GND)*(1-V(eco,GND))
+
+* Minimum on-time
+Cton_min ton_min GND 1n
+Rton_min ton_min GND 100Meg
+Bton_min GND ton_min I=(V(gate_en,GND)-V(ton_min,GND))*1n/158n
+
+* Maximum on-time
+Cton_max ton_max GND 1n
+Rton_max ton_max GND 100Meg
+Bton_max GND ton_max I=(V(gate_en,GND)-V(ton_max,GND))*1n/400n
+
+* High-side switch
+Vsen VIN sw 0
+S1 sw PH gate_en GND SWM
+.model SWM SW(Ron=0.1 Roff=1Meg Vt=0.5 Vh=0.1)
+
+.ends TPS54332DDA

@@ -1,0 +1,32 @@
+.subckt LM358 VCC OUT1 IN1M IN1P VEE IN2P IN2M OUT2
+* Quiescent supply current (dual total, per amplifier 350uA)
+Bq VCC VEE I=700u
+
+* Channel 1
+Bib1p VEE IN1P I=19n
+Bib1m VEE IN1M I=21n
+Rin1p IN1P VEE 1G
+Rin1m IN1M VEE 1G
+Bvos1 d1 VEE V = V(IN1P,VEE) - V(IN1M,VEE) - 3m
+Bgm1 VEE n1 I = 68u*tanh(1m*V(d1,VEE)/68u)
+R1 n1 VEE 100Meg
+C1 n1 VEE 227p
+Dclamp1 n1 VCC Dclamp
+Dclamp2 VEE n1 Dclamp
+Bout1 OUT1 VEE V = limit(V(n1,VEE), 5m, max(V(VCC,VEE)-2, 5m))
+
+* Channel 2
+Bib2p VEE IN2P I=19n
+Bib2m VEE IN2M I=21n
+Rin2p IN2P VEE 1G
+Rin2m IN2M VEE 1G
+Bvos2 d2 VEE V = V(IN2P,VEE) - V(IN2M,VEE) - 3m
+Bgm2 VEE n2 I = 68u*tanh(1m*V(d2,VEE)/68u)
+R2 n2 VEE 100Meg
+C2 n2 VEE 227p
+Dclamp3 n2 VCC Dclamp
+Dclamp4 VEE n2 Dclamp
+Bout2 OUT2 VEE V = limit(V(n2,VEE), 5m, max(V(VCC,VEE)-2, 5m))
+
+.model Dclamp D
+.ends LM358

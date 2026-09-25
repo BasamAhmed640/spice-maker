@@ -1,0 +1,110 @@
+{
+ "part": "TPS54332DDA",
+ "status": "UNKNOWN",
+ "detail": "api_request_failed: deadline_exhausted: only -2.03 s of the 600 s turn budget remained before attempt 3 of 3, and a retry needs 30 s",
+ "counts": {
+  "BLOCKED": 0,
+  "FAIL": 0,
+  "NOT_APPLICABLE": 49,
+  "PASS": 0,
+  "UNKNOWN": 57
+ },
+ "lib_path": null,
+ "asy_path": null,
+ "request": {
+  "agent_max_tokens": null,
+  "agent_model": null,
+  "allow_remote": true,
+  "backend_name": "api",
+  "bindings_json": null,
+  "max_iterations": 3,
+  "part": "TPS54332DDA",
+  "provider": "opencode_go",
+  "reinforce": false,
+  "reinforce_timeout_s": 45.0,
+  "requirements_json": null,
+  "stall_patience": 2,
+  "subckt": "TPS54332DDA",
+  "team_id": null,
+  "timeout_s": 120.0,
+  "turn_timeout_s": null,
+  "verification": "full"
+ },
+ "stages_last": [
+  {
+   "counts": {
+    "pages": 35
+   },
+   "detail": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D: 35 page(s), embedded text",
+   "stage": "read",
+   "status": "ok"
+  },
+  {
+   "counts": {
+    "cache_hits": 0,
+    "rows": 106,
+    "unverified": 8
+   },
+   "detail": "provider=opencode_go tasks=4 cache_hits=0 requirements=106 pins=9 part=identified review_items=62 issues=19 model=deepseek-v4.1-flash pages_sent=17 pages_skipped=15 page_gaps=3; 8 citation(s) unverified",
+   "stage": "extract",
+   "status": "ok"
+  },
+  {
+   "counts": {
+    "not_testable": 87,
+    "testable": 19
+   },
+   "detail": "19 row(s) judged by probes, 87 declared not testable; independent device-specific fixtures, frozen before model authoring",
+   "stage": "bind",
+   "status": "ok"
+  },
+  {
+   "counts": {},
+   "detail": "disabled: internet reinforcement was not enabled for this build",
+   "stage": "reinforce",
+   "status": "skipped"
+  },
+  {
+   "counts": {
+    "BLOCKED": 0,
+    "FAIL": 0,
+    "NOT_APPLICABLE": 0,
+    "PASS": 0,
+    "UNKNOWN": 19,
+    "turn": 1
+   },
+   "detail": "turn 1: 0 pass, 0 fail, 19 unknown; failing: none",
+   "stage": "judge",
+   "status": "ok"
+  },
+  {
+   "counts": {
+    "BLOCKED": 0,
+    "FAIL": 0,
+    "NOT_APPLICABLE": 0,
+    "PASS": 0,
+    "UNKNOWN": 19,
+    "turn": 2
+   },
+   "detail": "turn 2: 0 pass, 0 fail, 19 unknown; failing: none",
+   "stage": "judge",
+   "status": "ok"
+  },
+  {
+   "counts": {
+    "turns": 3
+   },
+   "detail": "3 turn(s); api_request_failed: deadline_exhausted: only -2.03 s of the 600 s turn budget remained before attempt 3 of 3, and a retry needs 30 s",
+   "stage": "author",
+   "status": "ok"
+  },
+  {
+   "counts": {
+    "files": 0
+   },
+   "detail": "the model could not be published: ValueError: simulator_rejected_model: sim_output_unreadable: no .raw was written (exit_code=1; wall=0.44s; raw=no; log=yes); LTspice said: deck.cir(15): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(33): Expected valid special function name here. | TPS54332DDA.lib(46): Expected valid ",
+   "stage": "save",
+   "status": "skipped"
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+* TPS54332DDA - peak-current-mode buck, template prototype (not verified)
+* Parameters come from cited datasheet rows: VREF 0.8 V, fsw 1 MHz, min on 110 ns,
+* Dmax 91 %, ILIM 4.2..6.5 A, switch-current-to-COMP 12 A/V, EA +/-7 uA, SS 2 uA,
+* SS-to-VSENSE 10 mV, EN 1.25..1.35 V rising, UVLO 3.5 V, IQ 82 uA / 1 uA, Eco 0.5 V.
+.subckt TPS54332DDA BOOT VIN EN SS VSENSE COMP GND PH POWERPAD
+.param VREF=0.8 FSW=1Meg TONMIN=110n DMAX=0.91 ILIM=5.35 GMCS=12 VECO=0.5
+.param EAGM=92u EAI=7u ISS=2u SSOFS=10m ENTH=1.3 ENHYS=0.05 UVTH=3.5 UVHYS=0.2
+.param IQOP=82u IQSD=1u RON=0.08
+* exposed pad is ground
+Rpad POWERPAD GND 1m
+* EN: 1 uA pull-up with compliance, so a floating EN enables (datasheet permits it)
+Bpu VIN EN I=1u*limit((5-V(EN,GND))/0.2,0,1)
+Ren EN GND 100Meg
+* enable and undervoltage lockout as digital Schmitt triggers (no B-source latches)
+Aen EN 0 0 0 0 nc_en en_ok GND SCHMITT Vt={ENTH-ENHYS/2} Vh={ENHYS/2} Vhigh=1 Vlow=0
+Auv VIN 0 0 0 0 nc_uv uv_ok GND SCHMITT Vt={UVTH-UVHYS/2} Vh={UVHYS/2} Vhigh=1 Vlow=0
+Aon en_ok uv_ok 0 0 0 nc_on run GND AND Vhigh=1 Vlow=0
+Rrun run GND 1Meg
+* supply current: shutdown vs operating (non-switching)
+Bq VIN GND I={IQSD}+({IQOP}-{IQSD})*V(run,GND)
+* slow start: 2 uA into SS while running, discharged while off
+Bss VIN SS I={ISS}*V(run,GND)*limit((3-V(SS,GND))/0.1,0,1)
+Sss SS GND nrun GND SSOFF
+Rss SS GND 1G
+* error amplifier: transconductance to COMP, +/-7 uA, reference follows SS
+Bref ref GND V=min(V(SS,GND)+{SSOFS},{VREF})
+Rref ref GND 1Meg
+Bea GND COMP I=limit({EAGM}*(V(ref,GND)-V(VSENSE,GND)),-{EAI},{EAI})*V(run,GND)
+Rvs VSENSE GND 100Meg
+Dchi COMP chi DCL
+Vchi chi GND 2.5
+Dclo clo COMP DCL
+Vclo clo GND 0
+Rcomp COMP GND 100Meg
+* peak current command, eco-mode skip below VECO
+Bipk ipk GND V=limit({GMCS}*(V(COMP,GND)-{VECO}),0,{ILIM})
+Ripk ipk GND 1Meg
+Aeco COMP 0 0 0 0 nc_eco eco_ok GND SCHMITT Vt={VECO} Vh=10m Vhigh=1 Vlow=0
+* clock sets the latch at the start of each period; max duty resets it
+Vclk clk GND PULSE(0 1 0 2n 2n 20n {1/FSW})
+Vmaxd maxd GND PULSE(0 1 {DMAX/FSW} 2n 2n 20n {1/FSW})
+Aset clk run eco_ok 0 0 nc_set set GND AND Vhigh=1 Vlow=0
+* reset: max duty, peak current reached after the minimum on time, or not running
+Ablank q 0 0 0 0 nc_bl blank_ok GND BUF Vhigh=1 Vlow=0 Td={TONMIN}
+Bcmp cmp GND V=0.5*(1+tanh((I(Vsns)-V(ipk,GND))/0.02))
+Rcmp cmp GND 1Meg
+Areset maxd pk nrun 0 0 nc_rst rst GND OR Vhigh=1 Vlow=0
+Apk cmp blank_ok 0 0 0 nc_pk pk GND AND Vhigh=1 Vlow=0
+Anrun run 0 0 0 0 nrun nc_nrun GND BUF Vhigh=1 Vlow=0
+Alatch set rst 0 0 0 qb q GND SRFLOP Vhigh=1 Vlow=0 Trise=2n Tfall=2n
+Rq q GND 1Meg
+Rqb qb GND 1Meg
+* high-side switch with current sense
+Vsns VIN swin 0
+Shs swin PH q GND SWHS
+* bootstrap node rides on PH
+Rboot BOOT PH 10Meg
+.model SWHS SW(Ron={RON} Roff=100Meg Vt=0.5 Vh=-0.1)
+.model SSOFF SW(Ron=100 Roff=1G Vt=0.5 Vh=-0.1)
+.model DCL D(Is=1e-14 N=0.05)
+.ends TPS54332DDA

@@ -1,0 +1,8 @@
+{
+ "turn": 1,
+ "author_elapsed_s": 456.9,
+ "first_outcome_reason": "sim_output_unreadable: no .raw was written (exit_code=1; wall=0.44s; raw=no; log=yes); LTspice said: deck.cir(15): This sub-circuit cannot be instantiated because it contains these syntax errors: | TPS54332DDA.lib(33): Expected valid special function name here. | TPS54332DDA.lib(46): Expected valid special function name here.",
+ "statuses": [
+  "UNKNOWN"
+ ]
+}

@@ -1320,3 +1320,17 @@ Observed on this machine (LTspice 26.0.0 selected explicitly; OpenCode Go `deeps
 | Fresh GitHub ZIP of the branch: venv, pinned install, startup without LTspice access, explicit `.op`, credential scan | PASS (7/7 steps) |
 | `tools/shared_core.py --compare ..\spice-maker-bob` | identical: 41 files |
 | TPS54332DDA reruns after this change | see REPORT.md section 3 (no generated-model PASS is claimed unless listed there) |
+
+## 2026-09-24 — 1.6.0: readiness lights, pdfium fallback, parallel harness, readable symbols
+
+Evidence: [`docs/evidence/2026-09-24-usability/REPORT.md`](evidence/2026-09-24-usability/REPORT.md).
+Decisions D-037–D-040.
+
+| Check | Result |
+|---|---|
+| LM358 PDF registration with a provider key in the environment | pypdf `NameError: _LENGTH_LIMIT` in 1 of 7 runs before; pdfium fallback now reads it |
+| VERIFY KEY & TOOLS, this machine's key and LTspice | API KEY ok, MODEL ok (reply parsed as `{"files": ...}`), LTSPICE ok (RC smoke), PDF ok, OCR warn (no Tesseract), INTERNET ok — 10.5 s |
+| Full TPS54332DDA AI build (3 turns, full verification) | 1957 s, UNKNOWN, 0 PASS, no model delivered (turn 1 A-device syntax, turn 2 no operating point, turn 3 API budget) |
+| Template prototype, same 19 frozen fixtures, 0 API calls | 7 PASS / 8 FAIL / 4 UNKNOWN in 77.7 s (after the log fix; 19 UNKNOWN before it) |
+| `pytest -q` (all markers) with `LTSPICE_EXE` set | 1757 passed, 15 skipped, 0 failed |
+| `tools/shared_core.py --compare ..\spice-maker-bob` | identical: 41 files |
