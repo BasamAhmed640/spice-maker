@@ -1,0 +1,339 @@
+{
+  "artifact_hashes": {
+    "TPS54332DDA-fresh-m3.lib": "21b3c7f1f9ed14b0d4247d291b7ba6342fecfdf19acdef59ca699c603fdb2ae2",
+    "harness/probes/circuit_measurement-028fc125d0a0/deck.cir": "0020df233dc54e347ae700322c19f1c978815b4746d8fd3e4afaa01c4f6fd3c0",
+    "harness/probes/circuit_measurement-028fc125d0a0/deck.log": "60f7af95b22bb53ee6cbd78344eb4d72267487897a0234527fdc0db27f8f1d80",
+    "harness/probes/circuit_measurement-028fc125d0a0/deck.op.raw": "2b957d62f641e27464c01feb3e0076b83c30ce75a77e8cf4f84d9b799d865939",
+    "harness/probes/circuit_measurement-028fc125d0a0/deck.raw": "769ae2ea3be99b186f54992502bef29ef932a1ca09fd4b4118753e3f42d269bd",
+    "harness/probes/circuit_measurement-0b6231ac4241/deck.cir": "42a227fc1e6a5392d8d357abca7e927e88252f2528fa305b4d6e97459894310c",
+    "harness/probes/circuit_measurement-0b6231ac4241/deck.log": "e988a8b037c7fd765baf58d5c5b4b3371bd7b0d781fc201884e8c93d2009c72c",
+    "harness/probes/circuit_measurement-0b6231ac4241/deck.op.raw": "fa23124a4aea780db4cc592750058b0b7a9df2edd69d8b58a12db56aea931c21",
+    "harness/probes/circuit_measurement-0b6231ac4241/deck.raw": "5a6dd98b34ff4c58afd41d2737bcc41529847b20c83a6d38f5aab8c005c54438",
+    "harness/probes/circuit_measurement-149159df7ca9/deck.cir": "c6258fc04776d6c795f1f4a92b2a432bed3713824bdd27c044b5dcee901d37c7",
+    "harness/probes/circuit_measurement-149159df7ca9/deck.log": "fcc38fcd09e2cea9d350af26926a3c11238e4e762d389e043baf51d755f76fa8",
+    "harness/probes/circuit_measurement-149159df7ca9/deck.op.raw": "6081835f395a609f89064a2a0b8a27e839e9dc46fcdcf667ea467e8c4b82470e",
+    "harness/probes/circuit_measurement-149159df7ca9/deck.raw": "0a73e085d3708e4296130deaca0d1d28acf0bd94b30339b2caaf83683fe407c8",
+    "harness/probes/circuit_measurement-7ffe2c99c071/deck.cir": "dbdc86ac0d50d9573488f5befe41ceb914124b0966614454cbc00d06d43626d3",
+    "harness/probes/circuit_measurement-7ffe2c99c071/deck.log": "153a4e11ea1286e25a5fa54a97f9af69b575972c88b2c5a37d4d481f157fa3dc",
+    "harness/probes/circuit_measurement-7ffe2c99c071/deck.op.raw": "37b7fab75a910418ab45587ed448a86aec6c37c53b8c761ea4c9edd84723123d",
+    "harness/probes/circuit_measurement-7ffe2c99c071/deck.raw": "cddea628178e8f311b770515813ed67ad2a026935b411d4c8058e4b6bb3245bd",
+    "harness/probes/circuit_measurement-803d3a2150ce/deck.cir": "61fe7375de413f3e058eb2c026321bf6bccbc26489f269fc64b0feb7c308cb2d",
+    "harness/probes/circuit_measurement-803d3a2150ce/deck.log": "5d134b4648ce071f9438f5dbc2463f897336adca2024aec4158eb8e4a703a800",
+    "harness/probes/circuit_measurement-803d3a2150ce/deck.op.raw": "47dd8c0c1cbbfd0b14db14d79e5fe90d35f3bf914de011c914d08e691984d5de",
+    "harness/probes/circuit_measurement-803d3a2150ce/deck.raw": "982886396c750addaebf39186361e7d4ea63b4fb64eb4d2093a72c91f2efe2a5",
+    "harness/probes/circuit_measurement-8852217ee785/deck.cir": "6e9815e8b269cc2e09aaa6f97649e39545e100f26c40098d644be6a4a6d33418",
+    "harness/probes/circuit_measurement-8852217ee785/deck.log": "4565b8e2eec908ee008709d6afcfdcd28f2ca160d0406d94741858d4bcbb4852",
+    "harness/probes/circuit_measurement-8852217ee785/deck.op.raw": "728452397566ed1eb39ac020079e2ef73be1eac38cc3754da7849c49f470cbd8",
+    "harness/probes/circuit_measurement-8852217ee785/deck.raw": "d2fe1732b98af23ed0ae956084db96469c64dc423edc637435e07dd69b593677",
+    "harness/probes/circuit_measurement-8af9efc3d7da/deck.cir": "76430d53ee588e8430f85c588af78d6664fdf7568c880d55f71fc3cec4d55e7f",
+    "harness/probes/circuit_measurement-8af9efc3d7da/deck.log": "75108c7677cfed6fcef120e12079d76b73eb0fbfc4868087e6268b6694f40ea1",
+    "harness/probes/circuit_measurement-8af9efc3d7da/deck.op.raw": "231da6872eec61d0dc11e88104734e2c3176ebf7eb82d2ba4ebf32f4bc343948",
+    "harness/probes/circuit_measurement-8af9efc3d7da/deck.raw": "fd0521e5166c5ef367bfd077095399f28d9cc21ea5f2a19609197947da32fa7a",
+    "harness/probes/circuit_measurement-8fe7566fe439/deck.cir": "7ebfac556a580ab208d53ab70f00bb8e60fdf429833d4760430ad0aba66ad807",
+    "harness/probes/circuit_measurement-8fe7566fe439/deck.log": "e8ac1168fc098e4c3b70bf8dd20adfd12eb5f345ce12be69f6d133e216a49bfa",
+    "harness/probes/circuit_measurement-8fe7566fe439/deck.op.raw": "79e1a96b6f6b6b7c7a10b5a2a59acbdd6b7e7d100535047659e887fcfc049b8d",
+    "harness/probes/circuit_measurement-8fe7566fe439/deck.raw": "3bd28127e8ee82aa7f91040194a1419080bc4bfe2a3ab8b1c216a92d063b4f65",
+    "harness/probes/circuit_measurement-9bb2d462921f/deck.cir": "02c58b833b36492052712d1ad0b12bcfc6427957668240e0abd9108d46251d02",
+    "harness/probes/circuit_measurement-9bb2d462921f/deck.log": "c260a450d92c42fdc4b73abbafb5bd546187919d481c15b4c200bfa58bfd9d2c",
+    "harness/probes/circuit_measurement-9bb2d462921f/deck.op.raw": "441ca0bba438c3eae76651712d3fde23ad1d8a1be952bbb6085cc4cf99bed4e0",
+    "harness/probes/circuit_measurement-9bb2d462921f/deck.raw": "6a7b44a01393ac977bd430dd642057eb8b01b9bb4b35d5da2e83a9688be0e4eb",
+    "harness/probes/circuit_measurement-9e291ca19a84/deck.cir": "a77188ad7b5616798c99d699dc07c251231170c2f38b006403033b0c3cf8ffb2",
+    "harness/probes/circuit_measurement-9e291ca19a84/deck.log": "1decd0167b50fed68ab5b8d3cece5917081827b3ca29aab083f808d715397ee4",
+    "harness/probes/circuit_measurement-9e291ca19a84/deck.op.raw": "3c94abf8706c0c8b200f5cea161865f37eb656f61ebac600267f1a33d675b6ba",
+    "harness/probes/circuit_measurement-9e291ca19a84/deck.raw": "6f98949d55498dab99a768f96d247db58bf85ad87054336940cb8272584b1296",
+    "harness/probes/circuit_measurement-a21370a7f461/deck.cir": "cf5107ebda0c27bc937d09317045eef4960b7e95b65754269c4c0a6c63596940",
+    "harness/probes/circuit_measurement-a21370a7f461/deck.log": "7182ea50653f9931f8f6096e0b5bfae294c92ef6b40b7468753ad2d225df36d5",
+    "harness/probes/circuit_measurement-a21370a7f461/deck.op.raw": "be495ebf9b3a0bb13d89b1c225d781a879f4bfde13e975ecadc5776c520d726a",
+    "harness/probes/circuit_measurement-a21370a7f461/deck.raw": "a5240f333cf39a7d2c30e4f3d0815fdcad37e69499cec2fb52817c6f53c1046b",
+    "harness/probes/circuit_measurement-bed3ee31c928/deck.cir": "e2ad6b4b8b48f12a6a2aaf86e6026ff99e5192e1b36ebdd2fe878695426e79b0",
+    "harness/probes/circuit_measurement-bed3ee31c928/deck.log": "cf3b7cebe0b4872bf2dd3475f2994b3c95b0338325c1b9d12737ac6ee255f428",
+    "harness/probes/circuit_measurement-bed3ee31c928/deck.op.raw": "d7b06703bae91c513f45356d0146bd4d7cc90ce49622d7f14fa172aaf93ac54c",
+    "harness/probes/circuit_measurement-bed3ee31c928/deck.raw": "35b5f8a57c075abddbbea645912ceb9f37c87a54cf90880185f2fa4a54033dcb",
+    "harness/probes/circuit_measurement-c93e8ac2d571/deck.cir": "79d85589d8ecc190a0ab6e5b86aaa114ccb45a90b778534af1e3651700528a21",
+    "harness/probes/circuit_measurement-c93e8ac2d571/deck.log": "dd08bc5bd30b7de0190b99130d8833b8607520baa2e42896b5660907b53978c9",
+    "harness/probes/circuit_measurement-c93e8ac2d571/deck.op.raw": "84bf4dda9c03bf26163b8d180aea9b06b27e8d38642679da9115c05b5342f448",
+    "harness/probes/circuit_measurement-c93e8ac2d571/deck.raw": "1798a420c874b2119c3bbec86b6f41ac94af49292a77c9b47285584573bc6b27",
+    "harness/probes/circuit_measurement-d0a2a2d62577/deck.cir": "2bb05d110ad7488b1ab23f9a70f7d16e5279e9deea6414d7460642f9563a5abc",
+    "harness/probes/circuit_measurement-d0a2a2d62577/deck.log": "7ef36f4703b44bec712c7381c7fe2ba9d2de5237854c129505b6ae7802df4f48",
+    "harness/probes/circuit_measurement-d0a2a2d62577/deck.op.raw": "ff95dcc72bd7fc2e3b50deed5a896f9aa065ffc0cf597d765e21bc316baa6d86",
+    "harness/probes/circuit_measurement-d0a2a2d62577/deck.raw": "83f8ec56a60b3b5a3aa5303ce49e165dfda9cb5bcb7c156b0339ce9466dbcb51",
+    "harness/probes/circuit_measurement-e2b7e0213fff/deck.cir": "d7a9b4c650a4b4be1307c48069de1f7070bf7ffd1634ee954abcd3f0f0564546",
+    "harness/probes/circuit_measurement-e2b7e0213fff/deck.log": "4fe59db0fb545e6fd39a72118a5c4a74883bfdc7d46468f36c8fac6dde2e642f",
+    "harness/probes/circuit_measurement-e2b7e0213fff/deck.op.raw": "101637b76d99719159a134919a1aead43f2d6b33ae89ac2ca06fab8963385785",
+    "harness/probes/circuit_measurement-e2b7e0213fff/deck.raw": "29b771204c845b0e84977f7a7381743b56ede9e7b424bef149a57f06e2c342a6",
+    "harness/probes/circuit_measurement-e3fc2c8575b6/deck.cir": "64f88547456b588de2a79ac9290cdc95d71cb5f847904d3c5d56aa52d9a7cf41",
+    "harness/probes/circuit_measurement-e3fc2c8575b6/deck.log": "68d72325fba0dc262ac4add381c91a5b4ee08fa2e6d19aabd69cb26f178645a1",
+    "harness/probes/circuit_measurement-e3fc2c8575b6/deck.op.raw": "973cae70eb1d5b4f6f00afa799de783b9cf8a34d15e4f5e1d174d3d75a0c2201",
+    "harness/probes/circuit_measurement-e3fc2c8575b6/deck.raw": "096378da0eb4e22c1c1fe6aca82ad2692cd3dc6a03b5e894c3d98d422161e9d3",
+    "harness/probes/circuit_measurement-eefd9ccb1c31/deck.cir": "fbf12a1c43649f7e60a7aa45d9672bd72257f42115604f385f932591e9d25288",
+    "harness/probes/circuit_measurement-eefd9ccb1c31/deck.log": "e5cbbcf540248deaea19950c1e1bae68305bdc41ce286c988a071e350f77af35",
+    "harness/probes/circuit_measurement-eefd9ccb1c31/deck.op.raw": "98f47641aa9787b6ab106c0d4f63811c05d640362ff577d57b1ae3c69603355b",
+    "harness/probes/circuit_measurement-eefd9ccb1c31/deck.raw": "f0bd0680799ea92f592a4f20cf3c40620083d8b0cbcdbd9ceef5dd497bf5c4de",
+    "harness/probes/circuit_measurement-f0f1b744e613/deck.cir": "496201e78ac24ea0a6381ca1193c5404698f6d33befc08bb974d9da531f69b9d",
+    "harness/probes/circuit_measurement-f0f1b744e613/deck.log": "5051a477b4cf1b31e7a2bf16797b5982098c2683ca56c35bc14b57a8a5061659",
+    "harness/probes/circuit_measurement-f0f1b744e613/deck.op.raw": "d830869c68be98a1065d8a20eb83aeb010de17e2e04896b6c82637e1bafaa845",
+    "harness/probes/circuit_measurement-f0f1b744e613/deck.raw": "335d955cee9be48cd10419553e395516ade74b0fb1c45aa2de2f4c87474af8ee",
+    "harness/probes/circuit_measurement-ffc776646e60/deck.cir": "c37a0a6497075c5080d50241298f0c387587811217088808a203335cada2f0c1",
+    "harness/probes/circuit_measurement-ffc776646e60/deck.log": "ce9514e135d49f120d5ae3f236c342e7817cf68b49e1a8d8db580fe625b1ba52",
+    "harness/probes/circuit_measurement-ffc776646e60/deck.op.raw": "4dedca823aa48e1580e3f35cccba331c1e4bc3433ce6f595b40ebc827b564059",
+    "harness/probes/circuit_measurement-ffc776646e60/deck.raw": "c87ae4f15c390c806907105f7853797c5546a9be4470f328ff68fb70346ac827"
+  },
+  "baseline_sha256": "1b697ef67a8353b7c263d3cf132ef59f8a61d2b27245952e97d3553de97277c1",
+  "bindings_sha256": "1b3d45e8977948ce2ed7f1079db2aaa598b543cd65a83b697af8455d6345ad57",
+  "changed_rows": [],
+  "counts": {
+    "FAIL": 4,
+    "PASS": 12,
+    "UNKNOWN": 3
+  },
+  "elapsed_s": 121.398,
+  "ltspice_exe_sha256": "4ef4a32accc2eb51722916b9410e3eedb5eebfbf0b661523caee2ab67b854207",
+  "model_sha256": "21b3c7f1f9ed14b0d4247d291b7ba6342fecfdf19acdef59ca699c603fdb2ae2",
+  "part": "TPS54332DDA",
+  "raw_retained": false,
+  "requirements_sha256": "3884fd76976e071cd2ea81d5db64cb1bde17aecbaccc8f87399e7448646cc060",
+  "rows": [
+    {
+      "after": "FAIL",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-e2b7e0213fff\\deck.log": "4fe59db0fb545e6fd39a72118a5c4a74883bfdc7d46468f36c8fac6dde2e642f",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-e2b7e0213fff\\deck.raw": "29b771204c845b0e84977f7a7381743b56ede9e7b424bef149a57f06e2c342a6"
+      },
+      "before": "FAIL",
+      "changed": false,
+      "detail": "B001_FEAT_VOUT_MIN [DOCUMENTED_LIMIT]: measured recipe_value=0.799851 V is below the required minimum 0.8 V",
+      "id": "B001_FEAT_VOUT_MIN",
+      "judged": "recipe_value = 0.799851 V",
+      "unknown_reason": null
+    },
+    {
+      "after": "PASS",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-8af9efc3d7da\\deck.log": "75108c7677cfed6fcef120e12079d76b73eb0fbfc4868087e6268b6694f40ea1",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-8af9efc3d7da\\deck.raw": "fd0521e5166c5ef367bfd077095399f28d9cc21ea5f2a19609197947da32fa7a"
+      },
+      "before": "PASS",
+      "changed": false,
+      "detail": "B001_FEAT_FSW [TYPICAL_VALUE]: measured recipe_value=1e+06 Hz, |measured - typ 1e+06| = 0.000488024 Hz versus the 10 % band 100000 Hz (typical-value comparison, not a min/max limit check)",
+      "id": "B001_FEAT_FSW",
+      "judged": "recipe_value = 1e+06 Hz",
+      "unknown_reason": null
+    },
+    {
+      "after": "PASS",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-c93e8ac2d571\\deck.log": "dd08bc5bd30b7de0190b99130d8833b8607520baa2e42896b5660907b53978c9",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-c93e8ac2d571\\deck.raw": "1798a420c874b2119c3bbec86b6f41ac94af49292a77c9b47285584573bc6b27"
+      },
+      "before": "PASS",
+      "changed": false,
+      "detail": "B001_FEAT_IQ_SHUTDOWN [TYPICAL_VALUE]: measured recipe_value=-1.00121e-06 A (magnitude 1.00121e-06 A), |measured - typ 1e-06| = 1.212e-09 A versus the 10 % band 1e-07 A (typical-value comparison, not a min/max limit check)",
+      "id": "B001_FEAT_IQ_SHUTDOWN",
+      "judged": "recipe_value = -1.00121e-06 A",
+      "unknown_reason": null
+    },
+    {
+      "after": "PASS",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-bed3ee31c928\\deck.log": "cf3b7cebe0b4872bf2dd3475f2994b3c95b0338325c1b9d12737ac6ee255f428",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-bed3ee31c928\\deck.raw": "35b5f8a57c075abddbbea645912ceb9f37c87a54cf90880185f2fa4a54033dcb"
+      },
+      "before": "PASS",
+      "changed": false,
+      "detail": "B002_TPS54332DDA_UVLO_VIN [DOCUMENTED_LIMIT]: measured recipe_value=3.52001 V within >= 3.5 V",
+      "id": "B002_TPS54332DDA_UVLO_VIN",
+      "judged": "recipe_value = 3.52001 V",
+      "unknown_reason": null
+    },
+    {
+      "after": "PASS",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-f0f1b744e613\\deck.log": "5051a477b4cf1b31e7a2bf16797b5982098c2683ca56c35bc14b57a8a5061659",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-f0f1b744e613\\deck.raw": "335d955cee9be48cd10419553e395516ade74b0fb1c45aa2de2f4c87474af8ee"
+      },
+      "before": "PASS",
+      "changed": false,
+      "detail": "B002_TPS54332DDA_ISHDN [DOCUMENTED_LIMIT]: measured recipe_value=-1.00121e-06 A (magnitude 1.00121e-06 A) within <= 4e-06 A",
+      "id": "B002_TPS54332DDA_ISHDN",
+      "judged": "recipe_value = -1.00121e-06 A",
+      "unknown_reason": null
+    },
+    {
+      "after": "PASS",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-803d3a2150ce\\deck.log": "5d134b4648ce071f9438f5dbc2463f897336adca2024aec4158eb8e4a703a800",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-803d3a2150ce\\deck.raw": "982886396c750addaebf39186361e7d4ea63b4fb64eb4d2093a72c91f2efe2a5"
+      },
+      "before": "PASS",
+      "changed": false,
+      "detail": "B002_TPS54332DDA_IOP_NONSW [DOCUMENTED_LIMIT]: measured recipe_value=-8.30071e-05 A (magnitude 8.30071e-05 A) within <= 0.00012 A",
+      "id": "B002_TPS54332DDA_IOP_NONSW",
+      "judged": "recipe_value = -8.30071e-05 A",
+      "unknown_reason": null
+    },
+    {
+      "after": "PASS",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-9e291ca19a84\\deck.log": "1decd0167b50fed68ab5b8d3cece5917081827b3ca29aab083f808d715397ee4",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-9e291ca19a84\\deck.raw": "6f98949d55498dab99a768f96d247db58bf85ad87054336940cb8272584b1296"
+      },
+      "before": "PASS",
+      "changed": false,
+      "detail": "B002_TPS54332DDA_EN_TH [DOCUMENTED_LIMIT]: measured recipe_value=1.264 V within 1.25 .. 1.35 V",
+      "id": "B002_TPS54332DDA_EN_TH",
+      "judged": "recipe_value = 1.264 V",
+      "unknown_reason": null
+    },
+    {
+      "after": "UNKNOWN",
+      "artifacts": {},
+      "before": "UNKNOWN",
+      "changed": false,
+      "detail": "",
+      "id": "B002_TPS54332DDA_VREF",
+      "judged": "",
+      "unknown_reason": "recipe_not_settled"
+    },
+    {
+      "after": "PASS",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-8fe7566fe439\\deck.log": "e8ac1168fc098e4c3b70bf8dd20adfd12eb5f345ce12be69f6d133e216a49bfa",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-8fe7566fe439\\deck.raw": "3bd28127e8ee82aa7f91040194a1419080bc4bfe2a3ab8b1c216a92d063b4f65"
+      },
+      "before": "PASS",
+      "changed": false,
+      "detail": "B002_TPS54332DDA_EA_ISOURCE_SINK [TYPICAL_VALUE]: measured recipe_value=6.98999e-06 A, |measured - typ 7e-06| = 1.0006e-08 A versus the 10 % band 7e-07 A (typical-value comparison, not a min/max limit check)",
+      "id": "B002_TPS54332DDA_EA_ISOURCE_SINK",
+      "judged": "recipe_value = 6.98999e-06 A",
+      "unknown_reason": null
+    },
+    {
+      "after": "FAIL",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-a21370a7f461\\deck.log": "7182ea50653f9931f8f6096e0b5bfae294c92ef6b40b7468753ad2d225df36d5",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-a21370a7f461\\deck.raw": "a5240f333cf39a7d2c30e4f3d0815fdcad37e69499cec2fb52817c6f53c1046b"
+      },
+      "before": "FAIL",
+      "changed": false,
+      "detail": "B002_TPS54332DDA_SW_CURRENT_TO_COMP [TYPICAL_VALUE]: measured recipe_value=9 A/V, |measured - typ 12| = 3 A/V versus the 10 % band 1.2 A/V (typical-value comparison, not a min/max limit check)",
+      "id": "B002_TPS54332DDA_SW_CURRENT_TO_COMP",
+      "judged": "recipe_value = 9 A/V",
+      "unknown_reason": null
+    },
+    {
+      "after": "FAIL",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-8852217ee785\\deck.log": "4565b8e2eec908ee008709d6afcfdcd28f2ca160d0406d94741858d4bcbb4852",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-8852217ee785\\deck.raw": "d2fe1732b98af23ed0ae956084db96469c64dc423edc637435e07dd69b593677"
+      },
+      "before": "FAIL",
+      "changed": false,
+      "detail": "B002_TPS54332DDA_ILIM [DOCUMENTED_LIMIT]: measured recipe_value=10.6092 A exceeds the required maximum 6.5 A",
+      "id": "B002_TPS54332DDA_ILIM",
+      "judged": "recipe_value = 10.6092 A",
+      "unknown_reason": null
+    },
+    {
+      "after": "PASS",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-149159df7ca9\\deck.log": "fcc38fcd09e2cea9d350af26926a3c11238e4e762d389e043baf51d755f76fa8",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-149159df7ca9\\deck.raw": "0a73e085d3708e4296130deaca0d1d28acf0bd94b30339b2caaf83683fe407c8"
+      },
+      "before": "PASS",
+      "changed": false,
+      "detail": "B002_TPS54332DDA_SS_CHARGE [TYPICAL_VALUE]: measured recipe_value=1.9992e-06 A, |measured - typ 2e-06| = 8.024e-10 A versus the 10 % band 2e-07 A (typical-value comparison, not a min/max limit check)",
+      "id": "B002_TPS54332DDA_SS_CHARGE",
+      "judged": "recipe_value = 1.9992e-06 A",
+      "unknown_reason": null
+    },
+    {
+      "after": "FAIL",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-d0a2a2d62577\\deck.log": "7ef36f4703b44bec712c7381c7fe2ba9d2de5237854c129505b6ae7802df4f48",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-d0a2a2d62577\\deck.raw": "83f8ec56a60b3b5a3aa5303ce49e165dfda9cb5bcb7c156b0339ce9466dbcb51"
+      },
+      "before": "FAIL",
+      "changed": false,
+      "detail": "B002_TPS54332DDA_SS_VSENSE_MATCH [TYPICAL_VALUE]: measured recipe_value=-0.4 V, |measured - typ 0.01| = 0.41 V versus the 10 % band 0.001 V (typical-value comparison, not a min/max limit check)",
+      "id": "B002_TPS54332DDA_SS_VSENSE_MATCH",
+      "judged": "recipe_value = -0.4 V",
+      "unknown_reason": null
+    },
+    {
+      "after": "UNKNOWN",
+      "artifacts": {},
+      "before": "UNKNOWN",
+      "changed": false,
+      "detail": "",
+      "id": "B002_TPS54332DDA_MIN_ON_TIME",
+      "judged": "",
+      "unknown_reason": "recipe_crossing_missing: the requested device transition did not occur"
+    },
+    {
+      "after": "PASS",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-7ffe2c99c071\\deck.log": "153a4e11ea1286e25a5fa54a97f9af69b575972c88b2c5a37d4d481f157fa3dc",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-7ffe2c99c071\\deck.raw": "cddea628178e8f311b770515813ed67ad2a026935b411d4c8058e4b6bb3245bd"
+      },
+      "before": "PASS",
+      "changed": false,
+      "detail": "B003_REQ_TPS54332_OUTPUT_CURRENT_MAX [DOCUMENTED_LIMIT]: measured recipe_value=3.49934 A within <= 3.5 A",
+      "id": "B003_REQ_TPS54332_OUTPUT_CURRENT_MAX",
+      "judged": "recipe_value = 3.49934 A",
+      "unknown_reason": null
+    },
+    {
+      "after": "PASS",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-9bb2d462921f\\deck.log": "c260a450d92c42fdc4b73abbafb5bd546187919d481c15b4c200bfa58bfd9d2c",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-9bb2d462921f\\deck.raw": "6a7b44a01393ac977bd430dd642057eb8b01b9bb4b35d5da2e83a9688be0e4eb"
+      },
+      "before": "PASS",
+      "changed": false,
+      "detail": "B003_REQ_TPS54332_SWITCH_CURRENT_LIMIT_MIN [DOCUMENTED_LIMIT]: measured recipe_value=5.35127 A within >= 4.2 A",
+      "id": "B003_REQ_TPS54332_SWITCH_CURRENT_LIMIT_MIN",
+      "judged": "recipe_value = 5.35127 A",
+      "unknown_reason": null
+    },
+    {
+      "after": "PASS",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-0b6231ac4241\\deck.log": "e988a8b037c7fd765baf58d5c5b4b3371bd7b0d781fc201884e8c93d2009c72c",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-0b6231ac4241\\deck.raw": "5a6dd98b34ff4c58afd41d2737bcc41529847b20c83a6d38f5aab8c005c54438"
+      },
+      "before": "PASS",
+      "changed": false,
+      "detail": "B003_REQ_TPS54332_EN_THRESHOLD [TYPICAL_VALUE]: measured recipe_value=1.264 V, |measured - typ 1.25| = 0.0140042 V versus the 10 % band 0.125 V (typical-value comparison, not a min/max limit check)",
+      "id": "B003_REQ_TPS54332_EN_THRESHOLD",
+      "judged": "recipe_value = 1.264 V",
+      "unknown_reason": null
+    },
+    {
+      "after": "PASS",
+      "artifacts": {
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-eefd9ccb1c31\\deck.log": "e5cbbcf540248deaea19950c1e1bae68305bdc41ce286c988a071e350f77af35",
+        "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\harness\\probes\\circuit_measurement-eefd9ccb1c31\\deck.raw": "f0bd0680799ea92f592a4f20cf3c40620083d8b0cbcdbd9ceef5dd497bf5c4de"
+      },
+      "before": "PASS",
+      "changed": false,
+      "detail": "B003_REQ_TPS54332_ECOMODE_COMP_0P5V [TYPICAL_VALUE]: measured recipe_value=0.465924 V, |measured - typ 0.5| = 0.034076 V versus the 10 % band 0.05 V (typical-value comparison, not a min/max limit check)",
+      "id": "B003_REQ_TPS54332_ECOMODE_COMP_0P5V",
+      "judged": "recipe_value = 0.465924 V",
+      "unknown_reason": null
+    },
+    {
+      "after": "UNKNOWN",
+      "artifacts": {},
+      "before": "UNKNOWN",
+      "changed": false,
+      "detail": "",
+      "id": "B004_REQ_TPS54332DDA_DUTY_MAX",
+      "judged": "",
+      "unknown_reason": "recipe_not_settled"
+    }
+  ],
+  "schema_version": 1,
+  "script_sha256": "5769491a1a9eb04c0773b36f384651995aa8300428a5675041fee4aaa06659b8",
+  "spec_digest": "499ed2442781bd4cad22041e7cb028bb6af9ec3df7bd34fe053750b9782b14d7",
+  "verdict": "OBSERVED; do not infer system verification from this regression"
+}

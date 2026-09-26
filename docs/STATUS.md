@@ -1,3 +1,30 @@
+## 2026-09-25 — system models M3: cited PowerPAD connection
+
+M3 is complete in both editions; the measured evidence is in
+`docs/evidence/2026-09-25-system-models-m3/REPORT.md`. The TPS54332DDA
+nine-port model now keeps PowerPAD separate from GND. Its former 1 mΩ tie is
+replaced by a 1 GΩ convergence leak, while a cited static check requires the
+actual PCB connection. The model exposes an internal diagnostic alarm;
+the 0.1 V threshold and external 1 nA test injection are synthetic aids,
+not TI operating limits.
+
+On a synthetic card slice, the clean connection produced zero findings and
+about 1 pV at the pad, with the alarm low. Disconnecting U1 pin 9 from GND
+pin 7 produced one `B001_PIN_POWERPAD` finding and 1 V at the pad, with the
+alarm high. Both LTspice waveforms were measured with an explicitly selected
+executable; clean/fault simulator wall times were 0.696/0.680 s. The full
+Card A `GND-02` suite case remains NOT BUILT.
+
+A fresh 19-row TPS54332 regression took 121.398 s and preserved **12 PASS,
+4 FAIL, 3 UNKNOWN** with no changed row. A separate frozen LM358 rerun took
+14.376 s and preserved **19 passing probe cases / 32 passing rows**. The M1
+ripple FAIL and unresolved PH edge remain; the pad fix did not reclassify any
+electrical requirement. General focused checks passed **836 tests in 186.27 s**;
+Bob passed **705 with 7 skips in 196.80 s**. Ruff, formatting, diff checks,
+manifest validation, and the **44-file byte-identical shared-core comparison**
+passed. No AI provider was called; vendor models, raw waveforms, and secrets
+were not committed. Next: M4 switching/average buck modes and a speed check.
+
 ## 2026-09-25 — system models M2: cited guards and measured buck benches
 
 M2 is complete in both editions; evidence is in

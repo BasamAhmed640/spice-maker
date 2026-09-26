@@ -1,0 +1,173 @@
+{
+  "artifact_hashes": {
+    "clean/card/components.csv": "372ff394663b67bb734cbbf9ba111f58001957bc321d475b8c2c5fee43b7967c",
+    "clean/card/connections.csv": "ba9bee9d7d5ee61a3aa2578520757260283f52eb1ece3c0d16c82452ffa61f96",
+    "clean/card/project.json": "ab9b6f7f16187c39bf0947b3e0db57cbba4a4c19f1c96db9819b9cfc718ce11b",
+    "clean/pad_clean.cir": "9370ff7ec50eb9b30ee76568b667a8e4e833b88a50650059e4d744c5b031af82",
+    "clean/pad_clean.db": "3a40d69f28b76cf4030ac4d508d4f423cbc630dd6ad0b5b91e796ce4ac27d486",
+    "clean/pad_clean.log": "951b3d2b6ce3bb32ab6ae80b1859cf014b5a2b49a35b8d1f6b1d48b5025a11fa",
+    "clean/pad_clean.op.raw": "b59dfca7671eff97c69a6d3a6a4c5c60c3d72e4fdb72cb873b2e67b7c11c99f7",
+    "clean/pad_clean.raw": "7369aea41c8db4b02372da26f917a6f8e4e4360a549ff2cb81c2946bb94b8905",
+    "fault/card/components.csv": "372ff394663b67bb734cbbf9ba111f58001957bc321d475b8c2c5fee43b7967c",
+    "fault/card/connections.csv": "68856811c7ffcfe48b1ea0224b263cb7e7deb64a813e1706647cab6891afa9a3",
+    "fault/card/project.json": "ab9b6f7f16187c39bf0947b3e0db57cbba4a4c19f1c96db9819b9cfc718ce11b",
+    "fault/pad_fault.cir": "420c4ddff9e631c445c66ac1c707f73e20144a05b858c78db8def28cb01c1193",
+    "fault/pad_fault.db": "4d131a0ea330fd0fd57b505d78d746ac6e3a6f36b27253653c0654585162c512",
+    "fault/pad_fault.log": "8f323cfddb515cf797a50bcd112db91d61bb4f9ffa26de15693e2869797f12d6",
+    "fault/pad_fault.op.raw": "697a3b247814915955de2986b844b40ffd65950d9a1064802d27c97c7b1c9f86",
+    "fault/pad_fault.raw": "c6ba7e1368825d09cd430c32a2dd5e4ab478e0b197cdeff302b49fefc3cc98c2"
+  },
+  "cards": {
+    "clean": {
+      "findings": [],
+      "inspected_refdes": [
+        "U1"
+      ],
+      "requirement_id": "B001_PIN_POWERPAD",
+      "status": "PASS"
+    },
+    "fault": {
+      "findings": [
+        {
+          "code": "RC001_required_pin_connection",
+          "detail": {
+            "document_id": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D",
+            "excerpt": "PowerPAD 9 \u2014 GND pin must be connected to the exposed pad for proper operation.",
+            "ground_net": "DGND",
+            "ground_physical_pin": "7",
+            "ground_pin": "GND",
+            "pad_net": "NC_09",
+            "pad_physical_pin": "9",
+            "pad_pin": "PowerPAD",
+            "part_number": "TPS54332DDA",
+            "pdf_page_index": "2",
+            "printed_page": "3",
+            "reason": "pad_pin_disconnected",
+            "requirement_id": "B001_PIN_POWERPAD"
+          },
+          "message": "U1 TPS54332DDA PowerPAD pin 9 on NC_09 must connect to GND pin 7 on DGND (B001_PIN_POWERPAD, PDF page 3)",
+          "nets": [
+            "DGND",
+            "NC_09"
+          ],
+          "refdes": "U1",
+          "schema_version": 2,
+          "status": "FAIL"
+        }
+      ],
+      "inspected_refdes": [
+        "U1"
+      ],
+      "requirement_id": "B001_PIN_POWERPAD",
+      "status": "FAIL"
+    }
+  },
+  "citation": {
+    "doc_id": "DOC_af3d92b2c665_TPS54332_3_5_A_28_V_1_MHz_Step_Down_DC_D",
+    "excerpt": "PowerPAD 9 \u2014 GND pin must be connected to the exposed pad for proper operation.",
+    "ground_name": "GND",
+    "ground_physical_pin": "7",
+    "pad_name": "PowerPAD",
+    "pad_physical_pin": "9",
+    "part_number": "TPS54332DDA",
+    "pdf_page_index": 2,
+    "ports": [
+      "BOOT",
+      "VIN",
+      "EN",
+      "SS",
+      "VSENSE",
+      "COMP",
+      "GND",
+      "PH",
+      "POWERPAD"
+    ],
+    "printed_page_label": "3",
+    "req_id": "B001_PIN_POWERPAD",
+    "source_sha256": "3884fd76976e071cd2ea81d5db64cb1bde17aecbaccc8f87399e7448646cc060",
+    "subckt": "TPS54332DDA"
+  },
+  "full_card_a_suite": "NOT_ASSESSED",
+  "inputs": {
+    "frozen_requirements_sha256": "3884fd76976e071cd2ea81d5db64cb1bde17aecbaccc8f87399e7448646cc060",
+    "ltspice_exe": "C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\LTspice.exe",
+    "ltspice_exe_sha256": "4ef4a32accc2eb51722916b9410e3eedb5eebfbf0b661523caee2ab67b854207",
+    "model_library": "C:\\Users\\basam\\src\\spice-maker\\runs\\m3-regression-internal\\TPS54332DDA-fresh-m3.lib",
+    "model_library_sha256": "21b3c7f1f9ed14b0d4247d291b7ba6342fecfdf19acdef59ca699c603fdb2ae2",
+    "requirements": "C:\\Users\\basam\\src\\spice-maker\\models\\T1-tps54332\\spec\\requirements.json",
+    "requirements_sha256": "3884fd76976e071cd2ea81d5db64cb1bde17aecbaccc8f87399e7448646cc060",
+    "script_sha256": "2bfff8ba8a9910547d393927c4359375ba8d113892cc5a2023c1224fdc853505"
+  },
+  "part": "TPS54332DDA",
+  "raw_retained": false,
+  "runs": {
+    "clean": {
+      "cancelled": false,
+      "exit_code": 0,
+      "log": {
+        "bytes": 1000,
+        "path": "clean/pad_clean.log",
+        "sha256": "951b3d2b6ce3bb32ab6ae80b1859cf014b5a2b49a35b8d1f6b1d48b5025a11fa"
+      },
+      "observation": {
+        "alarm_active": false,
+        "alarm_mean_v": 0.0,
+        "half_window_drift_v": 0.0,
+        "pad_mean_abs_v": 9.999999960041972e-13,
+        "pad_peak_abs_v": 9.999999960041972e-13,
+        "reason": null,
+        "requirement_id": "B001_PIN_POWERPAD",
+        "status": "MEASURED",
+        "threshold_v": 0.1,
+        "window_s": [
+          8e-05,
+          0.0001
+        ]
+      },
+      "raw": {
+        "bytes": 35800,
+        "path": "clean/pad_clean.raw",
+        "sha256": "7369aea41c8db4b02372da26f917a6f8e4e4360a549ff2cb81c2946bb94b8905"
+      },
+      "stderr": "",
+      "timed_out": false,
+      "wall_s": 0.6957985000917688
+    },
+    "fault": {
+      "cancelled": false,
+      "exit_code": 0,
+      "log": {
+        "bytes": 984,
+        "path": "fault/pad_fault.log",
+        "sha256": "8f323cfddb515cf797a50bcd112db91d61bb4f9ffa26de15693e2869797f12d6"
+      },
+      "observation": {
+        "alarm_active": true,
+        "alarm_mean_v": 1.0,
+        "half_window_drift_v": 0.0,
+        "pad_mean_abs_v": 1.0,
+        "pad_peak_abs_v": 1.0,
+        "reason": null,
+        "requirement_id": "B001_PIN_POWERPAD",
+        "status": "MEASURED",
+        "threshold_v": 0.1,
+        "window_s": [
+          8e-05,
+          0.0001
+        ]
+      },
+      "raw": {
+        "bytes": 35800,
+        "path": "fault/pad_fault.raw",
+        "sha256": "c6ba7e1368825d09cd430c32a2dd5e4ab478e0b197cdeff302b49fefc3cc98c2"
+      },
+      "stderr": "",
+      "timed_out": false,
+      "wall_s": 0.6795789999887347
+    }
+  },
+  "schema_version": 1,
+  "status": "DETECTED",
+  "synthetic_diagnostic": true,
+  "verdict_scope": "synthetic_powerpad_connection_diagnostic_only"
+}
