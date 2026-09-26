@@ -54,3 +54,10 @@ section and reported 13. The check was corrected to count only the `## Build ord
 section; it then observed exactly steps 1–10. No catalog text changed to make the
 check pass. No model was generated or simulated during M0, so M0 has no electrical
 measurement, band, waveform hash, or LTspice time to report.
+
+After wording review, `tests/test_shared_core.py` was rerun: general 2 passed in
+0.47 s; Bob 2 passed in 0.36 s. The common decision text, catalog and plan
+still matched. The substantive M0 documentation commits are general
+`13a578e8e7c2132029c47b33fa3e7df26c725911` and Bob
+`c8c60c080d38d4de90b501aa90a24003df6819c7`. Tracker follow-up commits
+record these IDs and mark M0 DONE in both repositories.
