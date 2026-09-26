@@ -1,8 +1,7 @@
 # M3: exposed-pad connection and frozen regression
 
 Status: model, cited clean/fault checks, real LTspice measurements, and both
-editions' focused checks complete; both GitHub pushes are recorded below when
-finished.
+editions' focused checks complete.
 This is a TPS54332DDA synthetic-card-slice result, not a full Card A result or
 a claim that the entire generated model is system verified.
 
@@ -109,4 +108,8 @@ The general edition's focused suite passed **836 tests in 186.27 s**. Bob's
 passed **705 with 7 edition-specific skips in 196.80 s**. Both editions passed
 `ruff check src tests tools`, formatting checks for changed Python, the 44-file
 shared-core manifest check, the byte-for-byte cross-edition comparison, and
-`git diff --check`. Both pushed commit IDs are pending.
+`git diff --check`. The substantive commits are
+`b2036b5f7dbd4db8cd82171fe438baebb2fc9087` in the general edition and
+`a619f8f5ad85a1c89ee6bc6c52e6cda150030866` in Bob; the tracker has the
+same IDs. The tracker-only follow-up commits record those IDs without changing
+the tested source or evidence.
