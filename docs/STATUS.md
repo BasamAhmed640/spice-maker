@@ -1,3 +1,39 @@
+## 2026-09-26 — system models M4a: measured average-mode candidate
+
+M4a is complete as a **candidate** in both editions; M4b qualification and
+M4c release remain open. The [measured report](evidence/2026-09-26-system-models-m4a/REPORT.md)
+records two real LTspice fixtures in both SW and AVG modes per edition. Both
+modes expose the same nine physical TPS54332DDA pins and cited device
+parameters. SW is the unchanged default, with the M3 library SHA-256; AVG
+uses a separately labeled external-inductor bench parameter and the real
+COMP and SS controls. The explicit simulator path was used, with no AI or
+network call.
+
+AVG startup settled at 2.517763 V against the 2.517895 V fixture target;
+its active COMP sweep rose monotonically and plateaued near 5.008 A. Both
+synthetic smoke guards passed in both editions. General SW/AVG simulator
+wall times were 19.119/0.772 s for startup and 39.086/0.886 s for the
+current sweep (24.8× and 44.1×). Bob measured 17.133/0.707 s and
+34.709/0.798 s (24.2× and 43.5×). All eight waveforms were measured;
+these smoke results are not datasheet PASS verdicts.
+
+A separate zero-volt VIN shunt isolated a source-power anomaly in both
+editions. The DUT input drew a steady 0.25843 A / 3.1012 W in the final
+window and supplied a 2.5176 W load. The apparent ±1.44 kW source spikes
+were confined to the ideal supply/input-capacitor branch, with no DUT pin
+power spike. Full AVG power consistency over faults and corners remains
+UNJUDGED. AVG ripple and PH edges remain UNKNOWN; TPS54332 PG is not
+applicable. The M1 switching ripple FAIL and PH-edge UNKNOWN remain open.
+
+The frozen TPS 19-row rerun preserved **12 PASS, 4 FAIL, 3 UNKNOWN** with
+no changed row (128.368 s); LM358 preserved **19 passing cases / 32 passing
+rows** (16.067 s). General board checks passed **269 / 11 skips** and wider
+checks **756 passed**; Bob passed **269 / 11 skips** and **625 / 7 skips**.
+Ruff, formatting, diff checks, 44-file shared-core parity, and changed-file
+cross-edition hashes passed. Raw waveforms, vendor libraries, secrets, and
+generated models are not committed. Next: M4b cited both-mode qualification
+and SW waveform investigation.
+
 ## 2026-09-25 — system models M3: cited PowerPAD connection
 
 M3 is complete in both editions; the measured evidence is in

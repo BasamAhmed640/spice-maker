@@ -1,0 +1,1160 @@
+{
+  "deck_only": 0,
+  "expected_cases": [
+    "startup",
+    "gain"
+  ],
+  "expected_modes": [
+    "SW",
+    "AVG"
+  ],
+  "failed": 0,
+  "measured": 4,
+  "provenance": {
+    "avg_max_step_s": 1e-06,
+    "bindings_sha256": "1b3d45e8977948ce2ed7f1079db2aaa598b543cd65a83b697af8455d6345ad57",
+    "contract_sha256": "195a09d4f5192df5797273a932dfc22c88bc777f396a94a0a621c57e2a5027a0",
+    "external_bench_inductance_h": 2.5e-06,
+    "ltspice_exe_sha256": "4ef4a32accc2eb51722916b9410e3eedb5eebfbf0b661523caee2ab67b854207",
+    "model_sha256": {
+      "AVG": "adce082491d0035c6514aaa9b3ada916f75bcd998da4731caebe58fa2294d0dc",
+      "SW": "21b3c7f1f9ed14b0d4247d291b7ba6342fecfdf19acdef59ca699c603fdb2ae2"
+    },
+    "nominal_seed_ilim_a": 5.35,
+    "part": "TPS54332DDA",
+    "physical_ports": [
+      "BOOT",
+      "VIN",
+      "EN",
+      "SS",
+      "VSENSE",
+      "COMP",
+      "GND",
+      "PH",
+      "POWERPAD"
+    ],
+    "requirements_sha256": "3884fd76976e071cd2ea81d5db64cb1bde17aecbaccc8f87399e7448646cc060",
+    "schema_version": 1,
+    "script_sha256": "140ea7995233176d166706a95c70aea000f556fbc184bbd264d3dfb08a1326cf",
+    "shared_parameter_origins": [
+      {
+        "excerpt": "Voltage reference 0.772 0.8 0.828 V",
+        "name": "VREF",
+        "origin": "cited_row",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_VREF",
+        "transform": "none",
+        "unit": "V",
+        "value": 0.8
+      },
+      {
+        "excerpt": "Fixed 1-MHz switching frequency",
+        "name": "FSW",
+        "origin": "cited_row",
+        "page": 0,
+        "row_id": "B001_FEAT_FSW",
+        "transform": "none",
+        "unit": "Hz",
+        "value": 1000000.0
+      },
+      {
+        "excerpt": "Minimum controllable on time VIN = 12 V, 25\u00b0C 110 135 ns",
+        "name": "TONMIN",
+        "origin": "cited_row",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_MIN_ON_TIME",
+        "transform": "none",
+        "unit": "s",
+        "value": 1.1e-07
+      },
+      {
+        "excerpt": "The upper limit of the output voltage set point is constrained by the maximum duty cycle of 91% and is given by Equation 32.",
+        "name": "DMAX",
+        "origin": "cited_row",
+        "page": 19,
+        "row_id": "B004_REQ_TPS54332DDA_DUTY_MAX",
+        "transform": "scaled by 0.01",
+        "unit": "ratio",
+        "value": 0.91
+      },
+      {
+        "excerpt": "Current limit threshold VIN = 12 V 4.2 6.5 A",
+        "name": "ILIM",
+        "origin": "derived_from_bounds",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_ILIM",
+        "transform": "midpoint of cited minimum and maximum",
+        "unit": "A",
+        "value": 5.35
+      },
+      {
+        "excerpt": "Switch current to COMP transconductance VIN = 12 V 12 A/V",
+        "name": "GMCS",
+        "origin": "cited_row",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_SW_CURRENT_TO_COMP",
+        "transform": "none",
+        "unit": "A/V",
+        "value": 12.0
+      },
+      {
+        "excerpt": "When the peak inductor current is lower than pulse skip threshold, the COMP pin voltage falls to 0.5 V (typical) \nand the device enters Eco-mode . When the device is in Eco-mode, the COMP pin voltage is clamped at 0.5 V \ninternally which prevents the high-side integrated MOSFET from switching.",
+        "name": "VECO",
+        "origin": "cited_row",
+        "page": 12,
+        "row_id": "B003_REQ_TPS54332_ECOMODE_COMP_0P5V",
+        "transform": "none",
+        "unit": "V",
+        "value": 0.5
+      },
+      {
+        "excerpt": "Pulse-skipping Eco-mode switch current threshold 160 mA",
+        "name": "ECO_I",
+        "origin": "cited_row",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_ECOMODE_TH",
+        "transform": "none",
+        "unit": "A",
+        "value": 0.16
+      },
+      {
+        "excerpt": "Error amplifier transconductance (gm) \u20132 \u03bcA < ICOMP < 2 \u03bcA, V(COMP) = 1 V 92 \u03bcmhos",
+        "name": "EAGM",
+        "origin": "cited_row",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_EA_GM",
+        "transform": "scaled by 1e-06",
+        "unit": "S",
+        "value": 9.2e-05
+      },
+      {
+        "excerpt": "Error amplifier source/sink current V(COMP) = 1.0 V, 100-mV overdrive \u00b17 \u03bcA",
+        "name": "EAI",
+        "origin": "cited_row",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_EA_ISOURCE_SINK",
+        "transform": "none",
+        "unit": "A",
+        "value": 7e-06
+      },
+      {
+        "excerpt": "Charge current V(SS) = 0.4 V 2 \u03bcA",
+        "name": "ISS",
+        "origin": "cited_row",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_SS_CHARGE",
+        "transform": "none",
+        "unit": "A",
+        "value": 2e-06
+      },
+      {
+        "excerpt": "SS to VSENSE matching V(SS) = 0.4 V 10 mV",
+        "name": "SSOFS",
+        "origin": "cited_row",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_SS_VSENSE_MATCH",
+        "transform": "none",
+        "unit": "V",
+        "value": 0.01
+      },
+      {
+        "excerpt": "The enable threshold voltage is 1.25 V typical. With EN held below that voltage the device is disabled and \nswitching is inhibited even if VIN is above its UVLO threshold. The IC quiescent current is reduced in this state.",
+        "name": "ENTH",
+        "origin": "cited_row",
+        "page": 11,
+        "row_id": "B003_REQ_TPS54332_EN_THRESHOLD",
+        "transform": "none",
+        "unit": "V",
+        "value": 1.25
+      },
+      {
+        "excerpt": null,
+        "name": "ENHYS",
+        "origin": "template_default",
+        "page": null,
+        "row_id": null,
+        "transform": null,
+        "unit": "V",
+        "value": 0.05
+      },
+      {
+        "excerpt": "Internal undervoltage lockout threshold Rising and Falling 3.5 V",
+        "name": "UVTH",
+        "origin": "cited_row",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_UVLO_VIN",
+        "transform": "none",
+        "unit": "V",
+        "value": 3.5
+      },
+      {
+        "excerpt": null,
+        "name": "UVHYS",
+        "origin": "template_default",
+        "page": null,
+        "row_id": null,
+        "transform": null,
+        "unit": "V",
+        "value": 0.2
+      },
+      {
+        "excerpt": "Operating \u2013 non switching supply current VSENSE = 0.85 V 82 120 \u03bcA",
+        "name": "IQOP",
+        "origin": "cited_row",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_IOP_NONSW",
+        "transform": "none",
+        "unit": "A",
+        "value": 8.2e-05
+      },
+      {
+        "excerpt": null,
+        "name": "IQSD_BASE",
+        "origin": "template_default",
+        "page": null,
+        "row_id": null,
+        "transform": null,
+        "unit": "A",
+        "value": 0.0
+      },
+      {
+        "excerpt": "Input current Enable threshold \u2013 50 mV -1 \u03bcA",
+        "name": "EN_PULLUP",
+        "origin": "cited_row",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_EN_I_NEG50MV",
+        "transform": "magnitude of cited signed current",
+        "unit": "A",
+        "value": 1e-06
+      },
+      {
+        "excerpt": "BOOT-PH = 3 V, VIN = 3.5 V 115 200\nm\u2126",
+        "name": "RON",
+        "origin": "cited_row",
+        "page": 5,
+        "row_id": "B002_TPS54332DDA_RDSON_3V",
+        "transform": "none",
+        "unit": "ohm",
+        "value": 0.115
+      },
+      {
+        "excerpt": "1 MHz VSENSE \u2265 0.6 V\n1 MHz / 2 0.6 V > VSENSE \u2265 0.4 V\n1 MHz / 4 0.4 V > VSENSE \u2265 0.2 V\n1 MHz / 8 0.2 V > VSENSE",
+        "name": "FOLD6",
+        "origin": "cited_row",
+        "page": 11,
+        "row_id": "B003_REQ_TPS54332_SW_FREQ_VSENSE_GE_0P6",
+        "transform": "literal value in cited excerpt",
+        "unit": "V",
+        "value": 0.6
+      },
+      {
+        "excerpt": "1 MHz VSENSE \u2265 0.6 V\n1 MHz / 2 0.6 V > VSENSE \u2265 0.4 V\n1 MHz / 4 0.4 V > VSENSE \u2265 0.2 V\n1 MHz / 8 0.2 V > VSENSE",
+        "name": "FOLD4",
+        "origin": "cited_row",
+        "page": 11,
+        "row_id": "B003_REQ_TPS54332_SW_FREQ_VSENSE_0P4_TO_0P6",
+        "transform": "literal value in cited excerpt",
+        "unit": "V",
+        "value": 0.4
+      },
+      {
+        "excerpt": "1 MHz VSENSE \u2265 0.6 V\n1 MHz / 2 0.6 V > VSENSE \u2265 0.4 V\n1 MHz / 4 0.4 V > VSENSE \u2265 0.2 V\n1 MHz / 8 0.2 V > VSENSE",
+        "name": "FOLD2",
+        "origin": "cited_row",
+        "page": 11,
+        "row_id": "B003_REQ_TPS54332_SW_FREQ_VSENSE_LT_0P2",
+        "transform": "literal value in cited excerpt",
+        "unit": "V",
+        "value": 0.2
+      }
+    ],
+    "spec_digest": "499ed2442781bd4cad22041e7cb028bb6af9ec3df7bd34fe053750b9782b14d7",
+    "verdict": "UNJUDGED; smoke measurements are not full M4 acceptance"
+  },
+  "runs": [
+    {
+      "bench_components": [
+        "Vin vin 0 PULSE(0 12 0 1u 1u 30m 60m)",
+        "Cin vin 0 1e-05",
+        "Ven en 0 3.3",
+        "Css ss 0 1.5e-08",
+        "Cboot boot ph 1e-07",
+        "Dcatch 0 ph BM_CATCH",
+        "Lout ph out 2.5e-06 Rser=0.01",
+        "Cout1 out 0 4.7e-05 Rser=0.003",
+        "Cout2 out 0 4.7e-05 Rser=0.003",
+        "Rload out 0 2.51789473684",
+        "Rfbhi out vsense 10200",
+        "Rfblo vsense 0 4750",
+        "Rcomp comp compmid 75000",
+        "Ccomp compmid 0 1.8e-10",
+        "Chf comp 0 1e-11"
+      ],
+      "bench_window_s": [
+        0.0,
+        0.008209999999999999
+      ],
+      "bindings_sha256": "1b3d45e8977948ce2ed7f1079db2aaa598b543cd65a83b697af8455d6345ad57",
+      "case": "startup",
+      "deck": "C:\\Users\\basam\\src\\spice-maker\\runs\\m4a-smoke-20260926-2\\startup-sw\\startup-sw.cir",
+      "deck_sha256": "0eafb9c8fd392fac51784dbdeb14c3310f778437b0cf297e89b7d1f6768a1650",
+      "elapsed_s": 19.13,
+      "exit_code": 0,
+      "l_ext_h": null,
+      "log_sha256": "92be029cfa0d53e4d7a8e83c030bfd60630d42a692515f52b46628876c5e4d3a",
+      "ltspice_exe": "C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\LTspice.exe",
+      "ltspice_exe_sha256": "4ef4a32accc2eb51722916b9410e3eedb5eebfbf0b661523caee2ab67b854207",
+      "ltspice_wall_s": 19.119,
+      "max_step_s": 5e-08,
+      "measurements": {
+        "distinct_time_points": 669860,
+        "final_inductor_a": {
+          "max": 1.4687392711639404,
+          "mean": 0.9999770217015284,
+          "min": 0.533095121383667
+        },
+        "final_output_v": {
+          "max": 2.518449068069458,
+          "mean": 2.5177634997251905,
+          "min": 2.5166196823120117
+        },
+        "final_ss_v": {
+          "max": 1.094027519226074,
+          "mean": 1.0607299516537956,
+          "min": 1.0274316072463987
+        },
+        "final_window_s": [
+          0.007709999999999998,
+          0.008209999999999999
+        ],
+        "input_source": {
+          "energy_0_to_stop_j": 0.014535062806366295,
+          "final_power_w": {
+            "max": 264.5489959716797,
+            "mean": 3.0037638796414154,
+            "min": -43.313841819763184
+          },
+          "positive_power_convention": "-V(vin)*I(Vin); positive means source delivers power",
+          "scope": "fixture source includes input capacitor charging; no efficiency verdict",
+          "status": "UNJUDGED"
+        },
+        "raw_points": 669860,
+        "rise_10_90_s": 0.004805084939801198
+      },
+      "mode": "SW",
+      "model_sha256": "21b3c7f1f9ed14b0d4247d291b7ba6342fecfdf19acdef59ca699c603fdb2ae2",
+      "op_raw_bytes": 920,
+      "op_raw_sha256": "65de44dead7407a0914206ba7697f13875f3c7c135ea009315fb016a7ce66b4c",
+      "passive_source": "TI-derived TPS54332 M1 passive deck; values are bench choices",
+      "raw_bytes": 21436460,
+      "raw_retained": false,
+      "raw_sha256": "7abf5573129f562df83692fbb5492f39e5d96a4cfd263ba512497f690b83c96d",
+      "reason": null,
+      "recorded_utc": "2026-09-26T04:08:02.710642+00:00",
+      "requirements_sha256": "3884fd76976e071cd2ea81d5db64cb1bde17aecbaccc8f87399e7448646cc060",
+      "schema_version": 1,
+      "script_sha256": "140ea7995233176d166706a95c70aea000f556fbc184bbd264d3dfb08a1326cf",
+      "simulator_observed": "exit_code=0; wall=19.12s; raw=yes; log=yes",
+      "smoke": {
+        "basis": "synthetic_fixture_only; not datasheet limits",
+        "checks": [
+          {
+            "id": "final_mean_in_target_band",
+            "lower_v": 2.4675368421052633,
+            "measured_v": 2.5177634997251905,
+            "status": "OK",
+            "upper_v": 2.568252631578948
+          },
+          {
+            "id": "all_final_samples_in_target_band",
+            "lower_v": 2.4675368421052633,
+            "measured_max_v": 2.518449068069458,
+            "measured_min_v": 2.5166196823120117,
+            "status": "OK",
+            "upper_v": 2.568252631578948
+          },
+          {
+            "id": "final_peak_to_peak_settling",
+            "measured_v": 0.001829385757446289,
+            "status": "OK",
+            "upper_v": 0.050357894736842115
+          }
+        ],
+        "status": "OK",
+        "target_origin": "M2 bench cited VREF typical and external feedback divider",
+        "target_v": 2.5178947368421056,
+        "window_s": [
+          0.007709999999999998,
+          0.008209999999999999
+        ]
+      },
+      "source_rows": [
+        {
+          "char_id": "B002_TPS54332DDA_VREF",
+          "excerpt": "Voltage reference 0.772 0.8 0.828 V",
+          "max_value": 0.828,
+          "min_value": 0.772,
+          "source_page": 5,
+          "statement": "Voltage reference: 0.772 V min, 0.8 V typical, 0.828 V max.",
+          "typ_value": 0.8,
+          "unit": "V"
+        },
+        {
+          "char_id": "B002_TPS54332DDA_SS_CHARGE",
+          "excerpt": "Charge current V(SS) = 0.4 V 2 \u03bcA",
+          "max_value": null,
+          "min_value": null,
+          "source_page": 5,
+          "statement": "Slow-start (SS) pin charge current: 2 \u03bcA typical with V(SS) = 0.4 V.",
+          "typ_value": 2e-06,
+          "unit": "A"
+        }
+      ],
+      "status": "MEASURED",
+      "timed_out": false,
+      "verdict": "UNJUDGED"
+    },
+    {
+      "bench_components": [
+        "Vin vin 0 PULSE(0 12 0 1u 1u 30m 60m)",
+        "Cin vin 0 1e-05",
+        "Ven en 0 3.3",
+        "Css ss 0 1.5e-08",
+        "Cboot boot ph 1e-07",
+        "Dcatch 0 ph BM_CATCH",
+        "Lout ph out 2.5e-06 Rser=0.01",
+        "Cout1 out 0 4.7e-05 Rser=0.003",
+        "Cout2 out 0 4.7e-05 Rser=0.003",
+        "Rload out 0 2.51789473684",
+        "Rfbhi out vsense 10200",
+        "Rfblo vsense 0 4750",
+        "Rcomp comp compmid 75000",
+        "Ccomp compmid 0 1.8e-10",
+        "Chf comp 0 1e-11"
+      ],
+      "bench_window_s": [
+        0.0,
+        0.008209999999999999
+      ],
+      "bindings_sha256": "1b3d45e8977948ce2ed7f1079db2aaa598b543cd65a83b697af8455d6345ad57",
+      "case": "startup",
+      "deck": "C:\\Users\\basam\\src\\spice-maker\\runs\\m4a-smoke-20260926-2\\startup-avg\\startup-avg.cir",
+      "deck_sha256": "b87ffe21d30ba63c4d794c46d7b921c191148b328fa8e0ba54f0efb14ce04f08",
+      "elapsed_s": 0.792,
+      "exit_code": 0,
+      "l_ext_h": 2.5e-06,
+      "log_sha256": "003e78408d0cf0ea39653eeba815846a476be2bb09b6170ada1c4ac26c83063b",
+      "ltspice_exe": "C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\LTspice.exe",
+      "ltspice_exe_sha256": "4ef4a32accc2eb51722916b9410e3eedb5eebfbf0b661523caee2ab67b854207",
+      "ltspice_wall_s": 0.772,
+      "max_step_s": 1e-06,
+      "measurements": {
+        "distinct_time_points": 8377,
+        "final_inductor_a": {
+          "max": 1.000115990638733,
+          "mean": 1.000115990638733,
+          "min": 1.000115990638733
+        },
+        "final_output_v": {
+          "max": 2.5177628993988037,
+          "mean": 2.5177628993988037,
+          "min": 2.5177628993988037
+        },
+        "final_ss_v": {
+          "max": 1.094027519226074,
+          "mean": 1.0607299421504535,
+          "min": 1.0274316857395671
+        },
+        "final_window_s": [
+          0.007709999999999998,
+          0.008209999999999999
+        ],
+        "input_source": {
+          "energy_0_to_stop_j": 0.014956058546426378,
+          "final_power_w": {
+            "max": 1443.1011657714844,
+            "mean": 2.4116543452384884,
+            "min": -1436.8987426757812
+          },
+          "positive_power_convention": "-V(vin)*I(Vin); positive means source delivers power",
+          "scope": "fixture source includes input capacitor charging; no efficiency verdict",
+          "status": "UNJUDGED"
+        },
+        "raw_points": 8377,
+        "rise_10_90_s": 0.005056844079894691
+      },
+      "mode": "AVG",
+      "model_sha256": "adce082491d0035c6514aaa9b3ada916f75bcd998da4731caebe58fa2294d0dc",
+      "op_raw_bytes": 924,
+      "op_raw_sha256": "58c03f94ba16dc6aefa3039df1327ae2db196deace9c09361e507eb190238a41",
+      "passive_source": "TI-derived TPS54332 M1 passive deck; values are bench choices",
+      "raw_bytes": 269008,
+      "raw_retained": false,
+      "raw_sha256": "9af36b427d62b8bad7587dab196022fe3720bc127e76bc12f83929371f202056",
+      "reason": null,
+      "recorded_utc": "2026-09-26T04:08:22.053579+00:00",
+      "requirements_sha256": "3884fd76976e071cd2ea81d5db64cb1bde17aecbaccc8f87399e7448646cc060",
+      "schema_version": 1,
+      "script_sha256": "140ea7995233176d166706a95c70aea000f556fbc184bbd264d3dfb08a1326cf",
+      "simulator_observed": "exit_code=0; wall=0.77s; raw=yes; log=yes",
+      "smoke": {
+        "basis": "synthetic_fixture_only; not datasheet limits",
+        "checks": [
+          {
+            "id": "final_mean_in_target_band",
+            "lower_v": 2.4675368421052633,
+            "measured_v": 2.5177628993988037,
+            "status": "OK",
+            "upper_v": 2.568252631578948
+          },
+          {
+            "id": "all_final_samples_in_target_band",
+            "lower_v": 2.4675368421052633,
+            "measured_max_v": 2.5177628993988037,
+            "measured_min_v": 2.5177628993988037,
+            "status": "OK",
+            "upper_v": 2.568252631578948
+          },
+          {
+            "id": "final_peak_to_peak_settling",
+            "measured_v": 0.0,
+            "status": "OK",
+            "upper_v": 0.050357894736842115
+          }
+        ],
+        "status": "OK",
+        "target_origin": "M2 bench cited VREF typical and external feedback divider",
+        "target_v": 2.5178947368421056,
+        "window_s": [
+          0.007709999999999998,
+          0.008209999999999999
+        ]
+      },
+      "source_rows": [
+        {
+          "char_id": "B002_TPS54332DDA_VREF",
+          "excerpt": "Voltage reference 0.772 0.8 0.828 V",
+          "max_value": 0.828,
+          "min_value": 0.772,
+          "source_page": 5,
+          "statement": "Voltage reference: 0.772 V min, 0.8 V typical, 0.828 V max.",
+          "typ_value": 0.8,
+          "unit": "V"
+        },
+        {
+          "char_id": "B002_TPS54332DDA_SS_CHARGE",
+          "excerpt": "Charge current V(SS) = 0.4 V 2 \u03bcA",
+          "max_value": null,
+          "min_value": null,
+          "source_page": 5,
+          "statement": "Slow-start (SS) pin charge current: 2 \u03bcA typical with V(SS) = 0.4 V.",
+          "typ_value": 2e-06,
+          "unit": "A"
+        }
+      ],
+      "status": "MEASURED",
+      "timed_out": false,
+      "verdict": "UNJUDGED"
+    },
+    {
+      "bench_components": [
+        "Vin vin 0 PULSE(0 12 0 1u 1u 30m 60m)",
+        "Cin vin 0 1e-05",
+        "Ven en 0 3.3",
+        "Css ss 0 1.5e-08",
+        "Cboot boot ph 1e-07",
+        "Dcatch 0 ph BM_CATCH",
+        "Lout ph out 2.5e-06 Rser=0.01",
+        "Cout1 out 0 4.7e-05 Rser=0.003",
+        "Cout2 out 0 4.7e-05 Rser=0.003",
+        "Rload out 0 2.51789473684",
+        "Rfbhi out vsense 10200",
+        "Rfblo vsense 0 4750",
+        "Rcomp comp compmid 75000",
+        "Ccomp compmid 0 1.8e-10",
+        "Chf comp 0 1e-11",
+        "Rgain out 0 0.258245614035",
+        "Vfb vsense 0 0.8",
+        "Vforce comp 0 PWL(0 0.55 0.00721 0.55 0.007709 0.55 0.00771 0.55 0.007711 0.6 0.008209 0.6 0.00821 0.6 0.008211 0.65 0.008709 0.65 0.00871 0.65 0.008711 0.7 0.009209 0.7 0.00921 0.7 0.009211 0.75 0.009709 0.75 0.00971 0.75 0.009711 0.8 0.010209 0.8 0.01021 0.8 0.010211 0.85 0.010709 0.85 0.01071 0.85 0.010711 0.9 0.011209 0.9 0.01121 0.9 0.011211 0.95 0.011709 0.95 0.01171 0.95 0.011711 1 0.012209 1 0.01221 1 0.012211 1.05 0.012709 1.05 0.01271 1.05 0.012711 1.1 0.013209 1.1 0.01321 1.1 0.013211 1.15 0.013709 1.15)"
+      ],
+      "bench_window_s": [
+        0.007209999999999999,
+        0.01376
+      ],
+      "bindings_sha256": "1b3d45e8977948ce2ed7f1079db2aaa598b543cd65a83b697af8455d6345ad57",
+      "case": "gain",
+      "deck": "C:\\Users\\basam\\src\\spice-maker\\runs\\m4a-smoke-20260926-2\\gain-sw\\gain-sw.cir",
+      "deck_sha256": "199b5d9c20e8c82192d001976097f7add80bc4cd52efa8e42278f73ff4d4e9ce",
+      "elapsed_s": 39.099,
+      "exit_code": 0,
+      "l_ext_h": null,
+      "log_sha256": "88961619e197169d7e3f0331fa691680c859b4ef21e2323b0b1b239cb1215158",
+      "ltspice_exe": "C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\LTspice.exe",
+      "ltspice_exe_sha256": "4ef4a32accc2eb51722916b9410e3eedb5eebfbf0b661523caee2ab67b854207",
+      "ltspice_wall_s": 39.086,
+      "max_step_s": 5e-08,
+      "measurements": {
+        "distinct_time_points": 1326163,
+        "final_inductor_a": {
+          "max": 5.3564934730529785,
+          "mean": 5.02029025807433,
+          "min": 4.685428142547607
+        },
+        "final_output_v": {
+          "max": 1.1763166189193726,
+          "mean": 1.175881107342034,
+          "min": 1.1749727725982666
+        },
+        "final_ss_v": {
+          "max": 1.8329432010650635,
+          "mean": 1.7996703009442094,
+          "min": 1.7663966417312622
+        },
+        "final_window_s": [
+          0.01326,
+          0.01376
+        ],
+        "gain_method": "time-weighted mean inductor current in predeclared M2 COMP windows",
+        "gain_points": [
+          {
+            "early_inductor_mean_a": 2.8608025687470198,
+            "early_late_delta_a": 2.2862115840460717e-06,
+            "late_inductor_mean_a": 2.8608002825354357,
+            "observed_comp_v": 0.550000011920929,
+            "requested_comp_v": 0.55,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 2.855009269873288,
+            "early_late_delta_a": 4.83709738170468e-05,
+            "late_inductor_mean_a": 2.854960898899471,
+            "observed_comp_v": 0.6000000238418579,
+            "requested_comp_v": 0.6,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 2.854960683395414,
+            "early_late_delta_a": 1.5852992518716746e-07,
+            "late_inductor_mean_a": 2.8549608419253394,
+            "observed_comp_v": 0.6499999761581421,
+            "requested_comp_v": 0.65,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 2.854960378077318,
+            "early_late_delta_a": 4.6344044424273534e-07,
+            "late_inductor_mean_a": 2.8549608415177623,
+            "observed_comp_v": 0.699999988079071,
+            "requested_comp_v": 0.7,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 2.854960528501102,
+            "early_late_delta_a": 3.121645297810005e-07,
+            "late_inductor_mean_a": 2.854960840665632,
+            "observed_comp_v": 0.75,
+            "requested_comp_v": 0.75,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 3.3394822092499474,
+            "early_late_delta_a": 2.115850463857427e-05,
+            "late_inductor_mean_a": 3.339461050745309,
+            "observed_comp_v": 0.800000011920929,
+            "requested_comp_v": 0.8,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 3.915426577768743,
+            "early_late_delta_a": 6.04277752800364e-05,
+            "late_inductor_mean_a": 3.915366149993463,
+            "observed_comp_v": 0.850000023841858,
+            "requested_comp_v": 0.85,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 4.49150615489292,
+            "early_late_delta_a": 6.254247500336874e-06,
+            "late_inductor_mean_a": 4.49151240914042,
+            "observed_comp_v": 0.899999976158142,
+            "requested_comp_v": 0.9,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 5.020258703062059,
+            "early_late_delta_a": 3.922311473214535e-05,
+            "late_inductor_mean_a": 5.0202979261767915,
+            "observed_comp_v": 0.949999988079071,
+            "requested_comp_v": 0.95,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 5.02029710936453,
+            "early_late_delta_a": 5.448536395391557e-07,
+            "late_inductor_mean_a": 5.020296564510891,
+            "observed_comp_v": 1.0,
+            "requested_comp_v": 1.0,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 5.020301813276643,
+            "early_late_delta_a": 1.2397072095104988e-05,
+            "late_inductor_mean_a": 5.020289416204548,
+            "observed_comp_v": 1.0499999523162842,
+            "requested_comp_v": 1.05,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 5.020301693455528,
+            "early_late_delta_a": 1.2236632944251369e-05,
+            "late_inductor_mean_a": 5.020289456822583,
+            "observed_comp_v": 1.100000023841858,
+            "requested_comp_v": 1.1,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 5.02030180799788,
+            "early_late_delta_a": 1.2391799058875108e-05,
+            "late_inductor_mean_a": 5.020289416198821,
+            "observed_comp_v": 1.149999976158142,
+            "requested_comp_v": 1.15,
+            "stable": true
+          }
+        ],
+        "input_source": {
+          "energy_0_to_stop_j": 0.07291085436964777,
+          "final_power_w": {
+            "max": 329.0126037597656,
+            "mean": 9.903198721233847,
+            "min": 0.0010200143151450902
+          },
+          "positive_power_convention": "-V(vin)*I(Vin); positive means source delivers power",
+          "scope": "fixture source includes input capacitor charging; no efficiency verdict",
+          "status": "UNJUDGED"
+        },
+        "raw_points": 1326163
+      },
+      "mode": "SW",
+      "model_sha256": "21b3c7f1f9ed14b0d4247d291b7ba6342fecfdf19acdef59ca699c603fdb2ae2",
+      "op_raw_bytes": 1034,
+      "op_raw_sha256": "fabcf22e26eb5600281ec31ba95a74ffd6f5aacf5ef4af7d5b561c3661752434",
+      "passive_source": "TI-derived TPS54332 M1 passive deck; values are bench choices",
+      "raw_bytes": 58352216,
+      "raw_retained": false,
+      "raw_sha256": "ba9a3553471ed1ccb21188df9aec1749bfac59e6564e3597a1c1df9e543594c5",
+      "reason": null,
+      "recorded_utc": "2026-09-26T04:08:22.868332+00:00",
+      "requirements_sha256": "3884fd76976e071cd2ea81d5db64cb1bde17aecbaccc8f87399e7448646cc060",
+      "schema_version": 1,
+      "script_sha256": "140ea7995233176d166706a95c70aea000f556fbc184bbd264d3dfb08a1326cf",
+      "simulator_observed": "exit_code=0; wall=39.09s; raw=yes; log=yes",
+      "smoke": {
+        "basis": "synthetic_fixture_only",
+        "reason": "SW gain requires cycle-peak analysis; this smoke records mean current only",
+        "status": "NOT_APPLICABLE"
+      },
+      "source_rows": [
+        {
+          "char_id": "B002_TPS54332DDA_VREF",
+          "excerpt": "Voltage reference 0.772 0.8 0.828 V",
+          "max_value": 0.828,
+          "min_value": 0.772,
+          "source_page": 5,
+          "statement": "Voltage reference: 0.772 V min, 0.8 V typical, 0.828 V max.",
+          "typ_value": 0.8,
+          "unit": "V"
+        },
+        {
+          "char_id": "B002_TPS54332DDA_SS_CHARGE",
+          "excerpt": "Charge current V(SS) = 0.4 V 2 \u03bcA",
+          "max_value": null,
+          "min_value": null,
+          "source_page": 5,
+          "statement": "Slow-start (SS) pin charge current: 2 \u03bcA typical with V(SS) = 0.4 V.",
+          "typ_value": 2e-06,
+          "unit": "A"
+        },
+        {
+          "char_id": "B002_TPS54332DDA_FSW",
+          "excerpt": "TPS54332 Switching Frequency VIN = 12 V, 25\u00b0C 800 1000 1200 kHz",
+          "max_value": 1200000.0,
+          "min_value": 800000.0,
+          "source_page": 5,
+          "statement": "TPS54332 switching frequency: 800 kHz min, 1000 kHz typical, 1200 kHz max with VIN = 12 V, 25\u00b0C.",
+          "typ_value": 1000000.0,
+          "unit": "Hz"
+        },
+        {
+          "char_id": "B002_TPS54332DDA_SW_CURRENT_TO_COMP",
+          "excerpt": "Switch current to COMP transconductance VIN = 12 V 12 A/V",
+          "max_value": null,
+          "min_value": null,
+          "source_page": 5,
+          "statement": "Switch current to COMP transconductance: 12 A/V typical with VIN = 12 V.",
+          "typ_value": 12.0,
+          "unit": "A/V"
+        },
+        {
+          "char_id": "B003_REQ_TPS54332_ECOMODE_COMP_0P5V",
+          "excerpt": "When the peak inductor current is lower than pulse skip threshold, the COMP pin voltage falls to 0.5 V (typical) \nand the device enters Eco-mode . When the device is in Eco-mode, the COMP pin voltage is clamped at 0.5 V \ninternally which prevents the high-side integrated MOSFET from switching.",
+          "max_value": null,
+          "min_value": null,
+          "source_page": 12,
+          "statement": "When peak inductor current is lower than pulse skip threshold, COMP pin voltage falls to 0.5 V typical and the device enters Eco-mode. In Eco-mode, COMP pin voltage is clamped at 0.5 V internally, preventing the high-side integrated MOSFET from switching.",
+          "typ_value": 0.5,
+          "unit": "V"
+        },
+        {
+          "char_id": "B002_TPS54332DDA_ILIM",
+          "excerpt": "Current limit threshold VIN = 12 V 4.2 6.5 A",
+          "max_value": 6.5,
+          "min_value": 4.2,
+          "source_page": 5,
+          "statement": "Current limit threshold: 4.2 A min, 6.5 A max with VIN = 12 V.",
+          "typ_value": null,
+          "unit": "A"
+        }
+      ],
+      "status": "MEASURED",
+      "timed_out": false,
+      "verdict": "UNJUDGED"
+    },
+    {
+      "bench_components": [
+        "Vin vin 0 PULSE(0 12 0 1u 1u 30m 60m)",
+        "Cin vin 0 1e-05",
+        "Ven en 0 3.3",
+        "Css ss 0 1.5e-08",
+        "Cboot boot ph 1e-07",
+        "Dcatch 0 ph BM_CATCH",
+        "Lout ph out 2.5e-06 Rser=0.01",
+        "Cout1 out 0 4.7e-05 Rser=0.003",
+        "Cout2 out 0 4.7e-05 Rser=0.003",
+        "Rload out 0 2.51789473684",
+        "Rfbhi out vsense 10200",
+        "Rfblo vsense 0 4750",
+        "Rcomp comp compmid 75000",
+        "Ccomp compmid 0 1.8e-10",
+        "Chf comp 0 1e-11",
+        "Rgain out 0 0.258245614035",
+        "Vfb vsense 0 0.8",
+        "Vforce comp 0 PWL(0 0.55 0.00721 0.55 0.007709 0.55 0.00771 0.55 0.007711 0.6 0.008209 0.6 0.00821 0.6 0.008211 0.65 0.008709 0.65 0.00871 0.65 0.008711 0.7 0.009209 0.7 0.00921 0.7 0.009211 0.75 0.009709 0.75 0.00971 0.75 0.009711 0.8 0.010209 0.8 0.01021 0.8 0.010211 0.85 0.010709 0.85 0.01071 0.85 0.010711 0.9 0.011209 0.9 0.01121 0.9 0.011211 0.95 0.011709 0.95 0.01171 0.95 0.011711 1 0.012209 1 0.01221 1 0.012211 1.05 0.012709 1.05 0.01271 1.05 0.012711 1.1 0.013209 1.1 0.01321 1.1 0.013211 1.15 0.013709 1.15)"
+      ],
+      "bench_window_s": [
+        0.007209999999999999,
+        0.01376
+      ],
+      "bindings_sha256": "1b3d45e8977948ce2ed7f1079db2aaa598b543cd65a83b697af8455d6345ad57",
+      "case": "gain",
+      "deck": "C:\\Users\\basam\\src\\spice-maker\\runs\\m4a-smoke-20260926-2\\gain-avg\\gain-avg.cir",
+      "deck_sha256": "804972a18c158f04e6aebe7154f73099f85d56098ba158897e1be309b9eb6539",
+      "elapsed_s": 0.897,
+      "exit_code": 0,
+      "l_ext_h": 2.5e-06,
+      "log_sha256": "e171a17dccb62dc16070f67a391fe34fdd050a630b081720efd449785967b7b8",
+      "ltspice_exe": "C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\LTspice.exe",
+      "ltspice_exe_sha256": "4ef4a32accc2eb51722916b9410e3eedb5eebfbf0b661523caee2ab67b854207",
+      "ltspice_wall_s": 0.886,
+      "max_step_s": 1e-06,
+      "measurements": {
+        "distinct_time_points": 13991,
+        "final_inductor_a": {
+          "max": 5.007612228393555,
+          "mean": 5.007612228393555,
+          "min": 5.007612228393555
+        },
+        "final_output_v": {
+          "max": 1.1728882789611816,
+          "mean": 1.1728882789611819,
+          "min": 1.1728882789611816
+        },
+        "final_ss_v": {
+          "max": 1.8329432010650635,
+          "mean": 1.7996702920150982,
+          "min": 1.7663966178894295
+        },
+        "final_window_s": [
+          0.01326,
+          0.01376
+        ],
+        "gain_method": "time-weighted mean inductor current in predeclared M2 COMP windows",
+        "gain_points": [
+          {
+            "early_inductor_mean_a": 0.4731262922286988,
+            "early_late_delta_a": 1.1102230246251565e-16,
+            "late_inductor_mean_a": 0.4731262922286987,
+            "observed_comp_v": 0.5500000119209288,
+            "requested_comp_v": 0.55,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 1.042149097690689,
+            "early_late_delta_a": 5.22933177065088e-05,
+            "late_inductor_mean_a": 1.0422013910083956,
+            "observed_comp_v": 0.6000000238418579,
+            "requested_comp_v": 0.6,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 1.613319951381598,
+            "early_late_delta_a": 5.245563976918888e-05,
+            "late_inductor_mean_a": 1.613372407021367,
+            "observed_comp_v": 0.649999976158142,
+            "requested_comp_v": 0.65,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 2.1855117125561256,
+            "early_late_delta_a": 5.314854812832337e-05,
+            "late_inductor_mean_a": 2.185564861104254,
+            "observed_comp_v": 0.6999999880790712,
+            "requested_comp_v": 0.7,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 2.7584215490871955,
+            "early_late_delta_a": 5.39929812859441e-05,
+            "late_inductor_mean_a": 2.7584755420684814,
+            "observed_comp_v": 0.75,
+            "requested_comp_v": 0.75,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 3.3319235246637766,
+            "early_late_delta_a": 5.503483024282829e-05,
+            "late_inductor_mean_a": 3.3319785594940194,
+            "observed_comp_v": 0.8000000119209288,
+            "requested_comp_v": 0.8,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 3.905955292568279,
+            "early_late_delta_a": 5.622405972349753e-05,
+            "late_inductor_mean_a": 3.9060115166280025,
+            "observed_comp_v": 0.850000023841858,
+            "requested_comp_v": 0.85,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 4.480483277083178,
+            "early_late_delta_a": 5.744707163568563e-05,
+            "late_inductor_mean_a": 4.480540724154814,
+            "observed_comp_v": 0.899999976158142,
+            "requested_comp_v": 0.9,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 5.007558667699066,
+            "early_late_delta_a": 5.356069448847478e-05,
+            "late_inductor_mean_a": 5.007612228393555,
+            "observed_comp_v": 0.9499999880790712,
+            "requested_comp_v": 0.95,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 5.007612228393555,
+            "early_late_delta_a": 0.0,
+            "late_inductor_mean_a": 5.007612228393555,
+            "observed_comp_v": 1.0,
+            "requested_comp_v": 1.0,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 5.007612228393555,
+            "early_late_delta_a": 8.881784197001252e-16,
+            "late_inductor_mean_a": 5.007612228393556,
+            "observed_comp_v": 1.049999952316284,
+            "requested_comp_v": 1.05,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 5.007612228393555,
+            "early_late_delta_a": 0.0,
+            "late_inductor_mean_a": 5.007612228393555,
+            "observed_comp_v": 1.1000000238418577,
+            "requested_comp_v": 1.1,
+            "stable": true
+          },
+          {
+            "early_inductor_mean_a": 5.007612228393555,
+            "early_late_delta_a": 8.881784197001252e-16,
+            "late_inductor_mean_a": 5.007612228393556,
+            "observed_comp_v": 1.1499999761581423,
+            "requested_comp_v": 1.15,
+            "stable": true
+          }
+        ],
+        "input_source": {
+          "energy_0_to_stop_j": 0.04090747197009788,
+          "final_power_w": {
+            "max": 9.546496152877808,
+            "mean": 9.546496152877808,
+            "min": 9.546496152877808
+          },
+          "positive_power_convention": "-V(vin)*I(Vin); positive means source delivers power",
+          "scope": "fixture source includes input capacitor charging; no efficiency verdict",
+          "status": "UNJUDGED"
+        },
+        "raw_points": 13991
+      },
+      "mode": "AVG",
+      "model_sha256": "adce082491d0035c6514aaa9b3ada916f75bcd998da4731caebe58fa2294d0dc",
+      "op_raw_bytes": 1038,
+      "op_raw_sha256": "514b2f9947142fbb361572773adcb686de9f6156f64d6137fab5f021a35046be",
+      "passive_source": "TI-derived TPS54332 M1 passive deck; values are bench choices",
+      "raw_bytes": 616652,
+      "raw_retained": false,
+      "raw_sha256": "dffeebd274d03b4570351aebd1eefe48fd294fd382fac7a28ec1b9edea41c011",
+      "reason": null,
+      "recorded_utc": "2026-09-26T04:09:02.678376+00:00",
+      "requirements_sha256": "3884fd76976e071cd2ea81d5db64cb1bde17aecbaccc8f87399e7448646cc060",
+      "schema_version": 1,
+      "script_sha256": "140ea7995233176d166706a95c70aea000f556fbc184bbd264d3dfb08a1326cf",
+      "simulator_observed": "exit_code=0; wall=0.89s; raw=yes; log=yes",
+      "smoke": {
+        "active_comp_range_v": [
+          0.55,
+          0.9
+        ],
+        "basis": "synthetic_fixture_only; not datasheet GMCS or ILIM acceptance",
+        "cap_comp_min_v": 1.0,
+        "checks": [
+          {
+            "id": "active_points_stable",
+            "point_count": 8,
+            "required_count": 5,
+            "stable_count": 8,
+            "status": "OK"
+          },
+          {
+            "id": "active_current_monotonic",
+            "increments_a": [
+              0.5690750987796969,
+              0.5711710160129715,
+              0.5721924540828869,
+              0.5729106809642275,
+              0.573503017425538,
+              0.5740329571339831,
+              0.5745292075268114
+            ],
+            "minimum_increment_a": 0.1,
+            "status": "OK"
+          },
+          {
+            "currents_a": [
+              5.007612228393555,
+              5.007612228393556,
+              5.007612228393555,
+              5.007612228393556
+            ],
+            "id": "high_comp_current_near_nominal_limit",
+            "lower_a": 4.28,
+            "status": "OK",
+            "upper_a": 5.885
+          },
+          {
+            "id": "high_comp_current_plateau",
+            "span_a": 8.881784197001252e-16,
+            "status": "OK",
+            "upper_a": 0.2675
+          },
+          {
+            "id": "all_points_below_cap_guard",
+            "max_a": 5.007612228393556,
+            "status": "OK",
+            "upper_a": 5.885
+          }
+        ],
+        "nominal_seed_ilim_a": 5.35,
+        "status": "OK"
+      },
+      "source_rows": [
+        {
+          "char_id": "B002_TPS54332DDA_VREF",
+          "excerpt": "Voltage reference 0.772 0.8 0.828 V",
+          "max_value": 0.828,
+          "min_value": 0.772,
+          "source_page": 5,
+          "statement": "Voltage reference: 0.772 V min, 0.8 V typical, 0.828 V max.",
+          "typ_value": 0.8,
+          "unit": "V"
+        },
+        {
+          "char_id": "B002_TPS54332DDA_SS_CHARGE",
+          "excerpt": "Charge current V(SS) = 0.4 V 2 \u03bcA",
+          "max_value": null,
+          "min_value": null,
+          "source_page": 5,
+          "statement": "Slow-start (SS) pin charge current: 2 \u03bcA typical with V(SS) = 0.4 V.",
+          "typ_value": 2e-06,
+          "unit": "A"
+        },
+        {
+          "char_id": "B002_TPS54332DDA_FSW",
+          "excerpt": "TPS54332 Switching Frequency VIN = 12 V, 25\u00b0C 800 1000 1200 kHz",
+          "max_value": 1200000.0,
+          "min_value": 800000.0,
+          "source_page": 5,
+          "statement": "TPS54332 switching frequency: 800 kHz min, 1000 kHz typical, 1200 kHz max with VIN = 12 V, 25\u00b0C.",
+          "typ_value": 1000000.0,
+          "unit": "Hz"
+        },
+        {
+          "char_id": "B002_TPS54332DDA_SW_CURRENT_TO_COMP",
+          "excerpt": "Switch current to COMP transconductance VIN = 12 V 12 A/V",
+          "max_value": null,
+          "min_value": null,
+          "source_page": 5,
+          "statement": "Switch current to COMP transconductance: 12 A/V typical with VIN = 12 V.",
+          "typ_value": 12.0,
+          "unit": "A/V"
+        },
+        {
+          "char_id": "B003_REQ_TPS54332_ECOMODE_COMP_0P5V",
+          "excerpt": "When the peak inductor current is lower than pulse skip threshold, the COMP pin voltage falls to 0.5 V (typical) \nand the device enters Eco-mode . When the device is in Eco-mode, the COMP pin voltage is clamped at 0.5 V \ninternally which prevents the high-side integrated MOSFET from switching.",
+          "max_value": null,
+          "min_value": null,
+          "source_page": 12,
+          "statement": "When peak inductor current is lower than pulse skip threshold, COMP pin voltage falls to 0.5 V typical and the device enters Eco-mode. In Eco-mode, COMP pin voltage is clamped at 0.5 V internally, preventing the high-side integrated MOSFET from switching.",
+          "typ_value": 0.5,
+          "unit": "V"
+        },
+        {
+          "char_id": "B002_TPS54332DDA_ILIM",
+          "excerpt": "Current limit threshold VIN = 12 V 4.2 6.5 A",
+          "max_value": 6.5,
+          "min_value": 4.2,
+          "source_page": 5,
+          "statement": "Current limit threshold: 4.2 A min, 6.5 A max with VIN = 12 V.",
+          "typ_value": null,
+          "unit": "A"
+        }
+      ],
+      "status": "MEASURED",
+      "timed_out": false,
+      "verdict": "UNJUDGED"
+    }
+  ],
+  "schema_version": 1,
+  "smoke_unknown": 0,
+  "smoke_violations": 0,
+  "speed_pairs": [
+    {
+      "avg_wall_s": 0.772,
+      "case": "startup",
+      "reason": null,
+      "status": "MEASURED",
+      "sw_over_avg": 24.766,
+      "sw_wall_s": 19.119
+    },
+    {
+      "avg_wall_s": 0.886,
+      "case": "gain",
+      "reason": null,
+      "status": "MEASURED",
+      "sw_over_avg": 44.115,
+      "sw_wall_s": 39.086
+    }
+  ],
+  "unknown": 0
+}

@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "recorded_utc": "2026-09-26T04:33:00.403085+00:00",
+  "status": "MEASURED",
+  "verdict": "UNJUDGED",
+  "accepted_dir": "C:\\Users\\basam\\src\\spice-maker-bob\\runs\\m4a-smoke-20260926-bob",
+  "accepted_deck_sha256": "2d9ae2a488ba6fcbd246ff7922499e056903f5a6ca89df2aee7dfa4442d0c3c6",
+  "accepted_model_sha256": "adce082491d0035c6514aaa9b3ada916f75bcd998da4731caebe58fa2294d0dc",
+  "diagnostic_deck_sha256": "eb9b0965105f4edfb8d0f46a307f4e4e0cdc5385d3ac00d39d7a800ef7c124fe",
+  "diagnostic_model_sha256": "adce082491d0035c6514aaa9b3ada916f75bcd998da4731caebe58fa2294d0dc",
+  "script_sha256": "581a79d55cb6bd73dfee0d51e2106c4cdbd65747c86c903986966ad5859eba0a",
+  "ltspice_exe": "C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\LTspice.exe",
+  "ltspice_exe_sha256": "4ef4a32accc2eb51722916b9410e3eedb5eebfbf0b661523caee2ab67b854207",
+  "deck_change": "0-V Vsense after top-level Cin; additional .save signals only",
+  "internal_probes": "OMITTED_UNVERIFIED",
+  "accepted_final_window_s": [
+    0.007709999999999998,
+    0.008209999999999999
+  ],
+  "load_ohm": 2.51789473684,
+  "exit_code": 0,
+  "timed_out": false,
+  "ltspice_wall_s": 0.7956481999717653,
+  "simulator_observed": "exit_code=0; wall=0.80s; raw=yes; log=yes",
+  "raw_retained": true,
+  "raw_sha256": "3f55ae350bef9906957e75cd2dd260a3f52e01bd1283fbbe037fc3fdbc4e90a8",
+  "log_sha256": "1947651f9775eaf3a43bea13267a86ab717317c520a779540f714e2a3d065718",
+  "measurements": {
+    "raw_points": 8377,
+    "raw_variables": [
+      "time",
+      "V(comp)",
+      "V(out)",
+      "V(ph)",
+      "V(ss)",
+      "V(vin)",
+      "V(vin_dut)",
+      "I(Cin)",
+      "I(Dcatch)",
+      "I(Lout)",
+      "I(Vin)",
+      "I(Vsense)",
+      "Lout:flux"
+    ],
+    "final_window_s": [
+      0.007709999999999998,
+      0.008209999999999999
+    ],
+    "sign_convention": "I(Vsense)>0 enters DUT; I(Cin)>0 charges Cin; P_source=-V(vin)*I(Vin)>0 means the source delivers power",
+    "final": {
+      "V(vin)": {
+        "raw_min": 12.0,
+        "raw_max": 12.0,
+        "raw_samples": 500,
+        "time_weighted_mean": 12.0,
+        "signed_integral": 0.006000000000000005,
+        "piecewise_linear_positive_integral": 0.006000000000000005,
+        "piecewise_linear_negative_integral": 0.0
+      },
+      "V(vin_dut)": {
+        "raw_min": 12.0,
+        "raw_max": 12.0,
+        "raw_samples": 500,
+        "time_weighted_mean": 12.0,
+        "signed_integral": 0.006000000000000005,
+        "piecewise_linear_positive_integral": 0.006000000000000005,
+        "piecewise_linear_negative_integral": 0.0
+      },
+      "I(Vin)": {
+        "raw_min": -120.25843048095703,
+        "raw_max": 119.74156188964844,
+        "raw_samples": 500,
+        "time_weighted_mean": -0.20097119543667918,
+        "signed_integral": -0.00010048559771833968,
+        "piecewise_linear_positive_integral": 0.014947324877124413,
+        "piecewise_linear_negative_integral": -0.01504781047484283
+      },
+      "I(Cin)": {
+        "raw_min": -120.0,
+        "raw_max": 120.0,
+        "raw_samples": 500,
+        "time_weighted_mean": -0.057463102044320515,
+        "signed_integral": -2.8731551022160283e-05,
+        "piecewise_linear_positive_integral": 0.014983184074270847,
+        "piecewise_linear_negative_integral": -0.015011915625293007
+      },
+      "I(Vsense)": {
+        "raw_min": 0.25843071937561035,
+        "raw_max": 0.25843653082847595,
+        "raw_samples": 500,
+        "time_weighted_mean": 0.25843361817862903,
+        "signed_integral": 0.00012921680908931462,
+        "piecewise_linear_positive_integral": 0.00012921680908931524,
+        "piecewise_linear_negative_integral": 0.0
+      },
+      "I(Lout)": {
+        "raw_min": 1.000115990638733,
+        "raw_max": 1.000115990638733,
+        "raw_samples": 500,
+        "time_weighted_mean": 1.000115990638733,
+        "signed_integral": 0.0005000579953193669,
+        "piecewise_linear_positive_integral": 0.000500057995319371,
+        "piecewise_linear_negative_integral": 0.0
+      },
+      "V(out)": {
+        "raw_min": 2.5177628993988037,
+        "raw_max": 2.5177628993988037,
+        "raw_samples": 500,
+        "time_weighted_mean": 2.5177628993988037,
+        "signed_integral": 0.001258881449699403,
+        "piecewise_linear_positive_integral": 0.0012588814496994004,
+        "piecewise_linear_negative_integral": 0.0
+      },
+      "V(ph)": {
+        "raw_min": 2.5277633666992188,
+        "raw_max": 2.5277647972106934,
+        "raw_samples": 500,
+        "time_weighted_mean": 2.5277640816124496,
+        "signed_integral": 0.0012638820408062258,
+        "piecewise_linear_positive_integral": 0.001263882040806224,
+        "piecewise_linear_negative_integral": 0.0
+      },
+      "I(Dcatch)": {
+        "raw_min": -1.1256625839450862e-05,
+        "raw_max": 1.1240786989219487e-05,
+        "raw_samples": 500,
+        "time_weighted_mean": -1.294728916369665e-08,
+        "signed_integral": -6.473644581848331e-12,
+        "piecewise_linear_positive_integral": 1.3805274570517315e-09,
+        "piecewise_linear_negative_integral": -1.3870011016335777e-09
+      },
+      "V(comp)": {
+        "raw_min": 0.62412428855896,
+        "raw_max": 0.62412428855896,
+        "raw_samples": 500,
+        "time_weighted_mean": 0.62412428855896,
+        "signed_integral": 0.0003120621442794803,
+        "piecewise_linear_positive_integral": 0.0003120621442794799,
+        "piecewise_linear_negative_integral": 0.0
+      },
+      "V(ss)": {
+        "raw_min": 1.0275119543075562,
+        "raw_max": 1.0939745903015137,
+        "raw_samples": 500,
+        "time_weighted_mean": 1.0607299421504528,
+        "signed_integral": 0.0005303649710752269,
+        "piecewise_linear_positive_integral": 0.0005303649710752266,
+        "piecewise_linear_negative_integral": 0.0
+      },
+      "P_source_w": {
+        "raw_min": -1436.8987426757812,
+        "raw_max": 1443.1011657714844,
+        "raw_samples": 500,
+        "time_weighted_mean": 2.411654345240149,
+        "signed_integral": 0.0012058271726200756,
+        "piecewise_linear_positive_integral": 0.18057372569811486,
+        "piecewise_linear_negative_integral": -0.17936789852549445
+      },
+      "P_cap_w": {
+        "raw_min": -1440.0,
+        "raw_max": 1440.0,
+        "raw_samples": 500,
+        "time_weighted_mean": -0.6895572245318461,
+        "signed_integral": -0.00034477861226592336,
+        "piecewise_linear_positive_integral": 0.1797982088912514,
+        "piecewise_linear_negative_integral": -0.1801429875035173
+      },
+      "P_dut_pin_w": {
+        "raw_min": 3.101168632507324,
+        "raw_max": 3.1012383699417114,
+        "raw_samples": 500,
+        "time_weighted_mean": 3.1012034181435473,
+        "signed_integral": 0.001550601709071775,
+        "piecewise_linear_positive_integral": 0.00155060170907178,
+        "piecewise_linear_negative_integral": 0.0
+      },
+      "P_shunt_w": {
+        "raw_min": 0.0,
+        "raw_max": 0.0,
+        "raw_samples": 500,
+        "time_weighted_mean": 0.0,
+        "signed_integral": 0.0,
+        "piecewise_linear_positive_integral": 0.0,
+        "piecewise_linear_negative_integral": 0.0
+      },
+      "P_load_w": {
+        "raw_min": 2.5176310688606405,
+        "raw_max": 2.5176310688606405,
+        "raw_samples": 500,
+        "time_weighted_mean": 2.517631068860641,
+        "signed_integral": 0.0012588155344303215,
+        "piecewise_linear_positive_integral": 0.001258815534430317,
+        "piecewise_linear_negative_integral": 0.0
+      },
+      "P_ph_to_inductor_w": {
+        "raw_min": 2.528056563586688,
+        "raw_max": 2.5280579942640884,
+        "raw_samples": 500,
+        "time_weighted_mean": 2.5280572785828412,
+        "signed_integral": 0.0012640286392914218,
+        "piecewise_linear_positive_integral": 0.0012640286392914097,
+        "piecewise_linear_negative_integral": 0.0
+      },
+      "I_vin_kcl_residual_a": {
+        "raw_min": -1.6689300537109375e-06,
+        "raw_max": 3.2782554626464844e-07,
+        "raw_samples": 500,
+        "time_weighted_mean": -6.793023707003273e-07,
+        "signed_integral": -3.396511853501639e-10,
+        "piecewise_linear_positive_integral": 1.0144804687569713e-11,
+        "piecewise_linear_negative_integral": -3.497959900377336e-10
+      }
+    },
+    "source_power_spikes": {
+      "threshold_w": 50.0,
+      "positive": {
+        "samples": 250,
+        "episodes": 250,
+        "first_episode_times_s": [
+          0.007711602812490227,
+          0.007713602812490227,
+          0.007715602812490226,
+          0.007717602812490227,
+          0.007719602812490227,
+          0.007721602812490227,
+          0.0077236028124902266,
+          0.007725602812490227,
+          0.007727602812490227,
+          0.0077296028124902265,
+          0.007731602812490227,
+          0.007733602812490227,
+          0.007735602812490226,
+          0.007737602812490227,
+          0.007739602812490227,
+          0.007741602812490226,
+          0.007743602812490227,
+          0.007745602812490227,
+          0.007747602812490227,
+          0.0077496028124902265
+        ],
+        "first_hit_s": 0.007711602812490227,
+        "last_hit_s": 0.008209602812490226
+      },
+      "negative": {
+        "samples": 250,
+        "episodes": 250,
+        "first_episode_times_s": [
+          0.007710602812490227,
+          0.007712602812490227,
+          0.007714602812490227,
+          0.0077166028124902265,
+          0.007718602812490227,
+          0.007720602812490227,
+          0.007722602812490226,
+          0.007724602812490227,
+          0.007726602812490227,
+          0.007728602812490226,
+          0.007730602812490227,
+          0.007732602812490227,
+          0.007734602812490227,
+          0.0077366028124902265,
+          0.007738602812490227,
+          0.007740602812490227,
+          0.0077426028124902265,
+          0.007744602812490227,
+          0.007746602812490227,
+          0.007748602812490226
+        ],
+        "first_hit_s": 0.007710602812490227,
+        "last_hit_s": 0.008208602812490227
+      }
+    },
+    "dut_power_spikes": {
+      "threshold_w": 50.0,
+      "positive": {
+        "samples": 0,
+        "episodes": 0,
+        "first_episode_times_s": [],
+        "first_hit_s": null,
+        "last_hit_s": null
+      },
+      "negative": {
+        "samples": 0,
+        "episodes": 0,
+        "first_episode_times_s": [],
+        "first_hit_s": null,
+        "last_hit_s": null
+      }
+    },
+    "verdict": "UNJUDGED; numerical and physical interpretation requires waveform review"
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "bench_components": [
+    "Vin vin 0 PULSE(0 12 0 1u 1u 30m 60m)",
+    "Cin vin 0 1e-05",
+    "Ven en 0 3.3",
+    "Css ss 0 1.5e-08",
+    "Cboot boot ph 1e-07",
+    "Dcatch 0 ph BM_CATCH",
+    "Lout ph out 2.5e-06 Rser=0.01",
+    "Cout1 out 0 4.7e-05 Rser=0.003",
+    "Cout2 out 0 4.7e-05 Rser=0.003",
+    "Rload out 0 2.51789473684",
+    "Rfbhi out vsense 10200",
+    "Rfblo vsense 0 4750",
+    "Rcomp comp compmid 75000",
+    "Ccomp compmid 0 1.8e-10",
+    "Chf comp 0 1e-11"
+  ],
+  "bench_window_s": [
+    0.0,
+    0.008209999999999999
+  ],
+  "bindings_sha256": "1b3d45e8977948ce2ed7f1079db2aaa598b543cd65a83b697af8455d6345ad57",
+  "case": "startup",
+  "deck": "C:\\Users\\basam\\src\\spice-maker\\runs\\m4a-smoke-20260926-1\\startup-avg\\startup-avg.cir",
+  "deck_sha256": "24e83a1fe1ce3cccf4ec239ce0ff5de578961ffd4a6383a591c03186853e63e7",
+  "elapsed_s": 12.278,
+  "exit_code": 0,
+  "l_ext_h": 2.5e-06,
+  "log_sha256": "ab4775ca90e4d4f18cd36c42ea4ec029607e4591278747cc823633eb7ce9f152",
+  "ltspice_exe": "C:\\Users\\basam\\AppData\\Local\\Programs\\ADI\\LTspice\\LTspice.exe",
+  "ltspice_exe_sha256": "4ef4a32accc2eb51722916b9410e3eedb5eebfbf0b661523caee2ab67b854207",
+  "ltspice_wall_s": 12.26,
+  "max_step_s": 1e-06,
+  "measurements": {
+    "distinct_time_points": 412727,
+    "final_inductor_a": {
+      "max": 5.387692928314209,
+      "mean": 0.9699296170739293,
+      "min": -0.030366364866495132
+    },
+    "final_output_v": {
+      "max": 2.684041738510132,
+      "mean": 2.540293301767626,
+      "min": 2.412905216217041
+    },
+    "final_ss_v": {
+      "max": 1.094027519226074,
+      "mean": 1.0607299435005726,
+      "min": 1.0274316600450073
+    },
+    "final_window_s": [
+      0.007709999999999998,
+      0.008209999999999999
+    ],
+    "raw_points": 412727,
+    "rise_10_90_s": 0.004824304199757954
+  },
+  "mode": "AVG",
+  "model_sha256": "7497b3f8d733ccc24535e08c952b69d16fb20710dc67af5c17d7141f7f2ca59a",
+  "op_raw_bytes": 870,
+  "op_raw_sha256": "1dff1df6e9bd8081f71cce38578a8ac3343aec4515991a891eded8ab64f651ff",
+  "passive_source": "TI-derived TPS54332 M1 passive deck; values are bench choices",
+  "raw_bytes": 11557250,
+  "raw_retained": false,
+  "raw_sha256": "b575ac580a57eb3b92bba26842d156920151e884cdef6260e6c02f0f8c81d077",
+  "reason": null,
+  "recorded_utc": "2026-09-26T04:02:23.417050+00:00",
+  "requirements_sha256": "3884fd76976e071cd2ea81d5db64cb1bde17aecbaccc8f87399e7448646cc060",
+  "schema_version": 1,
+  "script_sha256": "1ac4c4b3374c8565619c7975e7a110661a5484d63166deabefc54f768a4bb677",
+  "simulator_observed": "exit_code=0; wall=12.26s; raw=yes; log=yes",
+  "source_rows": [
+    {
+      "char_id": "B002_TPS54332DDA_VREF",
+      "excerpt": "Voltage reference 0.772 0.8 0.828 V",
+      "max_value": 0.828,
+      "min_value": 0.772,
+      "source_page": 5,
+      "statement": "Voltage reference: 0.772 V min, 0.8 V typical, 0.828 V max.",
+      "typ_value": 0.8,
+      "unit": "V"
+    },
+    {
+      "char_id": "B002_TPS54332DDA_SS_CHARGE",
+      "excerpt": "Charge current V(SS) = 0.4 V 2 \u03bcA",
+      "max_value": null,
+      "min_value": null,
+      "source_page": 5,
+      "statement": "Slow-start (SS) pin charge current: 2 \u03bcA typical with V(SS) = 0.4 V.",
+      "typ_value": 2e-06,
+      "unit": "A"
+    }
+  ],
+  "status": "MEASURED",
+  "timed_out": false,
+  "verdict": "UNJUDGED"
+}
