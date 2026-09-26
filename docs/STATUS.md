@@ -1,3 +1,40 @@
+## 2026-09-25 — system models M2: cited guards and measured buck benches
+
+M2 is complete in both editions; evidence is in
+`docs/evidence/2026-09-25-system-models-m2/REPORT.md`. The pre-freeze planner now
+rejects one-point/current-sense gain, COMP fit points at or below verified VECO,
+uncited VECO, ideal output current sources in a current-limit fixture, and
+current-limit windows before calculated SS charging plus 1 ms settling. These
+rules have clean and fault controls, including alias pins. The bench builder
+requires the frozen verified citations and generates seven deterministic decks
+for six buck test families. It reports waveform measurements without silently
+claiming model PASS.
+
+Real LTspice runs using an explicitly selected executable produced six usable
+measurements and one PH-edge `UNKNOWN` in **150.503 s** total simulator time.
+The selected gain slope was 11.426 A/V versus 12 A/V typical; both 4.2/6.5 A
+template-parameter current-limit settings produced matching cycle peaks.
+Startup 10–90% rise was 4.804 ms and a 1→3 A load step dipped 62.462 mV with
+37.5 µs sustained recovery. The earlier M1 ripple **FAIL** and low-COMP gain
+anomaly remain open; the rising PH edge is unresolved. No board-level suite
+case was activated at M2. No vendor library, raw waveform, or secret was
+committed, and no AI provider was invoked.
+
+Verification: the general edition's focused regression set passed **751 tests
+in 180.06 s**; Bob's passed **620 with 7 skips in 193.07 s**. Ruff checks,
+`git diff --check`, and the two shared-core manifest checks passed; **43 core
+files** are byte-identical between editions. Next: M3 required PCB ground/pad
+connections and the frozen 19-row regression.
+
+The focused command in each repository was
+`.\.venv\Scripts\python.exe -m pytest -q -m 'not network' tests/authoring tests/models tests/pipeline tests/ltspice tests/test_shared_core.py`,
+with `LTSPICE_EXE` explicitly set to
+`C:\Users\basam\AppData\Local\Programs\ADI\LTspice\LTspice.exe` and the
+offline override removed so mocked-provider tests could run. Style and parity
+commands were `.\.venv\Scripts\python.exe -m ruff check src tests tools`,
+`git diff --check`, and `.\.venv\Scripts\python.exe tools/shared_core.py --check`;
+changed files also passed Ruff format checking.
+
 ## 2026-09-25 — system models M1: measured TPS54332 comparison
 
 M1 evidence is complete at `docs/evidence/2026-09-25-system-models-m1/REPORT.md`.
