@@ -210,8 +210,10 @@ What each piece guarantees:
   oscillator behavior, thermal response, package facts) are listed on `MODEL_CARD.md` with
   a `not_testable_reason`, so a reader sees the size of the claim, not a summary of it.
 
-The older paths — circuit checking, the board demonstration, the desktop UI — remain in
-the tree and are described further down; they are not on the model-authoring path.
+The old board demonstration and checker remain in the tree for internal
+regression fixtures only. They are not product workflows. The desktop UI is
+for generating and inspecting SPICE models. See [D-052](docs/DECISIONS.md):
+there is no board import or user-facing board findings report.
 
 ## Honesty invariants
 
@@ -250,30 +252,10 @@ what it says.
 
 ## Workflows
 
-### The integrated board demonstration
-
-A complete board — 12 V input, buck to 3V3, LDO to 1V8, reset circuit, straps,
-sideband, and an unmodelled PCIe switch kept explicitly outside dynamic coverage —
-is built from committed fixtures and checked end to end:
-
-```powershell
-uv run boardmodeler demo build --out build/demo
-uv run boardmodeler circuit check --project build/demo --json --out build/demo-results.json
-uv run boardmodeler run mutations --project build/demo --report build/mutation-report.json
-```
-
-`demo build` reports its requirement, test-case, and static-finding counts;
-`circuit check` prints one line per test with its status; `run mutations` injects
-each fault into its own copy, runs the check, and records whether the fault was
-detected — hashing the original project before and after to prove the mutation did
-not leak into it.
-
-### Testing a circuit
-
-```powershell
-uv run boardmodeler run tests --project <project-dir> --scope circuit_compliance --json
-uv run boardmodeler circuit check --project <project-dir> --circuit <schematic.asc> --fault-matrix
-```
+The product workflow generates a `.lib` model, `.asy` symbol, cited model card,
+and verification results. Model alarms are checked with small code-built
+circuits and run inside the user's LTspice simulation. There is no board
+checker or board report workflow.
 
 ### Extracting from documents
 
@@ -290,7 +272,7 @@ replay, so repeat runs make zero requests.
 ### Exporting a model
 
 ```powershell
-uv run boardmodeler export --project build/demo --out build/demo-export
+uv run boardmodeler export --project <model-project-dir> --out <export-dir>
 ```
 
 The export carries only relative paths, hashes every file into `manifest.json`,
@@ -319,13 +301,13 @@ requirement with no dynamic test in `coverage.json`.
 |`src/boardmodeler/domain/`|Record schemas (pydantic), enums, hashing, ids, constrained expression AST|
 |`src/boardmodeler/simulation/`|LTspice batch invocation, log parsing, `.raw` readers, backend selection|
 |`src/boardmodeler/verification/`|Assertion evaluation, vacuous-pass guards, corners, scenarios, engine|
-|`src/boardmodeler/schematic/`|`.asc` parse/generate, SPICE netlist parsing, neutral CSV model, static checks, mutations|
+|`src/boardmodeler/schematic/`|Legacy internal test-circuit helpers; no board import feature|
 |`src/boardmodeler/models/`|Vendor-original store, behavioural templates, capability probes, symbol generation|
 |`src/boardmodeler/requirements/`|Requirement extraction, validation, source-consistency review|
 |`src/boardmodeler/documents/`|PDF text/page extraction, document store, OCR interface, chunking|
 |`src/boardmodeler/providers/`|Fixture and HTTP inference providers behind one protocol|
 |`src/boardmodeler/pipeline/`|Stage chain, baseline freeze, bounded repair, child-process worker|
-|`src/boardmodeler/reporting/`|Export, model card, HTML report|
+|`src/boardmodeler/reporting/`|Model export and card; legacy board HTML code is dormant|
 |`src/boardmodeler/security/`|Credentials, path guards, subprocess guard, data policy|
 |`src/boardmodeler/ui/`|PySide6 desktop application (thin client over the same pipeline)|
 |`fixtures/`|Committed test fixtures (synthetic switch contract, demo board)|
