@@ -1407,3 +1407,26 @@ No provider request was made; LTspice 26.0.0 selected explicitly.
 | Frozen 19-row TPS54332DDA spec, corrected template | 12 PASS / 4 FAIL / 3 UNKNOWN, 109.8 s — every verdict unchanged |
 | `pytest tests/authoring tests/models tests/pipeline tests/ltspice tests/test_shared_core.py` (`LTSPICE_EXE`) | 725 passed, 0 failed |
 | `tools/shared_core.py --compare ..\spice-maker-bob` | identical: 42 files |
+
+## 2026-09-25 — system-level models M0: direction and 22-family catalog
+
+M0 is documentation only. D-048 defines exact pin and required-connection rules,
+must-be-right and ballpark checks, matching SW/AVG switching-regulator modes,
+generic pin alarms, and a future code-built default path. The
+[`SYSTEM_MODELS_PLAN.md`](SYSTEM_MODELS_PLAN.md) tracks M0–M9+; the replaced
+[`TEMPLATE_CATALOG.md`](TEMPLATE_CATALOG.md) lists 22 I/O-card families and their
+ten-step build order. Only `peak_current_buck_v1` is a reusable family slice today;
+it is not system-verified. M1 is the next milestone.
+
+| Check | Observed result |
+| --- | --- |
+| `.venv\Scripts\python.exe -m pytest -q tests\test_shared_core.py` | 2 passed in 1.07 s |
+| `.venv\Scripts\python.exe tools\shared_core.py --compare ..\spice-maker-bob` | identical: 42 files |
+| Catalog structure check | Families 1–22 and build steps 1–10 in order |
+| D-048, catalog and plan comparison with Bob | Decision text equal; catalog and plan SHA-256 hashes equal |
+| `git diff --check` | No whitespace errors |
+
+Evidence and the corrected scope of the catalog count are in
+[`docs/evidence/2026-09-25-system-models-m0/REPORT.md`](evidence/2026-09-25-system-models-m0/REPORT.md).
+No simulator, model-authoring provider or installer ran for M0; the older
+TPS54332DDA FAIL and UNKNOWN results remain unchanged.
