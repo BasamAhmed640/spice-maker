@@ -1,3 +1,25 @@
+## 2026-09-26 — system models M4b1: cited TPS values in both modes
+
+The [M4b1 evidence](evidence/2026-09-26-system-models-m4b1/REPORT.md)
+records 16 real LTspice runs in each edition: the four selected TPS54332DDA
+rows passed in both SW and AVG, and each deliberate wrong-value control
+failed. The rows cover VREF, SS charge current near 0.4 V, shutdown current,
+and non-switching operating current. The latter two measure DUT VIN current
+through a shunt after the fixture input capacitor and require a quiet PH and
+inductor waveform before a numeric verdict. All clean values also fell within
+the separately declared ±10% typical comparison; the IQ verdicts themselves
+use the cited maximum limits. Raw/log hashes were independently checked in
+both editions; the raw files stay in ignored local runs directories.
+
+The frozen SW renderer and the M4a AVG renderer were unchanged. M4b as a
+whole remains open: bidirectional UVLO/EN, gain and limit corners, SW shapes,
+power behavior, and matched speed still need their own evidence. The older M1
+SW ripple FAIL and PH-edge UNKNOWN remain. The full TPS regression was not
+rerun because M4b1 changes the verifier only, not the model or shared harness.
+The focused evaluator tests passed 10/10 in each edition; integration passed
+269 tests with 11 expected skips in General and 269/11 in Bob. Scoped Ruff,
+changed-file formatting, diff checks, and 44-file shared-core parity passed.
+
 ## 2026-09-26 — system models M4a: measured average-mode candidate
 
 M4a is complete as a **candidate** in both editions; M4b qualification and
