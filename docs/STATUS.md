@@ -1,3 +1,35 @@
+## 2026-09-25 — system models M1: measured TPS54332 comparison
+
+M1 evidence is complete at `docs/evidence/2026-09-25-system-models-m1/REPORT.md`.
+Two code-built scripts under `tools/` freshly rendered the frozen TPS54332DDA
+switching model and compared it with the local TI transient model using identical
+TI-derived passives. Ten of ten LTspice cases were measured with the executable
+path passed explicitly; cumulative simulator time was **140.579 s ours** and
+**1,085.376 s TI**. Deck, log, raw, and operating-point hashes are in the
+report; raw files were removed after measurement. No production source, vendor
+model, installer, frozen spec, or secret was changed; no AI provider was invoked.
+
+Observed: nominal PH frequency 1.000 MHz, overload/short cycle peaks 5.355/5.356 A
+(within the cited 4.2–6.5 A band), and 125 kHz short foldback. The original
+wide COMP fit was **FAIL** at 9.363 A/V; a separately labeled post-acquisition
+linear-segment fit was 11.988 A/V. Output ripple was **FAIL** at 1.805 mV versus
+TI's 13.110 mV (0.138×); PH edge realism and full load-step recovery remain
+**UNKNOWN**. These findings are evidence for later model work, not a claim of a
+system-verified model. The supplied 66-case board suite is now tracked in both
+editions; none of its cases activates at M1.
+
+Verification: focused suite with the selected LTspice path and network-marked
+tests excluded, **725 passed in 192.38 s**. One existing LTspice load-check
+case was inconclusive in the first full attempt (724 passed, 1 failed), then
+passed in isolation and in the complete rerun. `ruff check src tests tools`,
+`ruff format --check` on the two new scripts, `py_compile`, and `git diff --check`
+passed. Shared core comparison with Bob: **42 identical files**. Full
+`ruff check .` still finds two pre-existing style issues in a historical
+buck-slice evidence script, which this evidence-only milestone did not edit.
+The Bob edition's focused suite passed **594 with 7 edition-specific skips**;
+its status entry records that edition's scope. Next: M2 pre-freeze guards and
+deterministic benches.
+
 ## 2026-09-22 — 1.5.0: containment, safe agent deployment, reopenable models, real end-to-end proof
 
 Second remediation round, from the owner's list: safety first (no rogue agent, one internet
