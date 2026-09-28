@@ -92,13 +92,30 @@ Rules the controller must enforce (each must have a test):
 * Only `reporting/export.py` computes approval/qualification receipts — the model
   generation code never writes one.
 
-## 2. Model-making path
+## 2. Worker protocol (`pipeline/worker.py`)
 
-The public text menu and flag commands both call `pipeline/make_model.py`. Its
-progress callback reports stages while the same engine writes candidates and
-LTspice judges them. Results and row counts come from that engine. The old child
-process transport is archived in
-[`docs/evidence/2026-09-28-terminal/history/INTERFACES-before-terminal.md`](evidence/2026-09-28-terminal/history/INTERFACES-before-terminal.md).
+* Invocation: `python -m boardmodeler.pipeline.worker --request <request.json>
+  --project <dir>`.
+* stdout carries **one JSON object per line**, nothing else. Diagnostics go to
+  stderr.
+* Event shapes (`event` field is mandatory):
+
+```jsonc
+{"event": "stage",    "stage": "COMPILE_SIMULATE", "status": "PASS", "detail": "...", "elapsed_s": 1.2}
+{"event": "progress", "stage": "EVALUATE", "done": 3, "total": 9, "detail": "..."}
+{"event": "findings", "findings": [ /* Finding dicts */ ]}
+{"event": "review",   "items":    [ /* ReviewItem dicts */ ]}
+{"event": "waveform", "ref": "runs/<id>/probe.raw", "signals": ["V(VOUT)"], "violations": [{"req_id": "...", "t_s": 0.0012}]}
+{"event": "result",   "status": "FAIL", "summary": {"PASS": 4, "FAIL": 1}, "results": [ /* TestResult dicts */ ]}
+{"event": "error",    "code": "project_not_found", "detail": "..."}
+```
+
+* The worker exits 0 for any completed run (statuses are data) and non-zero only
+  when the request itself could not be served.
+* Cancellation: the parent terminates the child's **process tree**; the worker
+  also honours SIGINT/SIGTERM by writing `{"event":"error","code":"cancelled"}`
+  and exiting 130.
+* The GUI never computes a verdict; it renders what the worker emits.
 
 ## 3. Schematic layer (`schematic/`)
 

@@ -29,8 +29,6 @@ from typing import Any
 
 import pytest
 
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = REPO_ROOT / "fixtures" / "regulator" / "tps54320"
 BINDINGS = FIXTURES / "probes.json"
@@ -344,50 +342,3 @@ def test_verify_really_runs_the_harness_and_rewrites_its_evidence(
         assert Path(path).is_file(), path
     assert evidence.stat().st_mtime_ns >= before, "the harness evidence was not rewritten"
     assert payload["verification_at"]
-
-
-# --------------------------------------------------------------------------- #
-# the window
-
-
-def test_open_model_fills_the_window_from_the_directory(
-    model_dir: Path, qtbot: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """OPEN MODEL… is the GUI half of the same claim: the window reads the folder."""
-    pytest.importorskip("PySide6")
-    from boardmodeler.ui.model_maker import ModelMakerWindow
-
-    # The window reads and writes the config, so point it at a throwaway file.
-    monkeypatch.setattr("boardmodeler.config.config_path", lambda: tmp_path / "config.json")
-    recorded = _recorded(model_dir)
-
-    window = ModelMakerWindow()
-    qtbot.addWidget(window)
-    assert window.open_model_path(model_dir) is True
-
-    assert window.part_edit.text() == PART
-    assert window.out_edit.text() == str(model_dir)
-    assert window._out_dir == model_dir
-    assert window.status_label.text(), "the status line must say what was recorded"
-    assert "PASS" not in window.status_label.text(), window.status_label.text()
-    assert window.rows.rowCount() == len(recorded["rows"])
-    assert window.rows.item(0, 0) is not None
-    first_id = window.rows.item(0, 0)
-    first_status = window.rows.item(0, 3)
-    assert first_id is not None and first_status is not None
-    assert first_id.text() == recorded["rows"][0]["req_id"]
-    assert first_status.text() == recorded["rows"][0]["status"]
-    # The existing actions must now work on the reopened model.
-    assert window.again_button.isEnabled() is True
-    assert window.open_button.isEnabled() is True
-    assert window.install_button.isEnabled() is True
-
-    # ...and a folder that is not a model is refused without touching the window's fields.
-    empty = tmp_path / "empty"
-    empty.mkdir()
-    monkeypatch.setattr(
-        "boardmodeler.ui.model_maker.QMessageBox.warning",
-        staticmethod(lambda *args, **kwargs: None),
-    )
-    assert window.open_model_path(empty) is False
-    assert window.out_edit.text() == str(model_dir)

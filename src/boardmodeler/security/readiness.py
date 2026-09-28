@@ -1,9 +1,9 @@
-"""Is this copy ready to make a model? One checklist for the window's status lights.
+"""Is this copy ready to make a model? One checklist for setup diagnostics.
 
 Each :class:`Check` is one light: ``ok`` (green), ``warn`` (amber: usable, with a limit
 worth knowing), ``fail`` (red: a build would stop here) or ``unchecked`` (grey: not
-tested yet). :func:`local_checks` reads only this machine and sends nothing, so the
-window can show it the moment it opens. :func:`verify_all` adds the two checks that
+tested yet). :func:`local_checks` reads only this machine and sends nothing.
+:func:`verify_all` adds the two checks that
 need the provider — the key is accepted, and the configured model answers in the JSON
 ``{"files": ...}`` format the generator parses — plus an LTspice smoke run.
 
@@ -62,10 +62,8 @@ def overall(checks: list[Check]) -> str:
 
 
 def _configured_provider(config):
-    try:
-        from boardmodeler.settings_summary import configured_provider
-    except ImportError:  # the Bob edition keeps this helper on its setup page
-        from boardmodeler.ui.setup_dialog import configured_provider
+    from boardmodeler.settings_summary import configured_provider
+
     return configured_provider(config)
 
 

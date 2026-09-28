@@ -1,14 +1,13 @@
-# Model generation and verification
+# Current default: full simulation verification
 
-The text menu and `model build` flag command default to full test planning and
-electrical verification. `model build --sanity` requests a quick structural draft:
-it reads the datasheet, writes a model, runs local structural checks and a bounded
-unpowered LTspice load when configured, and labels electrical behavior unverified.
-See [quick mode](QUICK_MODE.md) for its exact limits.
+GUI GO now defaults to full test planning and electrical verification. The user may uncheck FULL VERIFICATION for a quick draft: it reads/extracts the datasheet, writes a model, runs local structural checks and a five-second unpowered LTspice load when configured, and exports it as electrically unverified. See [quick mode](QUICK_MODE.md) for the exact limits. The full workflow described below runs when full verification is selected.
 
-The menu prints stages and elapsed time from the build progress callback. It does
-not predict completion or expose the provider's private reasoning. The full
-workflow below runs when full verification is selected.
+# What happens after GO
+
+The elapsed clock beside GO shows hours:minutes:seconds. It updates while the agent
+is quiet, includes cancellation cleanup, and keeps the final duration after success,
+a blocked run or an error. The next accepted GO resets it. It measures elapsed time;
+it does not predict completion or show the agent's private reasoning.
 
 The application uses the selected agent for several sequential jobs. Short inputs share extraction context. Long inputs use smaller cached page batches,
 with up to three requests in parallel and bounded recovery of failed batches.
