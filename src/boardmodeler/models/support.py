@@ -21,11 +21,17 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 from boardmodeler.authoring.part_class import classify
 from boardmodeler.authoring.spec import SpecSet
-from boardmodeler.models.buck_switching import BuckDesign, TemplateSeedError, design_from_spec
+from boardmodeler.models import op_amp
+from boardmodeler.models.buck_switching import (
+    BuckDesign,
+    TemplateSeedError,
+    design_from_spec,
+    seed_from_spec,
+)
 
 __all__ = [
     "FAMILY_SIGNALS",
@@ -495,6 +501,13 @@ class Implementation:
     matches: Callable[[SpecSet, Collection[str]], object | None]
     uncited: Callable[[object], tuple[str, ...]]
     untested: Callable[[SpecSet], tuple[str, ...]]
+    #: Builds the starting candidate the behavioural route judges: an object with write(path),
+    #: payload() and design (whose record(delivered_bytes) ties it to the delivered file).
+    #: Raises ValueError for a spec it cannot render faithfully.
+    seed: Callable[[SpecSet, Collection[str]], Any] | None = None
+    #: Provenance names: the file and route label, and the heading on the model card.
+    template: str = ""
+    heading: str = ""
 
 
 # Inputs without which the first-order behaviour of the buck would be a template default.
@@ -531,7 +544,27 @@ def _bound_gaps(spec: SpecSet, behaviours: tuple[tuple[str, str], ...]) -> tuple
     )
 
 
-# The behavioural implementations registered so far. One family, deliberately.
+def _match_op_amp(spec: SpecSet, unverified: Collection[str]) -> object | None:
+    try:
+        return op_amp.design_from_spec(spec, unverified=unverified)
+    except op_amp.OpAmpDesignError:
+        return None
+
+
+def _op_amp_uncited(design: object) -> tuple[str, ...]:
+    assert isinstance(design, op_amp.OpAmpDesign)
+    origin = {item.name: item.origin for item in design.parameters}
+    return tuple(name for name in op_amp.ESSENTIAL_INPUTS if origin[name] == "template_default")
+
+
+def _op_amp_untested(spec: SpecSet) -> tuple[str, ...]:
+    bound = {row.probe for row in spec.characteristics if row.probe}
+    return tuple(
+        label for label, probes in op_amp.BEHAVIOURS if not all(probe in bound for probe in probes)
+    )
+
+
+# The behavioural implementations registered so far, one per family that has independent tests.
 IMPLEMENTATIONS: tuple[Implementation, ...] = (
     Implementation(
         name="peak_current_buck",
@@ -540,6 +573,20 @@ IMPLEMENTATIONS: tuple[Implementation, ...] = (
         matches=_match_buck,
         uncited=_buck_uncited,
         untested=lambda spec: _bound_gaps(spec, _BUCK_BEHAVIOURS),
+        seed=lambda spec, unverified: seed_from_spec(spec, unverified=unverified),
+        template="buck_template",
+        heading="Buck template",
+    ),
+    Implementation(
+        name="dual_op_amp",
+        family="amplifier_comparator",
+        label="dual op amp",
+        matches=_match_op_amp,
+        uncited=_op_amp_uncited,
+        untested=_op_amp_untested,
+        seed=lambda spec, unverified: op_amp.seed_from_spec(spec, unverified=unverified),
+        template="op_amp_template",
+        heading="Op amp template",
     ),
 )
 

@@ -7,8 +7,9 @@ from pathlib import Path
 
 import pytest
 from tests.models import test_peak_current_buck as peak_tests
+from tests.models.op_amp_spec import synthetic_dual_op_amp_spec
 
-from boardmodeler.authoring.spec import SpecSet, load_tps54320_spec
+from boardmodeler.authoring.spec import load_tps54320_spec
 from boardmodeler.models.support import (
     IMPLEMENTATIONS,
     ORDINARY_FAMILIES,
@@ -251,8 +252,6 @@ def test_the_frozen_tps54332_spec_is_represented_and_independently_tested() -> N
 # --------------------------------------------------------------------------- #
 # Reading what kind of part it is: number and title, first page, cited rows.
 
-LM358_SPEC = Path(__file__).resolve().parents[2] / "models" / "L1-lm358" / "spec"
-
 
 @pytest.mark.parametrize(
     ("part", "title", "head", "statements", "family", "source"),
@@ -316,12 +315,20 @@ def test_the_title_outweighs_a_stray_word_on_the_first_page() -> None:
     assert found is not None and found[0] == "switching_regulator"
 
 
-@pytest.mark.skipif(
-    not (LM358_SPEC / "characteristics.json").is_file(), reason="needs the committed LM358 spec"
-)
-def test_the_frozen_lm358_rows_alone_identify_an_amplifier_never_a_supported_part() -> None:
-    spec = SpecSet.from_json((LM358_SPEC / "characteristics.json").read_text(encoding="utf-8"))
-    decision = decide_support("LM358", title="lm358_datasheet", spec=spec)
+def test_the_op_amp_rows_are_a_supported_dual_op_amp_read_from_the_rows_alone() -> None:
+    spec = synthetic_dual_op_amp_spec()
+    decision = decide_support(spec.part, title="lm358_datasheet", spec=spec)
+    assert decision.state == "supported"
+    assert decision.implementation == "dual_op_amp"
+    assert decision.family == "amplifier_comparator"
+    assert decision.missing == ()
+    assert all(decision.allows(route) for route in ROUTES)
+
+
+def test_an_amplifier_with_no_matching_pinout_is_identified_but_not_supported() -> None:
+    spec = synthetic_dual_op_amp_spec()
+    single = dataclasses.replace(spec, pin_map=spec.pin_map[:5])
+    decision = decide_support(spec.part, title="lm358_datasheet", spec=single)
     assert decision.state == "unsupported_family"
     assert decision.family == "amplifier_comparator"
     assert "cited rows" in decision.identified_from

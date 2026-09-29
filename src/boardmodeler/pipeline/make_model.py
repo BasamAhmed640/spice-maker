@@ -108,7 +108,7 @@ from boardmodeler.authoring.reinforce import ReinforcementReport, reinforce
 from boardmodeler.authoring.spec import SpecSet, load_tps54320_spec, normalize_unit
 from boardmodeler.build_flavor import BOB_ONLY
 from boardmodeler.config import load_config
-from boardmodeler.documents.pdf import page_text, read_pdf
+from boardmodeler.documents.pdf import page_text, read_pdf, read_pdf_pdfium
 from boardmodeler.documents.store import DocumentStore, DocumentStoreError
 from boardmodeler.domain.enums import RequirementClass, RequirementOrigin, Status
 from boardmodeler.domain.records import DocumentRecord, Requirement
@@ -118,7 +118,7 @@ from boardmodeler.providers.agent import AgentExtractionProvider
 from boardmodeler.providers.base import ProviderError
 from boardmodeler.providers.registry import select_provider
 from boardmodeler.requirements.model import validate_requirements
-from boardmodeler.requirements.review import apply_review, verify_citations
+from boardmodeler.requirements.review import READING_BREAK, apply_review, verify_citations
 from boardmodeler.security.network import (
     NetworkRefused,
     internet_allowed,
@@ -1368,6 +1368,7 @@ def _page_lookup(record: DocumentRecord, store: DocumentStore):
     growing the page count per citation costs one pass *per page*.
     """
     document = None
+    second: list[Any] = []  # the pdfium reading, read once and only when the file is a PDF
     state: dict[str, str] = {}
 
     def lookup(doc_id: str, pdf_page: int) -> str | None:
@@ -1408,6 +1409,15 @@ def _page_lookup(record: DocumentRecord, store: DocumentStore):
             state["reason"] = (
                 f"page {pdf_page + 1} has no extractable text (an image-only page needs OCR)"
             )
+            return text
+        if not second:
+            try:
+                second.append(read_pdf_pdfium(path))
+            except Exception:  # one reading is still a reading; the second is only a tolerance
+                second.append(None)
+        other = second[0]
+        if other is not None and pdf_page < len(other.pages):
+            return text + READING_BREAK + other.pages[pdf_page].text
         return text
 
     #: Why the last lookup returned nothing usable: cited-page refusals must name it.
@@ -1507,6 +1517,8 @@ class _Run:
         self.template_seed: dict[str, Any] | None = None
         self.template_seed_bytes: bytes | None = None
         self.template_design: Any = None
+        self.template_name = "buck_template"
+        self.template_heading = "Buck template"
         self.support: Any = None
         self.head_text = ""
         self.template_seed_judge_s: float | None = None
@@ -1948,33 +1960,43 @@ class _Run:
 
     # ------------------------------------------------------------ author/judge
 
-    def _seed_buck_template(
-        self, request: BuildRequest, path: Path, cancel: threading.Event | None
+    def _seed_template(
+        self,
+        request: BuildRequest,
+        path: Path,
+        cancel: threading.Event | None,
+        impl: Any = None,
     ) -> HarnessReport | None:
         """Judge a deterministic first candidate before spending an author turn.
 
         A seed is only a starting model. Its values are traced to cited rows or
         named defaults, while only the simulator may award measured PASS rows.
-        Existing models are left for the ordinary revalidation path.
+        Existing models are left for the ordinary revalidation path. ``impl`` is the
+        registered implementation to seed from; None means the buck template, which is
+        what the agent route has always tried first.
         """
         if path.is_file() or self.spec is None:
             return None
         from boardmodeler.authoring.harness import run_harness
         from boardmodeler.authoring.validation_cache import validation_key, write_report
-        from boardmodeler.models.buck_switching import TemplateSeedError, seed_from_spec
+        from boardmodeler.models.support import IMPLEMENTATIONS
 
+        if impl is None:
+            impl = next(item for item in IMPLEMENTATIONS if item.name == "peak_current_buck")
+        label = impl.template.replace("_", " ")
         try:
-            seed = seed_from_spec(self.spec, unverified=self.unverified)
-        except TemplateSeedError as exc:
-            self.log.emit("author", "skipped", f"buck template unavailable: {exc}")
+            seed = impl.seed(self.spec, self.unverified)
+        except ValueError as exc:
+            self.log.emit("author", "skipped", f"{label} unavailable: {exc}")
             return None
         if seed is None:
             return None
+        self.template_name, self.template_heading = impl.template, impl.heading
         seed.write(path)
         self.template_seed = seed.payload()
         self.template_seed_bytes = path.read_bytes()
         self.template_design = seed.design
-        self.log.emit("author", "running", "judging a cited buck template before agent repair")
+        self.log.emit("author", "running", f"judging a cited {label} before agent repair")
         cache_root = self.workdir / "validation-cache"
         key = validation_key(path, self.spec, request.ltspice, request.timeout_s)
         run_dir = (
@@ -1993,7 +2015,7 @@ class _Run:
             )
         except Exception as exc:
             self.log.emit(
-                "judge", "failed", f"buck template simulation failed: {type(exc).__name__}: {exc}"
+                "judge", "failed", f"{label} simulation failed: {type(exc).__name__}: {exc}"
             )
             return None
         self.template_seed_judge_s = time.monotonic() - judge_started
@@ -2068,7 +2090,15 @@ class _Run:
         )
         path = model_file(self.workdir, self.request.subckt)
         path.unlink(missing_ok=True)  # a code-built route regenerates; it never reuses a model
-        seed_report = self._seed_buck_template(request, path, cancel)
+        from boardmodeler.models.support import IMPLEMENTATIONS
+
+        name = None if self.support is None else self.support.implementation
+        impl = next((item for item in IMPLEMENTATIONS if item.name == name), None)
+        seed_report = (
+            None
+            if impl is None or impl.seed is None
+            else self._seed_template(request, path, cancel, impl)
+        )
         if seed_report is None:
             detail = (
                 "behavioral_route_no_candidate: the matched implementation produced no "
@@ -2200,7 +2230,7 @@ class _Run:
         normalize_ground_reference(
             path, self.spec.pin_map, self.workdir / "evidence" / "ground-reference", spec=self.spec
         )
-        seed_report = self._seed_buck_template(request, path, cancel)
+        seed_report = self._seed_template(request, path, cancel)
         if seed_report is not None and seed_report.passed():
             self.outcome = BuildOutcome(
                 status=Status.PASS.value,
@@ -2470,7 +2500,7 @@ class _Run:
             report=self.report,
             document=self.spec.doc_id if self.spec is not None else None,
             backend=(
-                "buck_template"
+                self.template_name
                 if self.template_seed_bytes is not None
                 and text.encode("utf-8") == self.template_seed_bytes
                 else self.backend_name or None
@@ -2495,9 +2525,7 @@ class _Run:
                 json.dumps(metadata, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
             )
             if self.template_design is not None:
-                from boardmodeler.models.buck_switching import design_record_payload
-
-                record = design_record_payload(self.template_design, text.encode("utf-8"))
+                record = self.template_design.record(text.encode("utf-8"))
                 self._write_text(
                     self.out_dir / DESIGN_RECORD_NAME,
                     json.dumps(record, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
@@ -2509,7 +2537,7 @@ class _Run:
                 if parameter["origin"] == "template_default"
             ]
             provenance = [
-                "\n## Buck template parameter origins\n",
+                f"\n## {self.template_heading} parameter origins\n",
                 "The starting template and its cited rows are recorded in "
                 "`template-parameters.json`. This file is provenance, not verification.\n",
             ]
@@ -2533,7 +2561,7 @@ class _Run:
                 self.card_path,
                 self.card_path.read_text(encoding="utf-8") + "".join(provenance),
             )
-            notes.append("saved buck template parameter origins")
+            notes.append(f"saved {self.template_name.replace(chr(95), chr(32))} parameter origins")
         if request.verification == "sanity":
             from boardmodeler.authoring.sanity import write_card
 
@@ -2835,7 +2863,9 @@ def make_model(
         timing = ledger.payload(
             part=request.part,
             status=status,
-            route="buck_template_seed" if run.template_seed is not None else "agent_authoring",
+            route=f"{run.template_name}_seed"
+            if run.template_seed is not None
+            else "agent_authoring",
             template_seed_judge_seconds=(
                 None if run.template_seed_judge_s is None else round(run.template_seed_judge_s, 3)
             ),

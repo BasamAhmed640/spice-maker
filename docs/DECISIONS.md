@@ -1496,3 +1496,35 @@ rows) read as unclassified and a scan of the frozen specs on disk labelled a PWM
 8. `MakeModelRequest.family` (`--family` on `model build`) lets the operator name the family
    when the evidence does not. It never unblocks a class, never makes a part supported, and is
    recorded as declared. `--engine` is exposed on `model build` with the same three values.
+
+## D-056 — A second behavioural implementation, and the route seeds from whichever implementation matched (2026-09-28)
+
+1. `models/op_amp.py` is the second registered implementation: a dual op amp on the pin shell.
+   Its typed design (`OpAmpDesign`) is read from cited rows only. For each input it takes the typical
+   value of a channel-1 row that is bound to an op-amp probe and whose citation verified; a number
+   nothing cites is a labelled template default. Essential inputs: input offset voltage, input bias
+   current, open-loop gain, gain bandwidth, slew rate, high-output headroom, low output voltage and
+   supply current per amplifier. Output current limit, output resistance and offset current are
+   non-essential defaults. It matches only the eight-pin dual pinout that the op-amp probes drive,
+   and only with a row bound to an op-amp probe, so no claim is made for a pinout the independent
+   tests cannot exercise.
+2. Supported means what it means for the buck: every essential input cited, and each of seven
+   essential behaviours (offset, bias, gain, bandwidth, slew rate, output swing high and low, supply
+   current) covered by a bound row. Removing one typical value or one bound row withdraws the claim.
+3. `Implementation` now carries `seed`, `template` and `heading`. The behavioural route seeds from
+   the implementation the support decision named. The agent route still seeds only the buck
+   template. The provenance file, the model-card heading and the timing route name follow the
+   implementation, and a design has `record(delivered)` tying it to the delivered bytes.
+4. The pin shell needed no change. Rendered from the frozen LM358 rows the design reproduces the
+   values the hand-built reference part was judged with; the viability gate finds no failing check
+   and says UNKNOWN, not PASS, for the short-circuit limit, because the rows carry no such number.
+5. Citation verification now accepts a page when either of two independent PDF readers (pypdf and
+   pdfium) contains the excerpt. Found because the frozen LM358 excerpts were read by pdfium
+   ("VC M = 0 V") and pypdf now spaces the same text differently ("V C M = 0 V"), so every LM358
+   citation failed to verify and the honest gate refused the part. The comparison is unchanged
+   (whitespace folding, no fuzzy match); each reading is compared on its own, never across the
+   break between them. The second reading costs about 0.5 to 0.7 s per datasheet.
+
+Limits: one part per family is demonstrated, because the only extracted specs on this machine are
+TI's TPS54332 and LM358. The op-amp probes fix the eight-pin dual pinout, so a single or quad op amp
+stays outside `behavioral` until the probes take their ports from the pin roles.
