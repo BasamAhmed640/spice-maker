@@ -96,6 +96,9 @@ class GatePin:
     vtest: float | None = None
     #: output pins: the short-circuit current the datasheet allows, in amperes (cited)
     isc_max: float | None = None
+    #: output pins with no function core: the instance parameter that commands the pin
+    #: (``-1`` off, ``0``..``1`` a fraction of the rail); the gate uses it to exercise the pin
+    force: str | None = None
 
     def __post_init__(self) -> None:
         if self.kind not in PIN_KINDS:
@@ -372,6 +375,8 @@ class _Run:
     name: str
     states: Mapping[str, str]  # driven port -> "float" | "low" | "high"
     short: str  # "none" | "gnd" | "vcc": every output port is shorted this way
+    #: instance parameters that make outputs deliver current into the short
+    params: Mapping[str, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -407,16 +412,18 @@ def _plan_runs(spec: GateSpec, ports: Sequence[str]) -> list[_Run]:
         _Run("high", uniform("high", nc=True), "none"),
     ]
     if outputs:
-        patterns: list[tuple[str, dict[str, str]]] = [
-            ("low", uniform("low")),
-            ("high", uniform("high")),
-        ]
-        for port in driven[:_MAX_PATTERN_PINS]:
-            patterns.append((f"hot_{port}", {**uniform("low"), port: "high"}))
-            patterns.append((f"cold_{port}", {**uniform("high"), port: "low"}))
+        forced = [pin.force for p in outputs if (pin := spec.pin(p)) is not None and pin.force]
+        patterns: list[tuple[str, dict[str, str]]] = [("low", uniform("low"))]
+        if len(forced) < len(outputs):  # an output only inputs can drive needs input patterns
+            patterns.append(("high", uniform("high")))
+            for port in driven[:_MAX_PATTERN_PINS]:
+                patterns.append((f"hot_{port}", {**uniform("low"), port: "high"}))
+                patterns.append((f"cold_{port}", {**uniform("high"), port: "low"}))
         for short in ("gnd", "vcc"):
+            # a commanded output sources into a short to ground and sinks from one to supply
+            params = {name: (1.0 if short == "gnd" else 0.0) for name in forced}
             for label, states in patterns:
-                runs.append(_Run(f"short_{short}_{label}", states, short))
+                runs.append(_Run(f"short_{short}_{label}", states, short, params))
     return runs
 
 
@@ -459,7 +466,8 @@ def _deck(lib_path: Path, spec: GateSpec, ports: Sequence[str], run: _Run) -> st
         else:  # an open output
             lines.append(f"Vm{i} e{i} n{i} 0")
     nodes = " ".join(f"n{i}" for i in range(1, len(ports) + 1))
-    lines.append(f"Xdut {nodes} {spec.subckt}")
+    params = "".join(f" {name}={value:g}" for name, value in run.params.items())
+    lines.append(f"Xdut {nodes} {spec.subckt}{params}")
     saves = " ".join(f"I(Vm{i}) V(n{i})" for i in range(1, len(ports) + 1))
     tran = TranSpec(tstep=TSTEP_S, tstop=TSTOP_S)
     lines += [".options plotwinsize=0", tran.card(), f".save {saves}", ".end"]

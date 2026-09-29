@@ -18,7 +18,7 @@ from boardmodeler.domain.enums import Status
 from boardmodeler.models.symbolism import symbol_text
 
 REPO = Path(__file__).resolve().parents[2]
-LM358_EVIDENCE = REPO / "docs/evidence/2026-09-24/generated-models/lm358/LM358.lib"
+LM358_EVIDENCE = REPO / "fixtures/models/lm358_committed_2026-09-24.lib"
 
 OPX = """\
 .subckt OPX VCC OUT INM INP VEE PAD NCX
