@@ -67,4 +67,4 @@ Hostile-path archive checks: a tampered requirements hash exited 1 before any ru
 
 ## Change size
 
-The initial code/documentation transition commit reported `126 files changed, 5511 insertions(+), 19934 deletions(-)` from `git show --shortstat`. Final branch diff statistics are recorded in the closing verification update after all fixes.
+The initial code/documentation transition commit reported `126 files changed, 5511 insertions(+), 19934 deletions(-)` from `git show --shortstat`. At the verified final source commit, `git diff --shortstat b1ced1c..HEAD` reported `127 files changed, 5652 insertions(+), 19934 deletions(-)`.
