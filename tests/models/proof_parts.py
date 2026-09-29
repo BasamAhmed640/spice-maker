@@ -35,13 +35,13 @@ def _opamp_channel(n: int, inp: str, inm: str) -> tuple[str, str]:
 
 
 LM358_PINS = (
-    ShellPin("VCC", "supply", "8", iq=700e-6),
+    ShellPin("VCC", "supply", "8", iq=700e-6, vmax=32.0),
     ShellPin("OUT1", "output", "1", r_out=10, i_source=40e-3, i_sink=40e-3),
-    ShellPin("IN1M", "input", "2", clamp="gnd", ibias=21e-9),
-    ShellPin("IN1P", "input", "3", clamp="gnd", ibias=19e-9),
+    ShellPin("IN1M", "input", "2", clamp="gnd", ibias=21e-9, vmax=32.0, vmin=-0.3),
+    ShellPin("IN1P", "input", "3", clamp="gnd", ibias=19e-9, vmax=32.0, vmin=-0.3),
     ShellPin("VEE", "ground", "4"),
-    ShellPin("IN2P", "input", "5", clamp="gnd", ibias=19e-9),
-    ShellPin("IN2M", "input", "6", clamp="gnd", ibias=21e-9),
+    ShellPin("IN2P", "input", "5", clamp="gnd", ibias=19e-9, vmax=32.0, vmin=-0.3),
+    ShellPin("IN2M", "input", "6", clamp="gnd", ibias=21e-9, vmax=32.0, vmin=-0.3),
     ShellPin("OUT2", "output", "7", r_out=10, i_source=40e-3, i_sink=40e-3),
 )
 
@@ -62,14 +62,14 @@ LM358_GATE = GateSpec(
     "LM358",
     "LM358",
     (
-        GatePin("VCC", "supply", "8", vtest=5.0),
-        GatePin("OUT1", "output", "1", isc_max=0.060),  # datasheet: +-40 typ, +-60 mA max
-        GatePin("IN1M", "input", "2"),
-        GatePin("IN1P", "input", "3"),
+        GatePin("VCC", "supply", "8", vtest=5.0, alarms=("abs",), abs_fault_v=33.0),
+        GatePin("OUT1", "output", "1", isc_max=0.060, alarms=("ovl",)),  # +-40 typ, +-60 mA max
+        GatePin("IN1M", "input", "2", alarms=("abs",), abs_fault_v=33.0),
+        GatePin("IN1P", "input", "3", alarms=("abs",), abs_fault_v=33.0),
         GatePin("VEE", "ground", "4"),
-        GatePin("IN2P", "input", "5"),
-        GatePin("IN2M", "input", "6"),
-        GatePin("OUT2", "output", "7", isc_max=0.060),
+        GatePin("IN2P", "input", "5", alarms=("abs",), abs_fault_v=33.0),
+        GatePin("IN2M", "input", "6", alarms=("abs",), abs_fault_v=33.0),
+        GatePin("OUT2", "output", "7", isc_max=0.060, alarms=("ovl",)),
     ),
 )
 
@@ -78,13 +78,15 @@ LM358_GATE = GateSpec(
 # stand-ins for the shape of the problem, not a real device.
 
 MCU8_PINS = (
-    ShellPin("VDD", "supply", "1", iq=2e-3),
+    ShellPin("VDD", "supply", "1", iq=2e-3, vmax=4.0),
     ShellPin("GND", "ground", "2"),
-    ShellPin("RESET", "input", "3", default="pullup"),
-    ShellPin("PA0", "io", "4", r_out=40, i_source=8e-3, i_sink=8e-3),
+    ShellPin("RESET", "input", "3", default="pullup", vmax_over_rail=0.3),
+    ShellPin(
+        "PA0", "io", "4", r_out=40, i_source=8e-3, i_sink=8e-3, vil=0.8, vih=2.0, vmax_over_rail=0.3
+    ),
     ShellPin("PB0", "output", "5", r_out=40, i_source=8e-3, i_sink=8e-3),
     ShellPin("NC1", "nc", "6"),
-    ShellPin("EP", "pad", "7"),
+    ShellPin("EP", "pad", "7", required=True),
 )
 
 
@@ -96,12 +98,20 @@ MCU8_GATE = GateSpec(
     "MCU8",
     "MCU8",
     (
-        GatePin("VDD", "supply", "1", vtest=3.3),
+        GatePin("VDD", "supply", "1", vtest=3.3, alarms=("abs",), abs_fault_v=4.5),
         GatePin("GND", "ground", "2"),
-        GatePin("RESET", "input", "3"),
-        GatePin("PA0", "io", "4"),
-        GatePin("PB0", "output", "5", isc_max=8e-3, force=level_param("PB0")),
+        GatePin("RESET", "input", "3", alarms=("abs",), abs_fault_v=6.0),
+        GatePin(
+            "PA0",
+            "io",
+            "4",
+            alarms=("abs", "flt", "ovl"),
+            abs_fault_v=6.0,
+            isc_max=8e-3,
+            force=level_param("PA0"),
+        ),
+        GatePin("PB0", "output", "5", isc_max=8e-3, force=level_param("PB0"), alarms=("ovl",)),
         GatePin("NC1", "nc", "6"),
-        GatePin("EP", "pad", "7"),
+        GatePin("EP", "pad", "7", alarms=("tie",)),
     ),
 )

@@ -104,3 +104,63 @@ def test_the_rendered_model_passes_every_bench(
     by_id = {c.id: c for c in report.checks}
     # the outputs really delivered current into a short, and the supply pin carried it
     assert by_id["supply_carries_output_current"].status is Status.PASS
+
+
+def test_the_shell_and_the_gate_name_alarm_nodes_alike() -> None:
+    from boardmodeler.authoring.viability import alarm_node as gate_node
+    from boardmodeler.models.pin_shell import alarm_node as shell_node
+
+    for kind in ("abs", "ovl", "flt", "tie"):
+        assert gate_node(kind, "PB0") == shell_node(kind, "PB0")
+
+
+def test_every_alarm_the_gate_claims_is_one_the_shell_writes() -> None:
+    from boardmodeler.authoring.viability import alarm_node
+    from boardmodeler.models.pin_shell import shell_alarms
+
+    for _text, pins, gate in CASES.values():
+        written = {node for _kind, _port, node in shell_alarms(pins)}
+        claimed = {alarm_node(kind, p.port) for p in gate.pins for kind in p.alarms}
+        assert claimed == written
+
+
+ALARM_MUTANTS = {
+    "a claimed alarm the model does not contain": (
+        "Bchk_tie_EP chk_tie_EP GND V=u(V(EP,GND)-0.1)",
+        "* alarm removed",
+        "alarms_quiet_when_clean",
+    ),
+    "an alarm stuck on": (
+        "Bchk_abs_VDD chk_abs_VDD GND V=limit(u(V(VDD,GND)-4),0,1)",
+        "Bchk_abs_VDD chk_abs_VDD GND V=1",
+        "alarms_quiet_when_clean",
+    ),
+    "an overload alarm that never fires": (
+        "Bchk_ovl_PB0 chk_ovl_PB0 GND V=limit(",
+        "Bchk_ovl_PB0 chk_ovl_PB0 GND V=0*limit(",
+        "alarm_ovl_fires_on_fault",
+    ),
+    "a required-connection alarm that never fires": (
+        "Bchk_tie_EP chk_tie_EP GND V=u(V(EP,GND)-0.1)",
+        "Bchk_tie_EP chk_tie_EP GND V=0",
+        "alarm_tie_fires_on_fault",
+    ),
+    "an absolute-maximum alarm that never fires": (
+        "Bchk_abs_RESET chk_abs_RESET GND V=limit(u(V(RESET,GND)-V(VDD,GND)-0.3),0,1)",
+        "Bchk_abs_RESET chk_abs_RESET GND V=0",
+        "alarm_abs_fires_on_fault",
+    ),
+}
+
+
+@pytest.mark.ltspice
+@pytest.mark.parametrize("name", list(ALARM_MUTANTS))
+def test_a_broken_alarm_is_caught(name: str, ltspice_exe: Path, tmp_path: Path) -> None:
+    old, new, expected = ALARM_MUTANTS[name]
+    text = mcu8_text()
+    assert old in text, old
+    lib = tmp_path / "MCU8.lib"
+    lib.write_text(text.replace(old, new), encoding="utf-8")
+    report = run_gate(lib, MCU8_GATE, ltspice_exe, tmp_path / "gate")
+    by_id = {c.id: c for c in report.checks}
+    assert by_id[expected].status is Status.FAIL, [c.as_dict() for c in report.checks]

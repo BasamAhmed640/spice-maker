@@ -43,6 +43,7 @@ from boardmodeler.simulation.measures import diagnose
 from boardmodeler.simulation.raw import RawFormatError, read_raw
 
 __all__ = [
+    "ALARM_KINDS",
     "PIN_KINDS",
     "GateCheck",
     "GatePin",
@@ -56,6 +57,11 @@ __all__ = [
 #: What a package pin is, for the bench. ``pad`` is an exposed pad: a separate pin whose
 #: PCB connection is external and required, never tied inside the model (D-050).
 PIN_KINDS = ("supply", "ground", "input", "output", "io", "analog", "nc", "pad")
+
+ALARM_KINDS = ("abs", "ovl", "flt", "tie")
+#: A quiet alarm reads below this, a firing one above ``ALARM_FIRES`` (the model writes 0 / 1).
+ALARM_QUIET = 0.2
+ALARM_FIRES = 0.8
 
 _DRIVEN = ("input", "io", "analog")  # kinds the bench sets to floating / low / high
 _GROUND_LIKE = ("ground", "pad")
@@ -99,10 +105,21 @@ class GatePin:
     #: output pins with no function core: the instance parameter that commands the pin
     #: (``-1`` off, ``0``..``1`` a fraction of the rail); the gate uses it to exercise the pin
     force: str | None = None
+    #: alarms the model claims on this pin: "abs" (absolute maximum), "ovl" (output overload),
+    #: "flt" (undefined digital level), "tie" (required connection missing). Each claim is
+    #: proven by a clean bench that must stay quiet and a fault bench that must fire.
+    alarms: tuple[str, ...] = ()
+    #: for an "abs" claim: the voltage above the ground pin that is past the limit
+    abs_fault_v: float | None = None
 
     def __post_init__(self) -> None:
         if self.kind not in PIN_KINDS:
             raise ValueError(f"pin {self.port!r}: kind {self.kind!r} is not one of {PIN_KINDS}")
+        bad = [a for a in self.alarms if a not in ALARM_KINDS]
+        if bad:
+            raise ValueError(f"pin {self.port!r}: unknown alarm kind(s) {bad}")
+        if "abs" in self.alarms and self.abs_fault_v is None:
+            raise ValueError(f"pin {self.port!r}: an abs alarm needs abs_fault_v to test it")
 
 
 @dataclass(frozen=True)
@@ -377,6 +394,10 @@ class _Run:
     short: str  # "none" | "gnd" | "vcc": every output port is shorted this way
     #: instance parameters that make outputs deliver current into the short
     params: Mapping[str, float] = field(default_factory=dict)
+    #: ports driven to a voltage above the ground pin (absolute-maximum fault benches)
+    over: Mapping[str, float] = field(default_factory=dict)
+    #: required-connection ports left open (missing-tie fault bench)
+    open_pins: tuple[str, ...] = ()
 
 
 @dataclass
@@ -384,6 +405,7 @@ class _Result:
     run: _Run
     currents: dict[str, float] = field(default_factory=dict)  # port -> A into the device
     volts: dict[str, float] = field(default_factory=dict)  # port -> V at the device pin
+    alarms: dict[str, float] = field(default_factory=dict)  # alarm node -> level (0 quiet, 1 fires)
     blocked: str | None = None
     convergence: str | None = None
     warnings: list[str] = field(default_factory=list)
@@ -411,20 +433,44 @@ def _plan_runs(spec: GateSpec, ports: Sequence[str]) -> list[_Run]:
         _Run("low", uniform("low", nc=True), "none"),
         _Run("high", uniform("high", nc=True), "none"),
     ]
-    if outputs:
-        forced = [pin.force for p in outputs if (pin := spec.pin(p)) is not None and pin.force]
+    commanded = [pin.force for pin in spec.pins if pin.force and pin.port in ports]
+    commanded_outputs = [p for p in outputs if (pin := spec.pin(p)) is not None and pin.force]
+    if outputs or commanded:
         patterns: list[tuple[str, dict[str, str]]] = [("low", uniform("low"))]
-        if len(forced) < len(outputs):  # an output only inputs can drive needs input patterns
+        if len(commanded_outputs) < len(outputs):  # an output only inputs can drive needs patterns
             patterns.append(("high", uniform("high")))
             for port in driven[:_MAX_PATTERN_PINS]:
                 patterns.append((f"hot_{port}", {**uniform("low"), port: "high"}))
                 patterns.append((f"cold_{port}", {**uniform("high"), port: "low"}))
         for short in ("gnd", "vcc"):
-            # a commanded output sources into a short to ground and sinks from one to supply
-            params = {name: (1.0 if short == "gnd" else 0.0) for name in forced}
+            # a commanded pin sources into a short to ground and sinks from one to supply
+            params = {name: (1.0 if short == "gnd" else 0.0) for name in commanded}
             for label, states in patterns:
                 runs.append(_Run(f"short_{short}_{label}", states, short, params))
+    for pin in spec.pins:
+        if "abs" in pin.alarms and pin.port in ports and pin.abs_fault_v is not None:
+            runs.append(
+                _Run(f"over_{pin.port}", uniform("low"), "none", over={pin.port: pin.abs_fault_v})
+            )
+    tied = tuple(pin.port for pin in spec.pins if "tie" in pin.alarms and pin.port in ports)
+    if tied:
+        runs.append(_Run("tie_open", uniform("low"), "none", open_pins=tied))
     return runs
+
+
+def alarm_node(kind: str, port: str) -> str:
+    """The internal node a model uses for alarm ``kind`` on ``port`` (0 quiet, 1 fires)."""
+    return f"chk_{kind}_{port}"
+
+
+def _claimed_alarms(spec: GateSpec, ports: Sequence[str]) -> list[tuple[str, str, str]]:
+    lowered = {p.lower() for p in ports}
+    return [
+        (kind, pin.port, alarm_node(kind, pin.port))
+        for pin in spec.pins
+        if pin.port.lower() in lowered
+        for kind in pin.alarms
+    ]
 
 
 def _safe(name: str) -> str:
@@ -443,6 +489,7 @@ def _deck(lib_path: Path, spec: GateSpec, ports: Sequence[str], run: _Run) -> st
         kind = _kind(spec, port)
         if kind == "supply":
             vtest = pin.vtest if pin is not None and pin.vtest is not None else 5.0
+            vtest = run.over.get(port, vtest)
             lines.append(f"Vs{i} nsup{i} ngnd {vtest:g}")
             supply_nodes.append((f"nsup{i}", vtest))
     if supply_nodes:
@@ -455,7 +502,10 @@ def _deck(lib_path: Path, spec: GateSpec, ports: Sequence[str], run: _Run) -> st
         if kind == "supply":
             lines.append(f"Vm{i} nsup{i} n{i} 0")
         elif kind in _GROUND_LIKE:
-            lines.append(f"Vm{i} ngnd n{i} 0")
+            lines.append(f"Vm{i} {f'e{i}' if port in run.open_pins else 'ngnd'} n{i} 0")
+        elif port in run.over:
+            lines.append(f"Vo{i} nover{i} ngnd {run.over[port]:g}")
+            lines.append(f"Vm{i} nover{i} n{i} 0")
         elif kind in _DRIVEN or kind == "nc":
             state = run.states.get(port, "float")
             source = {"low": "ngnd", "high": "nvcc"}.get(state, f"e{i}")
@@ -469,6 +519,7 @@ def _deck(lib_path: Path, spec: GateSpec, ports: Sequence[str], run: _Run) -> st
     params = "".join(f" {name}={value:g}" for name, value in run.params.items())
     lines.append(f"Xdut {nodes} {spec.subckt}{params}")
     saves = " ".join(f"I(Vm{i}) V(n{i})" for i in range(1, len(ports) + 1))
+    saves += "".join(f" V(xdut:{node})" for _kind_, _port_, node in _claimed_alarms(spec, ports))
     tran = TranSpec(tstep=TSTEP_S, tstop=TSTOP_S)
     lines += [".options plotwinsize=0", tran.card(), f".save {saves}", ".end"]
     return "\n".join(lines) + "\n"
@@ -521,6 +572,13 @@ def _execute(
             else:
                 result.blocked = f"{name} is missing from the waveform"
                 return result
+    ground = next((p for p in ports if _kind(spec, p) == "ground"), None)
+    v_ground = result.volts.get(ground, 0.0) if ground is not None else 0.0
+    for _alarm, _port, node in _claimed_alarms(spec, ports):
+        name = f"V(xdut:{node})"
+        if raw.has(name):
+            # an alarm is referenced to the ground pin, which the bench holds OFFSET_V above node 0
+            result.alarms[node] = _tail_mean(raw.column(name)) - v_ground
     return result
 
 
@@ -780,7 +838,78 @@ def dynamic_checks(
                 "; ".join(stray[:2]) if stray else "no-connect pins carry no current",
             )
         )
+    checks.extend(_alarm_checks(spec, ports, good))
     return checks, len(results)
+
+
+def _alarm_checks(spec: GateSpec, ports: Sequence[str], good: Sequence[_Result]) -> list[GateCheck]:
+    """Each claimed alarm must be in the model, quiet in clean use and firing on its fault."""
+    claimed = _claimed_alarms(spec, ports)
+    if not claimed:
+        return []
+    checks: list[GateCheck] = []
+    absent = [node for _kind, _port, node in claimed if not any(node in r.alarms for r in good)]
+    clean = [r for r in good if r.run.name in ("low", "high")]
+    loud = [
+        f"{node} read {level:.2f} in the {r.run.name} bench"
+        for r in clean
+        for node, level in r.alarms.items()
+        if level > ALARM_QUIET
+    ]
+    if absent:
+        status, detail = Status.FAIL, f"alarms the pin table claims are not in the model: {absent}"
+    elif not clean:
+        status, detail = Status.UNKNOWN, "no clean bench gave data"
+    elif loud:
+        status, detail = Status.FAIL, "an alarm fires in clean use: " + "; ".join(loud[:3])
+    else:
+        status = Status.PASS
+        detail = (
+            f"all {len(claimed)} alarms stay quiet with valid inputs, every required pin tied "
+            "and nothing shorted"
+        )
+    checks.append(
+        GateCheck("alarms_quiet_when_clean", status, detail, {"alarms": float(len(claimed))})
+    )
+
+    for kind in ALARM_KINDS:
+        entries = [(port, node) for k, port, node in claimed if k == kind]
+        if not entries:
+            continue
+        silent, unrun = [], []
+        for port, node in entries:
+            if kind == "abs":
+                pool = [r for r in good if r.run.name == f"over_{port}"]
+            elif kind == "flt":
+                pool = [r for r in good if r.run.name == "float"]
+            elif kind == "tie":
+                pool = [r for r in good if r.run.name == "tie_open"]
+            else:
+                pool = [r for r in good if r.run.short != "none"]
+            if not pool:
+                unrun.append(node)
+                continue
+            peak = max(r.alarms.get(node, 0.0) for r in pool)
+            if peak < ALARM_FIRES:
+                silent.append(f"{node} peaked at {peak:.2f}")
+        check_id = f"alarm_{kind}_fires_on_fault"
+        if silent:
+            checks.append(
+                GateCheck(check_id, Status.FAIL, "the fault does not trip it: " + "; ".join(silent))
+            )
+        elif unrun:
+            checks.append(
+                GateCheck(check_id, Status.UNKNOWN, f"no fault bench gave data for {unrun}")
+            )
+        else:
+            checks.append(
+                GateCheck(
+                    check_id,
+                    Status.PASS,
+                    f"{len(entries)} alarm(s) fire when their fault is applied",
+                )
+            )
+    return checks
 
 
 def run_gate(

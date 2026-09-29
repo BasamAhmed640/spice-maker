@@ -26,7 +26,16 @@ import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-__all__ = ["PIN_KINDS", "ShellError", "ShellPin", "level_param", "render_shell"]
+__all__ = [
+    "ALARM_KINDS",
+    "PIN_KINDS",
+    "ShellError",
+    "ShellPin",
+    "alarm_node",
+    "level_param",
+    "render_shell",
+    "shell_alarms",
+]
 
 PIN_KINDS = ("supply", "ground", "input", "output", "io", "analog", "nc", "pad")
 
@@ -63,6 +72,16 @@ class ShellPin:
     r_out: float = 50.0
     i_source: float = 20e-3
     i_sink: float = 20e-3
+    #: absolute limits, volts above the ground pin, beyond which the datasheet warns of damage;
+    #: ``vmax_over_rail`` is the upper limit relative to the supply pin (a CMOS input: 0.3)
+    vmax: float | None = None
+    vmin: float | None = None
+    vmax_over_rail: float | None = None
+    #: digital input thresholds; a level between them is "undefined" (floating, or too slow)
+    vil: float | None = None
+    vih: float | None = None
+    #: a pin the board must connect (exposed pad, second ground): an open one is detected
+    required: bool = False
 
     def __post_init__(self) -> None:
         if self.kind not in PIN_KINDS:
@@ -89,6 +108,36 @@ def level_param(port: str) -> str:
     low). It lets a user, or the gate, exercise any output of a part with no function core.
     """
     return f"LEVEL_{port}"
+
+
+ALARM_KINDS = ("abs", "ovl", "flt", "tie")
+
+
+def alarm_node(kind: str, port: str) -> str:
+    """The internal node that reads 1 when alarm ``kind`` fires on ``port`` and 0 when quiet.
+
+    Plot it from the user's schematic as ``V(x1:chk_abs_VCC)`` (``x1`` is the instance).
+    """
+    return f"chk_{kind}_{port}"
+
+
+def shell_alarms(
+    pins: Sequence[ShellPin], drives: Mapping[str, str] | None = None
+) -> list[tuple[str, str, str]]:
+    """``(kind, port, node)`` for every alarm :func:`render_shell` writes for ``pins``."""
+    drives = drives or {}
+    out: list[tuple[str, str, str]] = []
+    first_ground = next((p.port for p in pins if p.kind == "ground"), None)
+    for pin in pins:
+        if pin.vmax is not None or pin.vmin is not None or pin.vmax_over_rail is not None:
+            out.append(("abs", pin.port, alarm_node("abs", pin.port)))
+        if pin.kind in ("output", "io"):
+            out.append(("ovl", pin.port, alarm_node("ovl", pin.port)))
+        if pin.kind in ("input", "io") and pin.vil is not None and pin.vih is not None:
+            out.append(("flt", pin.port, alarm_node("flt", pin.port)))
+        if pin.required and pin.port != first_ground:
+            out.append(("tie", pin.port, alarm_node("tie", pin.port)))
+    return out
 
 
 def _n(value: float) -> str:
@@ -127,6 +176,8 @@ def render_shell(
     needs_rail = any(
         (p.kind in ("output", "io") and p.port in drives)
         or (p.kind in ("input", "io") and (p.clamp == "both" or p.default == "pullup"))
+        or (p.kind in ("input", "io") and p.vil is not None)
+        or p.vmax_over_rail is not None
         or p.ibias > 0
         for p in pins
     )
@@ -156,7 +207,13 @@ def render_shell(
                 lines.append(f"Rdef_{p} {p} {r} {_n(pin.r_default)}")
             elif pin.default == "pulldown":
                 lines.append(f"Rdef_{p} {p} {g} {_n(pin.r_default)}")
-            lines.append(f"Rin_{p} {p} {g} {_n(pin.r_in)}")
+            if pin.vil is not None and pin.default == "none":
+                # a floating CMOS input drifts between the rails: model the worst case, so the
+                # undefined-level alarm has something to see
+                lines.append(f"Rin_hi_{p} {p} {r} {_n(2 * pin.r_in)}")
+                lines.append(f"Rin_lo_{p} {p} {g} {_n(2 * pin.r_in)}")
+            else:
+                lines.append(f"Rin_{p} {p} {g} {_n(pin.r_in)}")
             if pin.clamp == "both":
                 lines.append(f"Dh_{p} {p} {r} Dpin")
             if pin.clamp in ("both", "gnd"):
@@ -194,6 +251,45 @@ def render_shell(
     if core.strip():
         lines.append("* function core")
         lines.extend(core.strip().splitlines())
+    alarms = shell_alarms(pins, drives)
+    if alarms:
+        lines.append(
+            "* alarms: 1 when a datasheet condition is violated, else 0 (plot V(x1:<node>))"
+        )
+    for kind, port, node in alarms:
+        pin = by_port[port]
+        if kind == "abs":
+            terms = []
+            if pin.vmax is not None:
+                terms.append(f"u(V({port},{g})-{_n(pin.vmax)})")
+            if pin.vmin is not None:
+                terms.append(f"u({_n(pin.vmin)}-V({port},{g}))")
+            if pin.vmax_over_rail is not None:
+                terms.append(f"u(V({port},{g})-V({r},{g})-{_n(pin.vmax_over_rail)})")
+            lines.append(f"B{node} {node} {g} V=limit({'+'.join(terms)},0,1)")
+        elif kind == "ovl":
+            gate = "" if port in drives else f"*u({level_param(port)}+0.5)"
+            if pin.topology == "push_pull":
+                demand = (
+                    f"u((V(drv_{port},{g})-V({port},{g}))/{_n(pin.r_out)}-{_n(pin.i_source)})"
+                    f"+u((V({port},{g})-V(drv_{port},{g}))/{_n(pin.r_out)}-{_n(pin.i_sink)})"
+                )
+            else:
+                demand = f"u(V({port},{g})/{_n(pin.r_out)}-{_n(pin.i_sink)})*V(drv_{port},{g})"
+            lines.append(f"B{node} {node} {g} V=limit({demand},0,1){gate}")
+        elif kind == "flt":
+            raw = f"{node}_raw"
+            lines.append(
+                f"B{raw} {raw} {g} V=u(V({port},{g})-{_n(pin.vil)})*u({_n(pin.vih)}-V({port},{g}))"
+            )
+            lines.append(f"R{node} {raw} {node} 1k")
+            lines.append(f"C{node} {node} {g} 10n")
+        else:  # "tie": a 1 nA probe current lifts a pin nothing on the board holds
+            lines.append(f"Binj_{port} {g} {port} I=1n")
+            lines.append(f"B{node} {node} {g} V=u(V({port},{g})-0.1)")
+    if alarms:
+        total = "+".join(f"V({node},{g})" for _kind, _port, node in alarms)
+        lines.append(f"Bchk_any chk_any {g} V=limit({total},0,1)")
     lines.append(".model Dpin D(Is=1e-14 N=1 Rs=10)")
     lines.append(f".ends {name}")
     return "\n".join(lines) + "\n"
