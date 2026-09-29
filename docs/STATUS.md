@@ -17,8 +17,10 @@ These are pre-refactor results. Both fresh clones lack the ignored `models/T1-tp
 
 ## Implementation observations
 
-- The general edition's runtime lock now exports eight pinned packages with SHA-256 hashes. `uv.lock` lists Windows x64 and ARM64 wheels for numpy, pydantic-core, and pypdfium2.
-- On the Windows 11 x64 developer machine, the new local bootstrap installed those eight wheels with hashes, then an LTspice smoke test and doctor completed successfully. The clean Windows machine path and Python installer path have not been run yet.
-- Post-change full test, format, source ZIP, shortcut, no-Python, offline, long-path, and ARM64 results are pending. Their exact commands and output belong in [`docs/evidence/2026-09-28-terminal/REPORT.md`](evidence/2026-09-28-terminal/REPORT.md) once observed.
+- The runtime lock exports eight pinned packages with SHA-256 hashes. `uv.lock` lists Windows x64 and ARM64 wheels for numpy, pydantic-core, and pypdfium2.
+- On Windows 11 x64, a committed source ZIP extracted under a path with spaces, `é`, and `Ω` installed the eight runtime wheels, passed a real LTspice smoke test and `doctor`, and launched the text menu. The menu and flag command both blocked an LM358 build before any provider request while Internet access was off.
+- The focused suite passed 171 tests; Ruff lint and format checks passed. The broader suite still includes baseline failures and missing ignored test data, so it is not described as green.
+- Stubbed no-Python, installer-hash, and unsupported-architecture tests passed. Archive checks confirmed plain failures for a tampered package hash, dead proxy, too-long path, and wrong LTspice path.
+- Both Python 3.14.7 installers were downloaded and hash/signature verified, but the real install step has not been run locally. Fresh GitHub Actions x64/ARM64 installer checks are pending after push.
 
-No live AI authoring call has been made for this change.
+Exact commands, output, and untested cases are in [`docs/evidence/2026-09-28-terminal/REPORT.md`](evidence/2026-09-28-terminal/REPORT.md). No live AI authoring call has been made for this change.
