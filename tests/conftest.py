@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 
 from boardmodeler.config import AppConfig, LtspiceConfig, save_config
+from boardmodeler.security.network import NETWORK_ENV_VAR
 from boardmodeler.simulation.ltspice import LtspiceInstall, locate
 
 #: Test-only input, never read by the application as a simulator path.
@@ -92,3 +93,25 @@ def isolated_credential_file(tmp_path, monkeypatch):
         "boardmodeler.security.credentials.credential_path",
         lambda: tmp_path / "credentials.json",
     )
+
+
+_NETWORK_PIN_AT_START: dict[str, str | None] = {}
+
+
+def pytest_sessionstart(session: pytest.Session) -> None:
+    _NETWORK_PIN_AT_START["value"] = os.environ.get(NETWORK_ENV_VAR)
+
+
+def pytest_collection_finish(session: pytest.Session) -> None:
+    """Refuse a run in which importing a test module changed the network pin.
+
+    A module-level ``os.environ[...] = ...`` in a helper the tests import switches the
+    network off for every other test in the run, which shows up as dozens of unrelated
+    ``internet_access_off`` failures far from the cause. Pin the environment inside the
+    script's ``main()``, never at import.
+    """
+    if os.environ.get(NETWORK_ENV_VAR) != _NETWORK_PIN_AT_START.get("value"):
+        raise pytest.UsageError(
+            f"importing a test module changed {NETWORK_ENV_VAR}; set it inside a function, "
+            "not at import time"
+        )
