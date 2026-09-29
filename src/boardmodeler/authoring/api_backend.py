@@ -493,6 +493,14 @@ class ApiKeyBackend:
         self.transport: Transport = transport or urllib_transport
         self.credential_lookup: Callable[[str], Credential] = credential_lookup or get_credential
         self.session_id = uuid.uuid4().hex
+        self._provider_calls = 0
+        self._provider_calls_lock = threading.Lock()
+
+    @property
+    def provider_calls(self) -> int:
+        """HTTP inference attempts handed to the transport, including retries."""
+        with self._provider_calls_lock:
+            return self._provider_calls
 
     # ------------------------------------------------------------- contract
 
@@ -913,6 +921,8 @@ class ApiKeyBackend:
                 progress(f"API HTTP attempt {attempts}/{total_attempts}: connecting")
             response: HttpResponse | None = None
             try:
+                with self._provider_calls_lock:
+                    self._provider_calls += 1
                 response = self.transport(request)
             except Exception as exc:
                 last_detail = f"{type(exc).__name__}: {redact(str(exc), [key])}"

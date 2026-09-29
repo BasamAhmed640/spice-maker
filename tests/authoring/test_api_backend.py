@@ -329,8 +329,10 @@ def test_truncation_recovers_without_changing_reasoning(tmp_path, effort, budget
         (200, openai_reply("", finish_reason="length")), (200, openai_reply(reply))
     )
     request = request_for(tmp_path)
-    result = backend_for(entry, transport).author(request)
+    backend = backend_for(entry, transport)
+    result = backend.author(request)
     assert result.ok, result.detail
+    assert backend.provider_calls == 2
     first, second = [json.loads(r.body) for r in transport.requests]
     assert first["max_tokens"] == budget
     assert second["max_tokens"] == budget * 2
@@ -483,11 +485,13 @@ def test_a_malformed_reply_is_retried_once_with_the_parse_error(tmp_path: Path) 
     )
     request = request_for(tmp_path)
 
-    result = backend_for(provider("deepseek"), transport).author(request)
+    backend = backend_for(provider("deepseek"), transport)
+    result = backend.author(request)
 
     assert result.ok is True, result.detail
     assert (request.model_dir / f"{SUBCKT}.lib").read_text(encoding="utf-8") == LIB_TEXT
     assert len(transport.requests) == 2, "exactly one retry"
+    assert backend.provider_calls == 2
     reasked = json.loads(transport.requests[1].body)["messages"][0]["content"]
     assert "rejected" in reasked and "one JSON object" in reasked
     assert result.usage["prompt_tokens"] == 22.0, "both requests are counted"
@@ -784,11 +788,13 @@ def test_an_authentication_failure_is_retried_only_when_retryable(tmp_path: Path
     transport = Sequenced((401, '{"error": "nope"}'), (200, openai_reply("{}")))
     request = request_for(tmp_path)
 
-    result = backend_for(provider("openai"), transport).author(request)
+    backend = backend_for(provider("openai"), transport)
+    result = backend.author(request)
 
     assert result.ok is False
     assert result.detail.startswith("api_request_failed: http_auth_error:")
     assert len(transport.requests) == 1, "a 401 is not retried"
+    assert backend.provider_calls == 1
 
 
 def test_a_retryable_status_is_retried(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -797,10 +803,12 @@ def test_a_retryable_status_is_retried(tmp_path: Path, monkeypatch: pytest.Monke
     transport = Sequenced((503, "busy"), (200, openai_reply(reply)))
     request = request_for(tmp_path)
 
-    result = backend_for(provider("openai"), transport, retries=1).author(request)
+    backend = backend_for(provider("openai"), transport, retries=1)
+    result = backend.author(request)
 
     assert result.ok is True, result.detail
     assert len(transport.requests) == 2
+    assert backend.provider_calls == 2
     assert (request.model_dir / f"{SUBCKT}.lib").is_file()
 
 
@@ -810,10 +818,12 @@ def test_a_cancelled_turn_is_reported_and_writes_nothing(tmp_path: Path) -> None
     cancel.set()
     request = request_for(tmp_path)
 
-    result = backend_for(provider("openai"), transport).author(request, cancel)
+    backend = backend_for(provider("openai"), transport)
+    result = backend.author(request, cancel)
 
     assert result.ok is False and result.detail.startswith("cancelled")
     assert transport.requests == []
+    assert backend.provider_calls == 0
 
 
 def test_a_bad_response_body_is_reported_with_a_redacted_excerpt(tmp_path: Path) -> None:
@@ -1108,4 +1118,5 @@ def test_the_availability_reason_is_the_author_result_detail_for_a_missing_key(
 
     assert result.ok is False
     assert result.detail == backend.availability()[1]
+    assert backend.provider_calls == 0
     assert written_files(tmp_path) == []

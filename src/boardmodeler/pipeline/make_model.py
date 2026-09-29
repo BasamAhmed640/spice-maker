@@ -85,7 +85,7 @@ from pathlib import Path
 from typing import Any
 
 from boardmodeler.authoring.api_backend import DEFAULT_TIMEOUT_S as DEFAULT_API_TIMEOUT_S
-from boardmodeler.authoring.api_backend import build_api_backend
+from boardmodeler.authoring.api_backend import ApiKeyBackend, build_api_backend
 from boardmodeler.authoring.backends import (
     AuthorBackend,
     BobShellBackend,
@@ -1253,8 +1253,8 @@ class _Ledger:
     """Wall-clock seconds per stage, from an injectable monotonic clock.
 
     The record answers "where did the time go" for one build. ``author`` includes the
-    model-writing agent turns and every LTspice check made inside them; provider calls are
-    not counted here.
+    model-writing agent turns and every LTspice check made inside them. The run adds
+    the backend's observed inference attempts to this record before saving it.
     """
 
     def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
@@ -1510,6 +1510,7 @@ class _Run:
         self.report = HarnessReport(part=request.part, model_sha256="", spec_digest="", outcomes=())
         self.reinforcement: ReinforcementReport | None = None
         self.backend: AuthorBackend | None = None
+        self._backend_counter_start = 0
         self.backend_name = ""
         self.turns = 0
         self.sanity_ok = False
@@ -1530,6 +1531,46 @@ class _Run:
         self.support: Any = None
         self.head_text = ""
         self.template_seed_judge_s: float | None = None
+
+    def _get_backend(self) -> AuthorBackend:
+        """Keep one backend so extraction, planning and authoring share one meter."""
+        if self.backend is None:
+            self.backend = build_backend(self.request)
+            if isinstance(self.backend, ApiKeyBackend):
+                self._backend_counter_start = self.backend.provider_calls
+            elif isinstance(self.backend, BobShellBackend):
+                self._backend_counter_start = self.backend.shell_invocations
+        return self.backend
+
+    def _provider_call_fields(self) -> dict[str, Any]:
+        """Count HTTP attempts exactly; never guess requests hidden inside a CLI."""
+        backend = self.backend
+        fields: dict[str, Any] = {
+            "provider_calls_definition": "inference HTTP attempts handed to transport",
+            "provider_calls_observed": 0,
+            "provider_calls_complete": True,
+            "provider_calls": 0,
+        }
+        if isinstance(backend, ApiKeyBackend):
+            calls = backend.provider_calls - self._backend_counter_start
+            fields["provider_calls_observed"] = calls
+            fields["provider_calls"] = calls
+        elif isinstance(backend, BobShellBackend):
+            invocations = backend.shell_invocations - self._backend_counter_start
+            fields["backend_invocations"] = invocations
+            if invocations:
+                fields["provider_calls"] = None
+                fields["provider_calls_complete"] = False
+                fields["provider_calls_unknown_reason"] = (
+                    "Bob Shell does not report its internal provider requests"
+                )
+        elif backend is not None and not isinstance(backend, (ScriptedBackend, UnavailableBackend)):
+            fields["provider_calls"] = None
+            fields["provider_calls_complete"] = False
+            fields["provider_calls_unknown_reason"] = (
+                f"{type(backend).__name__} does not expose request attempts"
+            )
+        return fields
 
     # ------------------------------------------------------------------ stages
 
@@ -1692,7 +1733,7 @@ class _Run:
                     fixture_dir=self.cache_dir,
                 ).provider
             else:
-                self.backend = build_backend(self.request)
+                self._get_backend()
                 extraction_provider = AgentExtractionProvider(
                     self.backend,
                     part=self.request.part,
@@ -1864,7 +1905,7 @@ class _Run:
                 entries = plan_bindings(
                     self.requirements,
                     self.pin_map,
-                    self.backend or build_backend(self.request),
+                    self._get_backend(),
                     self.workdir / "evidence" / "test-plans",
                     part=self.request.part,
                     unverified=self.unverified,
@@ -2243,8 +2284,7 @@ class _Run:
             self._author_behavioral(cancel)
             return
         self.log.emit("author", "running", f"checking the {self.request.backend_name!r} backend")
-        backend = self.backend or build_backend(self.request)
-        self.backend = backend
+        backend = self._get_backend()
         self.backend_name = backend.name
         if self.request.verification == "sanity":
             from boardmodeler.authoring.sanity import LABEL, author_model
@@ -2523,6 +2563,22 @@ class _Run:
     def save(self) -> None:
         self.log.emit("save", "running", f"publishing deliverables into {self.out_dir}")
         notes: list[str] = []
+        gate_report_saved = False
+        if self.pin_only_info is not None:
+            # Keep the observed gate result even when a failed gate withholds the library.
+            try:
+                self._write_text(
+                    self.out_dir / "pin-only-report.json",
+                    json.dumps(self.pin_only_info, indent=2, sort_keys=True, ensure_ascii=False)
+                    + "\n",
+                )
+            except OSError as exc:
+                notes.append(
+                    f"pin-only gate report could not be saved: {type(exc).__name__}: {exc}"
+                )
+            else:
+                gate_report_saved = True
+                notes.append("saved the pin-only gate report")
         source = None if self.spec is None else model_file(self.workdir, self.request.subckt)
         if self.request.verification == "sanity" and not self.sanity_ok:
             source = None
@@ -2545,10 +2601,12 @@ class _Run:
                 self.asy_path = None
                 self.card_path = None
         else:
-            notes.append(
-                f"no model file was written, so only {SPEC_DIRNAME}/ and {RESULTS_NAME} describe "
-                "this run"
+            remaining = (
+                f"{SPEC_DIRNAME}/, pin-only-report.json and {RESULTS_NAME}"
+                if gate_report_saved
+                else f"{SPEC_DIRNAME}/ and {RESULTS_NAME}"
             )
+            notes.append(f"no model file was written, so {remaining} describe this run")
         published = [path for path in (self.lib_path, self.asy_path, self.card_path) if path]
         self.log.emit(
             "save",
@@ -2672,10 +2730,6 @@ class _Run:
             notes.append(f"saved {self.template_name.replace(chr(95), chr(32))} parameter origins")
         if self.pin_only_info is not None and self.lib_path is not None:
             info = self.pin_only_info
-            self._write_text(
-                self.out_dir / "pin-only-report.json",
-                json.dumps(info, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-            )
             checks = info["gate_checks"]
             summary = ", ".join(f"{c['id']} {c['status']}" for c in checks)
             source = (
@@ -2707,7 +2761,6 @@ class _Run:
                 self.card_path,
                 self.card_path.read_text(encoding="utf-8") + "\n" + "\n".join(section),
             )
-            notes.append("saved the pin-only report")
         if request.verification == "sanity":
             from boardmodeler.authoring.sanity import write_card
 
@@ -3009,19 +3062,26 @@ def make_model(
         result = dataclasses.replace(
             result, detail=f"{result.detail}; {note}", stages=tuple(log.events)
         )
+    if "author" not in ledger.seconds:
+        timing_route = "refused_before_authoring"
+    elif request.engine == "pin_only":
+        timing_route = "pin_only_shell" if run.pin_only_info is not None else "pin_only_refused"
+    elif request.engine == "behavioral":
+        timing_route = (
+            f"{run.template_name}_seed" if run.template_seed is not None else "behavioral_refused"
+        )
+    else:
+        timing_route = "agent_authoring"
     with contextlib.suppress(OSError):  # a courtesy record: it never changes the verdict
         timing = ledger.payload(
             part=request.part,
             status=status,
-            route="pin_only_shell"
-            if run.pin_only_info is not None
-            else f"{run.template_name}_seed"
-            if run.template_seed is not None
-            else "agent_authoring",
+            route=timing_route,
             template_seed_judge_seconds=(
                 None if run.template_seed_judge_s is None else round(run.template_seed_judge_s, 3)
             ),
             author_turns=None if run.outcome is None else int(run.outcome.iterations),
+            **run._provider_call_fields(),
         )
         run._write_text(
             run.out_dir / TIMING_NAME,
