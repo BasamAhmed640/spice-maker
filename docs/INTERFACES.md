@@ -275,7 +275,7 @@ boardmodeler ui [--project DIR] [--installer]    # model maker (--installer: set
 boardmodeler model build --part PN --out DIR [--datasheet PDF | --requirements F --bindings F]
     [--subckt NAME] [--backend api|bob|scripted|fixture] [--provider ID] [--model ID]
     [--max-tokens N] [--team-id ID] [--allow-remote] [--no-reinforce] [--iterations N]
-    [--engine legacy_ai|behavioral|pin_only] [--family ID]
+    [--engine legacy_ai|behavioral|pin_only] [--family ID] [--plan-tests]
     [--timeout S] [--json] [--strict]           # api: the SETUP key; bob: Bob Shell; no login
 boardmodeler model import --file F --part PN --source-url URL --license-note TEXT --out DIR
     [--json]                                    # byte-preserved vendor IBIS/AMI/Touchstone
@@ -300,6 +300,8 @@ separately requested, limited model of the pins, supply draw, clamps and wiring 
 function, never a pass. `--family ID` names the kind of part when the number, title, first page and
 rows do not; it never unblocks a refused class and never makes a part supported. Microcontrollers,
 FPGAs, CPLDs, processors and SoCs are refused on every route (D-055, D-057).
+`--plan-tests` turns on AI test planning for a local route (it is on for `legacy_ai`); it is
+slow, so it is never implied.
 
 Exit codes: `0` success or a completed run whose results are data; `1` when the
 request could not be served or `--strict` saw a non-PASS; `2` usage error.
