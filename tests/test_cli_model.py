@@ -68,6 +68,8 @@ class _Request:
     requirements_json: Path | None = None
     bindings_json: Path | None = None
     reinforce: bool | None = None
+    engine: str = "legacy_ai"
+    family: str | None = None
 
 
 class _Stage:
@@ -370,3 +372,48 @@ def test_the_agent_provider_model_and_budget_reach_the_request(
     assert calls[-1].provider == entry.id
     assert calls[-1].agent_model == override
     assert calls[-1].agent_max_tokens == 4096
+
+
+def test_the_engine_and_family_options_reach_the_request(
+    tmp_path: Path, datasheet: Path, monkeypatch, capsys
+) -> None:
+    calls: list[_Request] = []
+    _install_fake_engine(monkeypatch, _Result("PASS", "", "TPS54320", tmp_path, (), {}), calls)
+    base = [
+        "model",
+        "build",
+        "--part",
+        "TPS54320",
+        "--datasheet",
+        str(datasheet),
+        "--out",
+        str(tmp_path),
+        "--json",
+    ]
+
+    cli.main(base)
+    capsys.readouterr()
+    assert (calls[-1].engine, calls[-1].family) == ("legacy_ai", None)
+
+    cli.main([*base, "--engine", "behavioral", "--family", "switching_regulator"])
+    capsys.readouterr()
+    assert (calls[-1].engine, calls[-1].family) == ("behavioral", "switching_regulator")
+
+
+def test_a_bad_engine_is_refused_by_the_parser(tmp_path: Path, datasheet: Path, capsys) -> None:
+    with pytest.raises(SystemExit):
+        cli.main(
+            [
+                "model",
+                "build",
+                "--part",
+                "X1",
+                "--datasheet",
+                str(datasheet),
+                "--out",
+                str(tmp_path),
+                "--engine",
+                "magic",
+            ]
+        )
+    assert "invalid choice" in capsys.readouterr().err

@@ -1480,5 +1480,19 @@ Implements the owner's scope statement recorded in D-054.
 6. Every decision is saved as `support-decision.json`, including refusals.
 
 Limits: the vocabulary is keywords, not proof, so unclassified refusals will be common until
-it and the pin-signature rules grow; that is intended. The command line and the interface
-do not expose `--engine` yet and still use `legacy_ai`.
+it and the pin-signature rules grow; that is intended. The window does not expose
+`--engine` or `--family` yet and still uses `legacy_ai` (the command line does; see item 8).
+
+Revision the same day, after the frozen LM358 rows (file-name title, no family word in the
+rows) read as unclassified and a scan of the frozen specs on disk labelled a PWM controller
+"passive" and a buck "supervisor":
+
+7. The family is read by points, not by the first phrase in a list. The part number and the
+   datasheet title score 6 per phrase, the head of the first page 2 per phrase (at most 4), and
+   the cited rows 1 per family signal (at most 4, and only when two distinct signals of one
+   family appear). Generic words (resistor, capacitor, timer, latch) identify nothing from rows.
+   A title therefore always outweighs what a features list happens to mention; below 2 points
+   the part stays unclassified. The saved decision says where the family was read.
+8. `MakeModelRequest.family` (`--family` on `model build`) lets the operator name the family
+   when the evidence does not. It never unblocks a class, never makes a part supported, and is
+   recorded as declared. `--engine` is exposed on `model build` with the same three values.

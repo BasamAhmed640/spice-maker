@@ -262,6 +262,10 @@ class MakeModelRequest:
     #: limited. Every route is refused for a blocked or unclassified part, and none is a
     #: fallback for another.
     engine: str = "legacy_ai"
+    #: What kind of part this is, when the operator knows and the datasheet does not say
+    #: (a family id from models.support). It never unblocks a class and never makes a part
+    #: supported; it only names the family for a part nothing else identifies.
+    family: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1285,6 +1289,11 @@ def _checked(request: MakeModelRequest) -> MakeModelRequest:
         raise ValueError("verification must be full or sanity")
     if request.engine not in ENGINES:
         raise ValueError(f"engine must be one of {ENGINES}, got {request.engine!r}")
+    if request.family is not None:
+        from boardmodeler.models.support import family_ids
+
+        if request.family not in family_ids():
+            raise ValueError(f"family must be one of {family_ids()}, got {request.family!r}")
     if request.engine == "behavioral" and request.verification != "full":
         raise ValueError("the behavioral route judges with LTspice and needs verification=full")
     if request.max_iterations is not None and request.max_iterations < 1:
@@ -1298,6 +1307,17 @@ def _checked(request: MakeModelRequest) -> MakeModelRequest:
     if request.agent_max_tokens is not None and request.agent_max_tokens < 1:
         raise ValueError(f"agent_max_tokens must be >= 1 or None, got {request.agent_max_tokens}")
     return request
+
+
+def _first_page_text(path: Path, limit: int = 1500) -> str:
+    """The head of the datasheet first page: it usually says what kind of part this is."""
+    try:
+        document = read_pdf(path, max_pages=1)
+    except Exception:  # an unreadable file is the read stage business, not the family
+        return ""
+    if not document.pages:
+        return ""
+    return " ".join(document.pages[0].text.split())[:limit]
 
 
 def _page_count(path: Path) -> int | None:
@@ -1488,6 +1508,7 @@ class _Run:
         self.template_seed_bytes: bytes | None = None
         self.template_design: Any = None
         self.support: Any = None
+        self.head_text = ""
         self.template_seed_judge_s: float | None = None
 
     # ------------------------------------------------------------------ stages
@@ -1535,6 +1556,7 @@ class _Run:
                 f"datasheet_unreadable: {datasheet} could not be registered as a document "
                 f"({type(exc).__name__}: {exc})",
             ) from exc
+        self.head_text = _first_page_text(store.original_path(self.record.doc_id))
         # The refusal sits here because this is the first point where both the part
         # number and the document's own text are in hand, and it is long before the
         # extraction, the agent and the simulator: a part the probes cannot judge is
@@ -1989,7 +2011,12 @@ class _Run:
 
         title = "" if self.record is None else self.record.title
         decision = decide_support(
-            self.request.part, title=title, spec=self.spec, unverified=self.unverified
+            self.request.part,
+            title=title,
+            head=self.head_text,
+            spec=self.spec,
+            unverified=self.unverified,
+            declared_family=self.request.family,
         )
         self.support = decision
         route = self.request.engine
@@ -2000,6 +2027,7 @@ class _Run:
             "engine": route,
             "state": decision.state,
             "family": decision.family,
+            "identified_from": decision.identified_from,
             "implementation": decision.implementation,
             "reason": decision.reason,
             "missing": list(decision.missing),
