@@ -1,0 +1,971 @@
+{
+  "builds": [
+    {
+      "association": "exact",
+      "author_turns": 0,
+      "counts": {
+        "BLOCKED": 0,
+        "FAIL": 4,
+        "NOT_APPLICABLE": 49,
+        "PASS": 12,
+        "UNKNOWN": 41
+      },
+      "delivered_library_sha256": "21b3c7f1f9ed14b0d4247d291b7ba6342fecfdf19acdef59ca699c603fdb2ae2",
+      "part": "TPS54332DDA",
+      "provider_calls": 0,
+      "route": "buck_template_seed",
+      "stage_seconds": {
+        "author": 112.813,
+        "bind": 0.071,
+        "extract": 2.425,
+        "gate": 0.008,
+        "read": 2.482,
+        "save": 0.033
+      },
+      "status": "UNKNOWN",
+      "wall_seconds": 117.8
+    },
+    {
+      "association": "exact",
+      "author_turns": 0,
+      "counts": {
+        "BLOCKED": 0,
+        "FAIL": 0,
+        "NOT_APPLICABLE": 10,
+        "PASS": 32,
+        "UNKNOWN": 0
+      },
+      "delivered_library_sha256": "67766c0cf0d6ce85b9042df94ce4766deb264e917988df1e45d782e9fbaabed2",
+      "part": "LM358",
+      "provider_calls": 0,
+      "route": "op_amp_template_seed",
+      "stage_seconds": {
+        "author": 14.974,
+        "bind": 0.032,
+        "extract": 6.535,
+        "gate": 0.004,
+        "read": 7.416,
+        "save": 0.027
+      },
+      "status": "PASS",
+      "wall_seconds": 29.0
+    }
+  ],
+  "decisions": [
+    {
+      "evidence": "number only",
+      "family": "microcontroller",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.09,
+      "part": "STM32F407VGT6",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "microcontroller",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.02,
+      "part": "ATmega328P",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "microcontroller",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.01,
+      "part": "PIC16F877A",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "microcontroller",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.01,
+      "part": "MSP430G2553",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "microcontroller",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.01,
+      "part": "RP2040",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "microcontroller",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.01,
+      "part": "ESP32-WROOM-32",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "microcontroller",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.01,
+      "part": "nRF52840",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "microcontroller",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.09,
+      "part": "ATSAMD21G18A-AU",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "microcontroller",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.02,
+      "part": "LPC1768",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "unsupported",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.02,
+      "part": "TMS320F28335",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "fpga",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.01,
+      "part": "XC7A35T",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "fpga",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.01,
+      "part": "iCE40UP5K",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "fpga",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.01,
+      "part": "EP4CE6E22C8N",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "fpga",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.02,
+      "part": "LFE5U-25F",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "fpga",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.01,
+      "part": "10M08SAU169C8G",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number + typed title 'High Performance EE CPLD'",
+      "family": "fpga",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.03,
+      "part": "ATF1502AS",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "fpga",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.02,
+      "part": "XC9572XL",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "fpga",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.01,
+      "part": "EPM240T100C5",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "microcontroller",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.01,
+      "part": "IMX6ULL",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": "unsupported",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.02,
+      "part": "BCM2711",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number + typed title 'Sitara ARM Cortex-A8 processor'",
+      "family": "unsupported",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.02,
+      "part": "AM3358",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number + typed title 'Hexa-core application processor'",
+      "family": "unsupported",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.02,
+      "part": "RK3399",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number + typed title 'Zynq-7000 SoC'",
+      "family": "fpga",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.01,
+      "part": "XC7Z020",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number + typed title '32-bit Arm Cortex-M4 microcontroller'",
+      "family": "microcontroller",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.05,
+      "part": "ZX-1",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number + typed title 'Field programmable gate array'",
+      "family": "fpga",
+      "group": "blocked class",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.05,
+      "part": "QX-9",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "number only",
+      "family": null,
+      "group": "nothing identifies it",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 17.87,
+      "part": "QX-77A",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "unclassified"
+    },
+    {
+      "evidence": "number + typed title 'Datasheet'",
+      "family": null,
+      "group": "nothing identifies it",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.8,
+      "part": "ZORBLAX",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "unclassified"
+    },
+    {
+      "evidence": "number + typed title 'Product specification rev C'",
+      "family": null,
+      "group": "nothing identifies it",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.84,
+      "part": "PN-0042",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "unclassified"
+    },
+    {
+      "evidence": "number + typed title '1A Low Dropout Voltage Regulator'",
+      "family": "linear_regulator",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.93,
+      "part": "AMS1117-3.3",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Low-Noise Low-Dropout Linear Regulator'",
+      "family": "linear_regulator",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.86,
+      "part": "TPS7A47",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Dual Differential Comparator'",
+      "family": "amplifier_comparator",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.77,
+      "part": "LM393",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Single Channel Comparator'",
+      "family": "amplifier_comparator",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.78,
+      "part": "TLV3201",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'RS-485 Transceiver'",
+      "family": "wired_interface",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.72,
+      "part": "MAX485",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title '3.3-V RS-485 Transceiver'",
+      "family": "wired_interface",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.82,
+      "part": "SN65HVD72",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title '4-Bit Bidirectional Voltage-Level Translator'",
+      "family": "digital_glue",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.77,
+      "part": "TXB0104",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Single 2-Input Positive-NAND Gate'",
+      "family": "digital_glue",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 1.43,
+      "part": "SN74LVC1G00",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Analog Switch'",
+      "family": "analog_routing",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 1.01,
+      "part": "TS5A3159",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Adjustable Precision Shunt Regulator'",
+      "family": "reference_monitor",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 1.38,
+      "part": "TL431",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Voltage Supervisor with Programmable Delay'",
+      "family": "supervisor",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 1.27,
+      "part": "TPS3808",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Charge Pump Voltage Converter'",
+      "family": "charge_pump_pmic",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 1.19,
+      "part": "ICL7660",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Load Switch'",
+      "family": "power_path",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.91,
+      "part": "TPS22918",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Current-Sense Amplifier'",
+      "family": "reference_monitor",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.88,
+      "part": "INA180",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Digital Isolator'",
+      "family": "isolation",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.79,
+      "part": "ISO7741",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Dual Gate Driver'",
+      "family": "load_driver",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.76,
+      "part": "UCC27524",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title '16-Bit Analog-to-Digital Converter'",
+      "family": "data_converter",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.91,
+      "part": "ADS1115",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title '12-Bit Digital-to-Analog Converter'",
+      "family": "data_converter",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.8,
+      "part": "MCP4725",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title '256K I2C EEPROM'",
+      "family": "memory_id",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.45,
+      "part": "24LC256",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Low Power MEMS Oscillator'",
+      "family": "clock_timing",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.34,
+      "part": "SIT8008",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Power MOSFET'",
+      "family": "discrete_semiconductor",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.36,
+      "part": "IRLZ44N",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'TVS Diode'",
+      "family": "protection",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.47,
+      "part": "SMBJ5.0A",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Small Signal Switching Diode'",
+      "family": "discrete_semiconductor",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.33,
+      "part": "1N4148",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Adjustable Single Resistor Low Dropout Regulator'",
+      "family": "linear_regulator",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.36,
+      "part": "LT3080",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "number + typed title 'Step-Down Switching Regulator'",
+      "family": "switching_regulator",
+      "group": "ordinary family, no implementation",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 0.32,
+      "part": "LM2596",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "lm358_datasheet.pdf: title + first page",
+      "family": "amplifier_comparator",
+      "group": "local datasheet file",
+      "identified_from": "the first page of the datasheet",
+      "implementation": null,
+      "milliseconds": 3.59,
+      "part": "LM358",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "tps54332_datasheet.pdf: title + first page",
+      "family": "switching_regulator",
+      "group": "local datasheet file",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 3.71,
+      "part": "TPS54332",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "tps54331_datasheet.pdf: title + first page",
+      "family": "switching_regulator",
+      "group": "local datasheet file",
+      "identified_from": "the part number or datasheet title",
+      "implementation": null,
+      "milliseconds": 5.71,
+      "part": "TPS54331",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "datasheetchargepump.pdf: title + first page",
+      "family": "charge_pump_pmic",
+      "group": "local datasheet file",
+      "identified_from": "the first page of the datasheet",
+      "implementation": null,
+      "milliseconds": 10.33,
+      "part": "XD7660",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "C13755.pdf: title + first page",
+      "family": "switching_regulator",
+      "group": "local datasheet file",
+      "identified_from": "the first page of the datasheet",
+      "implementation": null,
+      "milliseconds": 8.3,
+      "part": "LM5116",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "unsupported_family"
+    },
+    {
+      "evidence": "ESP32_WROOM_DEVKIT_V1.pdf: title + first page",
+      "family": "microcontroller",
+      "group": "local datasheet file",
+      "identified_from": "",
+      "implementation": null,
+      "milliseconds": 0.07,
+      "part": "ESP32-WROOM",
+      "routes": {
+        "behavioral": false,
+        "legacy_ai": false,
+        "pin_only": false
+      },
+      "state": "blocked_class"
+    },
+    {
+      "evidence": "frozen rows (42 rows, 32 bound)",
+      "family": "amplifier_comparator",
+      "group": "frozen rows",
+      "identified_from": "the cited rows",
+      "implementation": "dual_op_amp",
+      "milliseconds": 2.24,
+      "part": "LM358",
+      "routes": {
+        "behavioral": true,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "supported"
+    },
+    {
+      "evidence": "frozen rows (106 rows, 19 bound)",
+      "family": "switching_regulator",
+      "group": "frozen rows",
+      "identified_from": "the cited rows",
+      "implementation": "peak_current_buck",
+      "milliseconds": 8.21,
+      "part": "TPS54332DDA",
+      "routes": {
+        "behavioral": true,
+        "legacy_ai": true,
+        "pin_only": true
+      },
+      "state": "supported"
+    }
+  ]
+}

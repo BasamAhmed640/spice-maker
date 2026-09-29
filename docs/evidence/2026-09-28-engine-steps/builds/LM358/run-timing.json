@@ -1,0 +1,18 @@
+{
+  "author_turns": 0,
+  "part": "LM358",
+  "record_kind": "run_timing",
+  "route": "op_amp_template_seed",
+  "schema_version": 1,
+  "stage_seconds": {
+    "author": 14.974,
+    "bind": 0.032,
+    "extract": 6.535,
+    "gate": 0.004,
+    "read": 7.416,
+    "save": 0.027
+  },
+  "status": "PASS",
+  "template_seed_judge_seconds": 14.916,
+  "total_seconds": 28.989
+}

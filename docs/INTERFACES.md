@@ -275,6 +275,7 @@ boardmodeler ui [--project DIR] [--installer]    # model maker (--installer: set
 boardmodeler model build --part PN --out DIR [--datasheet PDF | --requirements F --bindings F]
     [--subckt NAME] [--backend api|bob|scripted|fixture] [--provider ID] [--model ID]
     [--max-tokens N] [--team-id ID] [--allow-remote] [--no-reinforce] [--iterations N]
+    [--engine legacy_ai|behavioral|pin_only] [--family ID]
     [--timeout S] [--json] [--strict]           # api: the SETUP key; bob: Bob Shell; no login
 boardmodeler model import --file F --part PN --source-url URL --license-note TEXT --out DIR
     [--json]                                    # byte-preserved vendor IBIS/AMI/Touchstone
@@ -290,6 +291,15 @@ boardmodeler export --project DIR --out DIR [--json] [--model ID]
 boardmodeler extract --project DIR [--doc FILE] [--provider NAME] [--allow-remote] [--json]
 boardmodeler --self-test [--json]
 ```
+
+`--engine` chooses the route and no route falls back to another: `legacy_ai` (the default) is the
+agent authoring; `behavioral` is built by code from the cited rows, with no agent and no network
+once the rows exist, and runs only for a part the support decision marks supported (today the
+peak-current buck and the dual op amp; the LM358 datasheet alone builds this way); `pin_only` is a
+separately requested, limited model of the pins, supply draw, clamps and wiring alarms with no
+function, never a pass. `--family ID` names the kind of part when the number, title, first page and
+rows do not; it never unblocks a refused class and never makes a part supported. Microcontrollers,
+FPGAs, CPLDs, processors and SoCs are refused on every route (D-055, D-057).
 
 Exit codes: `0` success or a completed run whose results are data; `1` when the
 request could not be served or `--strict` saw a non-PASS; `2` usage error.

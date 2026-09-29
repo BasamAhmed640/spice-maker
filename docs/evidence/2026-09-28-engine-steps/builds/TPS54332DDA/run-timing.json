@@ -1,0 +1,18 @@
+{
+  "author_turns": 0,
+  "part": "TPS54332DDA",
+  "record_kind": "run_timing",
+  "route": "buck_template_seed",
+  "schema_version": 1,
+  "stage_seconds": {
+    "author": 112.813,
+    "bind": 0.071,
+    "extract": 2.425,
+    "gate": 0.008,
+    "read": 2.482,
+    "save": 0.033
+  },
+  "status": "UNKNOWN",
+  "template_seed_judge_seconds": 112.554,
+  "total_seconds": 117.835
+}

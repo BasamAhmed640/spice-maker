@@ -1,0 +1,153 @@
+{
+  "association": "exact",
+  "association_note": "The delivered library is byte-for-byte the rendering of this design.",
+  "delivered_library_sha256": "67766c0cf0d6ce85b9042df94ce4766deb264e917988df1e45d782e9fbaabed2",
+  "design": {
+    "external_connections": [],
+    "family": "dual_op_amp",
+    "parameters": [
+      {
+        "excerpt": "VOS Input offset voltage VS = 5 V to 30 V; VC M = 0 V; VO = 1.4\nV\nLM358 3 7\nmV TA = 0°C to 70°C 9\nLM358A 2 3\nTA = 0°C to 70°C 5\n",
+        "name": "VOS",
+        "origin": "cited_row",
+        "page": 9,
+        "row_id": "LM358_VOS_TYP_CH1",
+        "transform": "none",
+        "unit": "V",
+        "value": 0.003
+      },
+      {
+        "excerpt": "IB Input bias current VO = 1.4 V\nLM358 –20 –250\nnA TA = 0°C to 70°C –500\nLM358A –15 –100\nTA = 0°C to 70°C –200\n",
+        "name": "IB",
+        "origin": "cited_row",
+        "page": 9,
+        "row_id": "LM358_IB_TYP_CH1",
+        "transform": "none",
+        "unit": "A",
+        "value": 2e-08
+      },
+      {
+        "excerpt": "IOS Input offset current VO = 1.4 V\nLM358 2 50\nnA TA = 0°C to 70°C 150\nLM358A 2 30\nTA = 0°C to 70°C 75\n",
+        "name": "IOS",
+        "origin": "cited_row",
+        "page": 9,
+        "row_id": "LM358_IOS_TYP_CH1",
+        "transform": "none",
+        "unit": "A",
+        "value": 2e-09
+      },
+      {
+        "excerpt": "AOL Open-loop voltage gain VS = 15 V; VO = 1 V to 11 V; RL ≥ 2 kΩ 25 100 V/mV TA = 0°C to 70°C 15\n",
+        "name": "AOL",
+        "origin": "cited_row",
+        "page": 9,
+        "row_id": "LM358_AOL_TYP_CH1",
+        "transform": "none",
+        "unit": "V/V",
+        "value": 100000.0
+      },
+      {
+        "excerpt": "GBW Gain bandwidth product 0.7 MHz\n",
+        "name": "GBW",
+        "origin": "cited_row",
+        "page": 9,
+        "row_id": "LM358_GBW_CH1",
+        "transform": "none",
+        "unit": "Hz",
+        "value": 700000.0
+      },
+      {
+        "excerpt": "SR Slew rate G = +1 0.3 V/µs\n",
+        "name": "SR",
+        "origin": "cited_row",
+        "page": 9,
+        "row_id": "LM358_SR_RISE_CH1",
+        "transform": "none",
+        "unit": "V/s",
+        "value": 300000.0
+      },
+      {
+        "excerpt": "VO Voltage output swing from rail Positive rail\nVS = 30 V; RL = 2 kΩ TA = 0°C to 70°C 4\nVS = 30 V; RL ≥ 10 kΩ 2 3 V\nVS = 5 V; RL ≥ 2 kΩ 1.5\nNegative rail VS = 5 V; RL ≤ 10 kΩ TA = 0°C to 70°C 5 20 mV\n",
+        "name": "VOH_HEADROOM",
+        "origin": "cited_row",
+        "page": 9,
+        "row_id": "LM358_VOH_TYP_CH1",
+        "transform": "none",
+        "unit": "V",
+        "value": 2.0
+      },
+      {
+        "excerpt": "VO Voltage output swing from rail Positive rail\nVS = 30 V; RL = 2 kΩ TA = 0°C to 70°C 4\nVS = 30 V; RL ≥ 10 kΩ 2 3 V\nVS = 5 V; RL ≥ 2 kΩ 1.5\nNegative rail VS = 5 V; RL ≤ 10 kΩ TA = 0°C to 70°C 5 20 mV\n",
+        "name": "VOL",
+        "origin": "cited_row",
+        "page": 9,
+        "row_id": "LM358_VOL_TYP_CH1",
+        "transform": "none",
+        "unit": "V",
+        "value": 0.005
+      },
+      {
+        "excerpt": "IQ Quiescent current per amplifier VO = 2.5 V; IO = 0 A TA = 0°C to 70°C 350 600 µA VS = 30 V; VO = 15 V; IO = 0 A 500 1000\n",
+        "name": "IQ_CH",
+        "origin": "cited_row",
+        "page": 9,
+        "row_id": "LM358_IQ_TYP",
+        "transform": "none",
+        "unit": "A",
+        "value": 0.00035
+      },
+      {
+        "excerpt": null,
+        "name": "ISC",
+        "origin": "template_default",
+        "page": null,
+        "row_id": null,
+        "transform": null,
+        "unit": "A",
+        "value": 0.02
+      },
+      {
+        "excerpt": null,
+        "name": "ROUT",
+        "origin": "template_default",
+        "page": null,
+        "row_id": null,
+        "transform": null,
+        "unit": "ohm",
+        "value": 50.0
+      }
+    ],
+    "part": "LM358",
+    "pin_roles": {
+      "IN1M": "input",
+      "IN1P": "input",
+      "IN2M": "input",
+      "IN2P": "input",
+      "OUT1": "output",
+      "OUT2": "output",
+      "VCC": "supply",
+      "VEE": "ground"
+    },
+    "ports": [
+      "OUT1",
+      "IN1M",
+      "IN1P",
+      "VEE",
+      "IN2P",
+      "IN2M",
+      "OUT2",
+      "VCC"
+    ],
+    "record_kind": "op_amp_design",
+    "renderer_version": "dual_op_amp_render_v1",
+    "schema_version": 1,
+    "spec_digest": "1dc2dc8626b5ecc1300c060901eebd03afad3aee97f5038d0255036bd7a9836c",
+    "subckt": "LM358"
+  },
+  "design_sha256": "b909de5ff918267e105112bacf2e72edb2b6240ea987894c319512e58f9cc849",
+  "record_kind": "model_design_record",
+  "rendered_library_sha256": "67766c0cf0d6ce85b9042df94ce4766deb264e917988df1e45d782e9fbaabed2",
+  "schema_version": 1,
+  "verdict": "UNJUDGED",
+  "verdict_note": "Design provenance is not electrical proof; the LTspice harness decides."
+}

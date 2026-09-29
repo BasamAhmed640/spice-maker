@@ -1,0 +1,27 @@
+{
+  "engine": "behavioral",
+  "family": "amplifier_comparator",
+  "identified_from": "the cited rows",
+  "implementation": "dual_op_amp",
+  "missing": [],
+  "note": "Support means represented, cited and independently tested. It is not a pass: verdicts come from the LTspice rows.",
+  "part": "LM358",
+  "reason": "the dual op amp implementation matches, every essential input is cited and every essential behaviour has an independent bound test",
+  "record_kind": "support_decision",
+  "routes": {
+    "behavioral": {
+      "allowed": true,
+      "reason": "the dual op amp implementation matches, every essential input is cited and every essential behaviour has an independent bound test"
+    },
+    "legacy_ai": {
+      "allowed": true,
+      "reason": "explicit legacy AI authoring; results are measured but never declared supported"
+    },
+    "pin_only": {
+      "allowed": true,
+      "reason": "limited: pins only, no function; needs a confirmed pin table"
+    }
+  },
+  "schema_version": 1,
+  "state": "supported"
+}
