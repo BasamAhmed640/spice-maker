@@ -5,6 +5,42 @@ against the installer in the ZIP you download.
 The [fresh GitHub ZIP installation and model check](docs/evidence/2026-09-25-release/REPORT.md)
 passed on Windows, including GUI startup and a saved-model LTspice retest.
 
+## Current source engine
+
+New builds in the window, CLI and API default to **Code-built behavioral** with full LTspice
+verification. AI extraction is the only default AI stage and can be skipped for matching cached,
+supplied or exact reviewed evidence. Local code binds independent tests, builds a typed design from
+cited inputs and renders SPICE. It does not invoke an AI author, planner or repair loop by default.
+
+The implemented behavioral families are the peak-current buck and eight-pin dual op amp.
+Each part still needs supported pins, essential cited inputs and independent tests. Missing evidence
+or an unresolved package can produce **BLOCKED** with diagnostics and no model. Microcontrollers,
+FPGAs, CPLDs, processors and SoCs are refused on every route; a family hint cannot bypass the gate.
+
+- `behavioral` is the default code-built route. Unsupported parts stop; no other engine runs as a fallback.
+- `legacy_ai` explicitly selects AI authoring, full-mode AI planning and bounded repair.
+  `--plan-tests` separately opts a local route into extra AI planning.
+- `pin_only` explicitly creates a limited pin interface with no device function or electrical
+  accuracy claim. It supports one supply rail and one ground; a second required rail is refused.
+
+Quick structural drafts require `legacy_ai`; the two code-built engines require full verification.
+Old saved requests keep their recorded route, and requests without an engine field retain their
+historical legacy interpretation. See [the workflow](docs/AGENT_WORKFLOW.md),
+[quick-mode limits](docs/QUICK_MODE.md) and [current evidence](docs/STATUS.md).
+
+The current evidence does not establish full-family qualification: TPS54332 has four nominal
+qualification passes and twelve mandatory UNKNOWN gaps, while TPS54331 remains BLOCKED on UVTH,
+package and independent coverage. These source changes do not constitute a rebuilt installer release.
+The planned M6 publication gate still needs source-confirmed package selection, symbol pin numbers
+and discrete pin order. Current file hashes, pin-order records and the TPS54331 pad guard do not
+complete that gate.
+The [engine acceptance report](docs/evidence/2026-09-29-engine-refactor/REPORT.md) records exact
+delivered hashes, measured timings, row counts and the remaining limits.
+
+Replayed extraction records must pass citation checks against the available source document again.
+An old `citation_verified=true` flag cannot certify itself; missing or failed checks are saved as
+unverified in the new run and cannot supply a qualified test reference.
+
 ## Windows setup and model verification
 
 From a GitHub **Code → Download ZIP** archive, extract the folder and run its included
@@ -33,24 +69,25 @@ py -3.14 -m venv .venv
 .\.venv\Scripts\boardmodeler.exe doctor --json
 ```
 
-For a measured model, open the model maker and keep **FULL VERIFICATION** selected before GO.
-The optional quick choice performs structural checks and an unpowered load only; its
-electrical status remains **UNKNOWN**. Full verification creates local test circuits,
+For a measured model, keep **Code-built behavioral** and **FULL VERIFICATION** selected before GO.
+Quick structural checks are available only after explicitly selecting **AI authored (legacy)**;
+that draft's electrical status remains **UNKNOWN**. Full verification creates local test circuits,
 runs the configured LTspice executable in batch mode, and compares observed waveforms
 with frozen datasheet requirements. It reports a PASS only for measured rows that meet
 their limits; it does not certify untested behavior. The command-line `model build`
-performs full verification by default; `--sanity` opts into the quick checks.
+performs full verification by default; `--engine legacy_ai --sanity` opts into quick checks.
 
 ```powershell
 .\.venv\Scripts\boardmodeler.exe model build --part TPS54332DDA --datasheet .\TPS54332DDA.pdf --out .\models\TPS54332DDA --allow-remote
 ```
 
-The model build requires a real TPS54332DDA datasheet PDF, a selected provider key,
-and an LTspice path saved in this copy's SETUP. The generated `MODEL_CARD.md` records
+The model build requires a real TPS54332DDA datasheet PDF and an LTspice path saved in SETUP.
+A provider key and remote permission are needed only when a requested AI stage cannot use local
+evidence. The generated `MODEL_CARD.md` records
 the measured and untested rows. [IBM Bob's workspace rule format](https://bob.ibm.com/docs/shell/configuration/bobshell-custom-rules)
 is represented by `AGENTS.md` and `.bob/rules/`; the application itself does not run Bob.
 
-**1.7.0: template-first buck models.** For a supported buck-converter pinout, the app
+**Installer 1.7.0 history: template-first buck models.** For a supported buck-converter pinout, the app
 starts with a known-convergent circuit template. It fills parameters from cited
 datasheet rows where available, labels any remaining template defaults, and runs
 the same LTspice harness before involving the agent. The agent receives measured
@@ -59,7 +96,7 @@ can still be delivered with its FAIL and UNKNOWN rows visible. Other device clas
 continue through the existing authoring path. A template parameter is provenance,
 not proof of accuracy: only simulator evidence can make a requirement PASS.
 
-**1.5.0: containment, one network switch, and models you can reopen.** This edition now ships **no CLI agent at all** — IBM Bob lives only in the separate Bob-only build, so nothing in this copy installs or executes a third-party agent, and every provider is a plain HTTPS request to the host its vendor documents. Egress has exactly **one control**: SETUP's `INTERNET ACCESS`, which governs the provider API and the part vendor's own site for supporting material; with it off the app sends nothing and refuses a build with that reason (proved by a test that runs the refusal path behind a socket tripwire).
+**1.5.0: containment, one network switch, and models you can reopen.** This edition now ships **no CLI agent at all** — IBM Bob lives only in the separate Bob-only build, so nothing in this copy installs or executes a third-party agent, and every provider is a plain HTTPS request to the host its vendor documents. Egress has exactly **one control**: SETUP's `INTERNET ACCESS`, which governs the provider API and the part vendor's own site for supporting material; with it off the app sends nothing and refuses stages that need remote inference with that reason (proved by a test that runs the refusal path behind a socket tripwire).
 
 Every child process this program starts now goes through one policy module (`security/execution.py`): an absolute allowlisted executable, no shell, an argv shaped so no string from an agent, a datasheet or a filename can land in a flag position, a mandatory timeout, bounded output, and an **allowlisted child environment that is never a copy of the parent's**. That last point is what keeps your agent key away from the simulator: LTspice runs with fifteen OS variables and nothing else, so it cannot see `DEEPSEEK_API_KEY` or any other secret in your shell. The simulator is also still launched without `-I` or `-ini` — both were re-measured on LTspice 26.0.0 and both make it open its GUI window instead of running in batch (a fresh *or* seeded private settings file does it; a redirected `APPDATA` does too), which is why the boundary is the process environment rather than a private profile. A build is no longer a one-session artifact: **OPEN MODEL…** in the window and `boardmodeler model open --out DIR [--verify]` reopen a finished model directory from disk, show its recorded status and rows, and re-run verification on demand.
 
@@ -69,7 +106,7 @@ Testing followed the same rule — the graded claims are commands, not prose. `t
 
 The rest of 1.4.0 is containment and usability. Credentials are a plain local file in this folder (`data/credentials.json`) with no DPAPI, no registry entry and no Credential Manager entry — **weaker at rest than what it replaced**, because anyone who can read the folder can read the key. LTspice is configured only after the user chooses its path in SETUP; no install-location search is offered. Outbound inference is pinned to the selected provider's documented host and refused before any request is sent, and the supporting-material search reads only the part vendor's sites and gives up immediately with a stated reason. The model window and SETUP are resizable, the doctor report is a scrollable view showing the whole report (it used to reach only its last 4000 characters), and an hourglass beside the timer animates only while a build runs. The installer provisions a real in-folder `.venv` from vendored wheels with no network access at install time, writes `Start.cmd`, `Boardmodeler.cmd` and a folder-local shortcut, and leaves an existing copy of the app untouched; that `.venv` has no Qt, so window-opening commands (`ui`, `setup`) go through `app\SpiceMaker.exe`. [Storage and fresh-start instructions](docs/PORTABLE_STORAGE.md).
 
-**1.3.0 introduced quick structural checks.** Quick mode skips AI test-circuit planning and uses structural checks plus a five-second unpowered LTspice load when available. Electrical accuracy remains explicitly unverified. The current GUI defaults to **FULL VERIFICATION** beside GO; you may explicitly uncheck it for a quick draft and run full verification later. [Modes and limitations](docs/QUICK_MODE.md).
+**1.3.0 introduced quick structural checks.** Quick mode skips AI test-circuit planning and uses structural checks plus a five-second unpowered LTspice load when available. Electrical accuracy remains explicitly unverified. The current GUI defaults to **FULL VERIFICATION** beside GO; on the explicit legacy engine you may uncheck it for a quick draft and run full verification later. [Modes and limitations](docs/QUICK_MODE.md).
 
 **1.2.1 fixes streamed API completion and shows received-data progress.** [API fix and measured checks](docs/API_STREAM_PROGRESS.md).
 
@@ -103,22 +140,20 @@ includes the template-first model path. Python is bundled; LTspice is a separate
 prerequisite; this edition installs no CLI agent. `SHA256SUMS.txt` holds the
 checksum of the checked-in installer.
 
-**Give it a datasheet and a part number; an agent authors an LTspice model. The GUI defaults to full electrical verification. Quick structural checks are an explicit unverified draft choice. You get a `.lib`, a symbol and a card that states what was checked and what remains unverified.** That is the product. Everything below the fold is
+**Give it a datasheet and a part number; the default engine builds supported LTspice models in code and measures them against frozen requirements. An authorized result includes a `.lib`, a symbol and a card stating what was checked and what remains unverified. Unsupported builds stop with diagnostics.** That is the product. Everything below the fold is
 supporting machinery, and the board/circuit/UI layers date from an earlier, wider spec.
 
 ```powershell
 uv sync --all-extras
 uv run boardmodeler doctor            # checks the configured LTspice with a real smoke test
 uv run boardmodeler model build `
-    --part TPS54320 --subckt TPS54320 `
-    --requirements fixtures/regulator/tps54320/requirements.json `
-    --bindings     fixtures/regulator/tps54320/probes.json `
-    --out build/tps54320
-uv run boardmodeler model test --out build/tps54320     # re-judge any time
-uv run boardmodeler model install --out build/tps54320 --user-lib --apply
+    --part LM358 --datasheet .\LM358.pdf `
+    --out build/lm358 --allow-remote
+uv run boardmodeler model test --out build/lm358     # re-judge any time
+uv run boardmodeler model install --out build/lm358 --user-lib --apply
 ```
 
-**Before the first run:** open **SETUP** in the window and paste an agent API key — that is
+**Before a run needing AI extraction or legacy authoring:** open **SETUP** and save a provider API key — that is
 the whole authentication story; there is no login anywhere in this application. **DeepSeek** is
 the default provider. Every provider this edition accepts — OpenAI, Anthropic, Google,
 DeepSeek, OpenRouter, xAI, Groq, Mistral, OpenCode Zen and OpenCode Go — is a plain HTTPS
@@ -134,12 +169,12 @@ single **INTERNET ACCESS** switch for provider requests and supporting material.
 Installing a finished model is the window's **Install into LTspice** action,
 which copies into this folder's `library/`; add its `sym` and `sub` folders to
 LTspice's search paths once. The main window holds the
-part number, the datasheet, the save location, **FULL VERIFICATION** beside **GO**,
-and the progress and result controls. Without an agent
-the run stops immediately with `BLOCKED` naming what is missing — it never substitutes another
-provider. The selected key now handles extraction and authoring. Four extraction tasks
-share one request, repairs receive the current model, and verified repeat builds reuse
-hashed simulator evidence without more author turns. The TPS54320 fixture has 38 rows:
+part number, datasheet, save location, engine and optional family choices, **FULL VERIFICATION**
+beside **GO**, and progress/result controls. If a requested AI stage lacks its configured provider,
+the run stops with `BLOCKED` naming what is missing; it never substitutes another provider.
+The default uses that provider only for extraction when local evidence is unavailable. Explicit
+legacy builds also use it for planning, authoring and repair. Matching extraction caches avoid
+inference; revalidation still uses recorded hashes and simulator evidence. The TPS54320 fixture has 38 rows:
 9 bind to 8 regulator probes and 29 remain explicitly untested.
 
 The new electrical I/O probes cover output levels, leakage and transitions at recorded
@@ -154,7 +189,7 @@ Select Go for a Go subscription; its endpoint is `/zen/go/v1`, and Zen credit is
 used as an automatic fallback. Both choices use the existing OpenCode credential slot.
 Bob exists only in the separate Bob-only edition, which accepts IBM Bob alone.
 
-Extraction, model authoring and JSON repair use the selected provider's highest
+When those AI stages are requested, extraction, legacy model authoring and JSON repair use the selected provider's highest
 configured reasoning setting: `max` for DeepSeek, OpenAI, Claude Opus and OpenRouter;
 `high` for Gemini; `xhigh` for Grok 4.6. OpenCode's default DeepSeek model uses `max`.
 An exhausted thinking budget is reported without silently disabling thinking. Models
@@ -199,9 +234,10 @@ local agent CLI. Bob is a separate product, built from the `spice-maker-bob` rep
 
 What each piece guarantees:
 
-* **The spec is frozen before the agent starts.** Limits, tolerances, probe bindings and
-  citations live in `spec/characteristics.json`; the agent may write only
-  `model/<SUBCKT>.lib` and `.asy`. A changed spec aborts the build as `UNKNOWN(spec_tampered)`.
+* **The spec is frozen before model generation.** Limits, tolerances, probe bindings and
+  citations live in `spec/characteristics.json`. The default renderer is local code. On the explicit
+  legacy route, the provider proposes model text; the application writes the candidate under
+  `model/` and generates its symbol locally. A changed spec stops the build as `UNKNOWN(spec_tampered)`.
 * **The harness owns the verdicts.** One probe deck per bound characteristic runs in real
   LTspice; the measured value is compared to the cited limit. A probe that cannot answer
   its question (no crossing, signal not saved, run truncated, port missing) is `UNKNOWN`
@@ -231,9 +267,8 @@ report:
 * A "must not occur" requirement additionally requires the run to have reached the
   end of its window with the signal observable: the absence of a crossing is not a
   pass on its own.
-* Repair is capped and constrained: it may only touch `models/candidates/<n>/`, and
-  relaxing a tolerance, deleting a test, editing evidence, or editing the circuit
-  raises `RepairViolation` and stops the loop.
+* Explicit legacy repair is bounded and cannot alter frozen limits, tests or source evidence.
+  A changed specification stops the build; repair cannot weaken it to make a candidate pass.
 * Nothing is ever written into the LTspice installation, and vendor model bytes are
   never copied into an export.
 

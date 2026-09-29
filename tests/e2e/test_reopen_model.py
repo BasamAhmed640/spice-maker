@@ -185,6 +185,8 @@ def built_model(tmp_path_factory: pytest.TempPathFactory) -> Path:
         str(out_dir),
         "--backend",
         "fixture",
+        "--engine",
+        "legacy_ai",
         "--sanity",
         "--json",
     )

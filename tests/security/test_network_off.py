@@ -90,6 +90,7 @@ def _request(tmp_path: Path, **overrides: Any) -> MakeModelRequest:
         "subckt": "TPS54320",
         "datasheet": tmp_path / "datasheet.pdf",
         "out_dir": tmp_path / "out",
+        "engine": "legacy_ai",
     }
     values.update(overrides)
     return MakeModelRequest(**values)
@@ -155,8 +156,8 @@ def test_the_switch_off_stops_the_build_before_any_socket(config_off: None, tmp_
     assert result.status == "BLOCKED"
     assert "internet_access_off" in result.detail
     assert "INTERNET ACCESS" in result.detail
-    # Told at the start: none of the local stages ran, so the user is not made to wait.
-    assert [event.stage for event in result.stages] == ["author"]
+    # Refuse before reading/extraction; saving the refusal receipt is still allowed.
+    assert [event.stage for event in result.stages if event.stage != "save"] == ["author"]
 
 
 def test_the_switch_off_refuses_the_api_backend_but_not_the_offline_author(

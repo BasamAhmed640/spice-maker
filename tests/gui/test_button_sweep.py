@@ -96,6 +96,15 @@ def test_no_traceback_was_captured(report: Any) -> None:
     assert report.totals["qt_critical"] == 0, report.qt_messages
 
 
+def test_default_behavioral_go_reaches_the_sandbox_without_starting_a_thread(report: Any) -> None:
+    surface = report.surface("ModelMakerWindow")
+    assert surface is not None
+    go = next(control for control in surface["controls"] if control["label"] == "GO")
+    assert go["clicked"] and go["error"] is None
+    assert "MakeModelWorker.start requested (sandboxed: no thread runs)" in go["effects"]
+    assert report.sandbox["kinds"]["thread_start"] >= 1
+
+
 def test_every_enabled_button_is_wired_and_observably_did_something(report: Any) -> None:
     """A button with no connection and no effect is a button that does nothing."""
     assert report.failures == [], report.failures

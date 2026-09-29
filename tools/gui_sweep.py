@@ -734,8 +734,12 @@ class Sandbox:
         self._patch(worker_client.WorkerClient, "__init__", _worker_init)
         self._patch(worker_client.WorkerClient, "start", self._worker_start)
         self._patch(worker_client.WorkerClient, "cancel", self._worker_cancel)
-        self._patch(model_maker.MakeModelWorker, "start", self._thread_start)
-        self._patch(model_maker.MakeModelWorker, "run", self._thread_run)
+        # Install functions so Python binds the worker instance before forwarding to
+        # the sandbox's bound method; assigning the bound method loses that argument.
+        self._patch(
+            model_maker.MakeModelWorker, "start", lambda instance: self._thread_start(instance)
+        )
+        self._patch(model_maker.MakeModelWorker, "run", lambda instance: self._thread_run(instance))
 
         # --- the CLI runner the window shells out to ------------------------
         self._patch(model_maker, "_run_command", _CliShim(self))
