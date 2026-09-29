@@ -21,6 +21,6 @@ These are pre-refactor results. Both fresh clones lack the ignored `models/T1-tp
 - On Windows 11 x64, a committed source ZIP extracted under a path with spaces, `é`, and `Ω` installed the eight runtime wheels, passed a real LTspice smoke test and `doctor`, and launched the text menu. The menu and flag command both blocked an LM358 build before any provider request while Internet access was off.
 - The focused suite passed 171 tests; Ruff lint and format checks passed. The broader suite still includes baseline failures and missing ignored test data, so it is not described as green.
 - Stubbed no-Python, installer-hash, and unsupported-architecture tests passed. Archive checks confirmed plain failures for a tampered package hash, dead proxy, too-long path, and wrong LTspice path.
-- Both Python 3.14.7 installers were downloaded and hash/signature verified, but the real install step has not been run locally. Fresh GitHub Actions x64/ARM64 installer checks are pending after push.
+- Both Python 3.14.7 installers were downloaded and hash/signature verified. Their real per-user install steps passed on fresh GitHub Actions x64 and ARM64 runners ([run 36501631332](https://github.com/BasamAhmed640/spice-maker/actions/runs/36501631332)). The installers were not run on the developer PC; full source ZIP setup has not been run on ARM64 or Windows 10.
 
 Exact commands, output, and untested cases are in [`docs/evidence/2026-09-28-terminal/REPORT.md`](evidence/2026-09-28-terminal/REPORT.md). No live AI authoring call has been made for this change.

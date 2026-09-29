@@ -22,7 +22,7 @@ The original source checkout with uncommitted buck work was not modified. This w
 DA0DA1A9670AE49E219C83647D8D84D6EA8CFD9457B5A2D1BE0F627F3775E8E2
 ```
 
-Both Python 3.14.7 installers were downloaded, not run locally, and their SHA-256 and Authenticode signatures matched the pins. The x64 installer is 33,258,168 bytes and SHA-256 `9d9eb2709ef81bf5cd30db3c2096bdbc4ea10087c22e62f27d356b36f6ae9649`; ARM64 is 32,570,072 bytes and SHA-256 `9a3fe120cc81bc2cb099550f794d8356811f96a86c7f438519243c3485db928d`. The pinned hashes match `winget show Python.Python.3.14` for 3.14.7. The GitHub Actions workflow runs each installer on a fresh runner after push; results must be checked separately.
+Both Python 3.14.7 installers were downloaded, not run locally, and their SHA-256 and Authenticode signatures matched the pins. The x64 installer is 33,258,168 bytes and SHA-256 `9d9eb2709ef81bf5cd30db3c2096bdbc4ea10087c22e62f27d356b36f6ae9649`; ARM64 is 32,570,072 bytes and SHA-256 `9a3fe120cc81bc2cb099550f794d8356811f96a86c7f438519243c3485db928d`. The pinned hashes match `winget show Python.Python.3.14` for 3.14.7. After push, [GitHub Actions run 36501631332](https://github.com/BasamAhmed640/spice-maker/actions/runs/36501631332) passed both jobs: the exact pinned installers ran per-user on fresh x64 and ARM64 Windows runners and registered CPython 3.14 with the expected platform.
 
 ## Test commands and observed output
 
@@ -60,11 +60,11 @@ Hostile-path archive checks: a tampered requirements hash exited 1 before any ru
 
 ## Remaining verification
 
-- The real Python install step has not run on a clean PC in this local test. The x64 and ARM64 GitHub Actions runner results must be recorded after push.
+- The real Python install step passed on fresh GitHub Actions x64 and ARM64 runners. The complete Setup.cmd path from no Python to app-ready has not been tested on a clean PC; local setup used already-registered Python.
 - Windows 10 and ARM64 setup, and a machine without Python, LTspice, and developer tools, have not been tested end to end locally.
 - A live provider key check and a completed LM358 model build were not run; they would make external requests.
 - The repository still declares `Proprietary` in `pyproject.toml`. Publication license terms are a question for the owner; no license was chosen here.
 
 ## Change size
 
-The initial code/documentation transition commit reported `126 files changed, 5511 insertions(+), 19934 deletions(-)` from `git show --shortstat`. At the verified final source commit, `git diff --shortstat b1ced1c..HEAD` reported `127 files changed, 5652 insertions(+), 19934 deletions(-)`.
+The initial code/documentation transition commit reported `126 files changed, 5511 insertions(+), 19934 deletions(-)` from `git show --shortstat`. At the verified final source commit, `git diff --shortstat b1ced1c..HEAD` reported `127 files changed, 5653 insertions(+), 19934 deletions(-)`.

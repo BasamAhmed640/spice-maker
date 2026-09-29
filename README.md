@@ -20,9 +20,10 @@ To uninstall, run `Setup.cmd --remove` if you created the shortcut, then delete 
 
 | Platform | Support | Observed verification |
 | --- | --- | --- |
-| Windows 11 x64 | Targeted | Developer machine: Python 3.14, pinned package download, launchers, tests, and LTspice smoke check; see [`docs/STATUS.md`](docs/STATUS.md) for exact results. |
+| Windows 11 x64 | Targeted | Full source ZIP setup, eight pinned packages, launchers, shortcut, and LTspice smoke check on the developer machine. The pinned x64 Python installer also passed on a fresh Windows GitHub Actions runner. |
+| Windows 11 ARM64 | Targeted | The pinned ARM64 Python installer passed on a fresh GitHub Actions runner; full source ZIP setup was not tested there. |
 
-Windows 10 x64/ARM64 and Windows 11 ARM64 are setup targets, but this change has not yet been tested on those systems. The Python installer step has not yet been run on a clean Windows machine in this change. The table will be updated only with observed results.
+Windows 10 x64/ARM64 are setup targets but were not tested in this change. See [`docs/STATUS.md`](docs/STATUS.md) for exact results and limits.
 
 ## Make and revisit a model
 
