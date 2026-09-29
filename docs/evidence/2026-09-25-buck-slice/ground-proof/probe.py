@@ -32,7 +32,12 @@ def facts(deck: Path, t0: float, t1: float) -> dict:
     started = time.monotonic()
     result = run_batch(LTSPICE, deck, run_dir, timeout_s=120)
     wall = time.monotonic() - started
-    out = {"deck": deck.name, "deck_sha256": sha(deck), "exit": result.exit_code, "wall_s": round(wall, 2)}
+    out = {
+        "deck": deck.name,
+        "deck_sha256": sha(deck),
+        "exit": result.exit_code,
+        "wall_s": round(wall, 2),
+    }
     if result.log_path is not None:
         log = parse_log(result.log_path)
         out["log_sha256"] = sha(result.log_path)
@@ -46,11 +51,26 @@ def facts(deck: Path, t0: float, t1: float) -> dict:
     t = np.abs(trace(raw, "time"))
     window = (t >= t0) & (t <= t1)
     ph = trace(raw, "V(ph)")
-    rising = int(np.sum((ph[:-1] < 0.5 * 12) & (ph[1:] >= 0.5 * 12) & window[1:])) if ph is not None else None
+    rising = (
+        int(np.sum((ph[:-1] < 0.5 * 12) & (ph[1:] >= 0.5 * 12) & window[1:]))
+        if ph is not None
+        else None
+    )
     out["ph_rising_edges_in_window"] = rising
     out["window_s"] = [t0, t1]
     out["t_end_s"] = float(t[-1])
-    for name in ("V(ph,sw)", "V(ph)", "V(sw)", "V(vout)", "V(ss)", "V(comp)", "V(xdut:run)", "V(xdut:en_ok)", "V(xdut:uv_ok)", "V(bm_fixture_ground)"):
+    for name in (
+        "V(ph,sw)",
+        "V(ph)",
+        "V(sw)",
+        "V(vout)",
+        "V(ss)",
+        "V(comp)",
+        "V(xdut:run)",
+        "V(xdut:en_ok)",
+        "V(xdut:uv_ok)",
+        "V(bm_fixture_ground)",
+    ):
         if name == "V(ph,sw)":
             a, b = trace(raw, "V(ph)"), trace(raw, "V(sw)")
             values = None if a is None or b is None else (a - b) * 50.0
@@ -59,7 +79,11 @@ def facts(deck: Path, t0: float, t1: float) -> dict:
             values = trace(raw, name)
             label = name
         if values is not None and window.any():
-            out[label] = {"max": float(np.max(values[window])), "mean": float(np.mean(values[window])), "end": float(values[-1])}
+            out[label] = {
+                "max": float(np.max(values[window])),
+                "mean": float(np.mean(values[window])),
+                "end": float(values[-1]),
+            }
     return out
 
 

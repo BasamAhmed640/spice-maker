@@ -22,7 +22,9 @@ elapsed = time.monotonic() - started
 rows = []
 for outcome in report.outcomes:
     for char_id in outcome.char_ids:
-        rows.append((char_id, outcome.status, outcome.judged, outcome.unknown_reason or outcome.detail))
+        rows.append(
+            (char_id, outcome.status, outcome.judged, outcome.unknown_reason or outcome.detail)
+        )
 counts = Counter(status for _, status, _, _ in rows)
 print(f"harness {elapsed:.1f} s; rows {dict(counts)}")
 for char_id, status, judged, why in rows:

@@ -1010,9 +1010,7 @@ def stage_environment(ctx: Context, stage: Stage) -> dict[str, Any]:
             "ignored": not found and not ltspice_status.get("found"),
         }
         if not override_probe["ignored"]:
-            raise StageFailure(
-                f"doctor selected an inherited LTSPICE_EXE without Setup: {found!r}"
-            )
+            raise StageFailure(f"doctor selected an inherited LTSPICE_EXE without Setup: {found!r}")
     else:
         override_probe = {"ran": False, "reason": "no LTspice executable was detected"}
 
