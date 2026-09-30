@@ -2,7 +2,7 @@
 
 Everything here is offline: the transport is injected, the credential lookup is
 injected, and no test reaches a network endpoint or the OS keyring. What the
-tests pin is the contract the pipeline and the GUI rely on — which files land on
+tests pin is the contract the pipeline and text menu rely on — which files land on
 disk after a reply, which replies are refused, what ``availability`` says when a
 key is missing, and that a server echoing the key back cannot leak it.
 

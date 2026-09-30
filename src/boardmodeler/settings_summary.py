@@ -1,13 +1,4 @@
-"""The persisted settings as data, importable without Qt.
-
-``boardmodeler setup --json`` is the only way to read the settings from the command
-line, and it has to work in the ``.venv`` the installer builds: that environment is
-deliberately Qt-free (see ``installer/vendor_env.py``), so importing
-:mod:`boardmodeler.ui.setup_dialog` to reach its descriptions raised
-``ModuleNotFoundError: No module named 'PySide6'`` in exactly the copy the product
-ships. The descriptions therefore live here, where nothing imports a GUI toolkit, and
-the dialog module re-exports them so there is still one implementation.
-"""
+"""The persisted settings as data, shared by the text setup and CLI report."""
 
 from __future__ import annotations
 
@@ -40,7 +31,7 @@ def credential_file_label() -> str:
     """Where the API key is saved, relative to this extracted folder when it is inside it.
 
     Resolved, never hard-coded: the Bob edition writes a different file name, and the
-    page must not name a file that this build does not use.
+    setup must not name a file that this build does not use.
     """
     from boardmodeler.security.credentials import credential_path
 
@@ -57,7 +48,7 @@ def configured_provider(config: AppConfig) -> tuple[AgentProvider | None, str]:
     An id this build does not accept comes back as ``None`` plus the same
     ``api_provider_unavailable`` text
     :func:`boardmodeler.authoring.api_backend.build_api_backend` refuses with, so
-    the page, the window and the engine cannot disagree about the refusal. An
+    setup and the engine cannot disagree about the refusal. An
     empty setting means this build's default provider.
     """
     wanted = str(config.agent_provider or "").strip()

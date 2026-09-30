@@ -29,7 +29,7 @@ def test_the_allowlist_is_what_the_child_gets_and_nothing_else() -> None:
     parent = {
         "SystemRoot": r"C:\Windows",
         "PATH": r"C:\Windows\System32",
-        "APPDATA": r"C:\Users\someone\AppData\Roaming",
+        "APPDATA": r"C:\sandbox-profile\AppData\Roaming",
         # Everything below is a variable this program's own environment really holds.
         "DEEPSEEK_API_KEY": "sk-do-not-leak",
         "OPENAI_API_KEY": "sk-do-not-leak",

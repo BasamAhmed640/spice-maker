@@ -46,10 +46,11 @@ def build_parser() -> argparse.ArgumentParser:
             "model and real simulator runs judge it against the datasheet's own rows."
         ),
         epilog=(
-            "start here:  boardmodeler model build --part <PN> --datasheet <pdf> "
+            "start here:  boardmodeler                 (interactive menu)\n"
+            "             boardmodeler model build --part <PN> --datasheet <pdf> "
             "--out <dir>\n"
             "             boardmodeler model install --out <dir> --user-lib --apply\n"
-            "             boardmodeler ui      (the same thing as a window)"
+            "             boardmodeler setup  (saved settings)"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -76,19 +77,22 @@ def build_parser() -> argparse.ArgumentParser:
     version_cmd = sub.add_parser("version", help="print the version")
     version_cmd.add_argument("--json", action="store_true")
 
-    setup_cmd = sub.add_parser(
-        "setup", help="the one page of persistent settings (LTspice, API key, model folder)"
-    )
+    setup_cmd = sub.add_parser("setup", help="configure LTspice, provider, key and model folder")
     setup_cmd.add_argument(
         "--json",
         action="store_true",
-        help="print the resolved settings instead of a window",
+        help="print the resolved settings without starting the wizard",
     )
-
-    ui_cmd = sub.add_parser("ui", help="launch the model maker window (add --installer for setup)")
-    ui_cmd.add_argument(
-        "--installer", action="store_true", help="open the setup page instead of the model maker"
+    setup_cmd.add_argument("--ltspice", default=None, help="path to LTspice.exe")
+    setup_cmd.add_argument("--model-dir", default=None, help="folder for finished models")
+    setup_cmd.add_argument(
+        "--provider", default=None, help="provider id from this edition's catalog"
     )
+    setup_cmd.add_argument("--internet", choices=("on", "off"), default=None)
+    setup_cmd.add_argument(
+        "--key-env", default=None, metavar="NAME", help="name of a key environment variable"
+    )
+    setup_cmd.add_argument("--yes", action="store_true", help="accept wizard defaults")
 
     run = sub.add_parser("run", help="run model verification tests")
     run_sub = run.add_subparsers(dest="run_command", required=True)
@@ -1532,15 +1536,24 @@ def _cmd_extract(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     from boardmodeler.storage import initialize, install_write_guard
 
-    initialize()
-    # The contained venv runtime enters here (Boardmodeler.cmd sets SPICE_MAKER_ROOT
-    # and runs ``python -m boardmodeler.cli``); a repository checkout installs nothing.
-    install_write_guard()
+    try:
+        initialize()
+        # The contained venv runtime enters here (Boardmodeler.cmd sets SPICE_MAKER_ROOT
+        # and runs ``python -m boardmodeler.cli``); a repository checkout installs nothing.
+        install_write_guard()
+    except (OSError, ValueError) as exc:
+        print(f"Spice Maker cannot use this folder: {exc}", file=sys.stderr)
+        return 1
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    if args.command in (None, "version"):
-        if args.command == "version" and getattr(args, "json", False):
+    if args.command is None:
+        from boardmodeler.terminal_menu import run_menu
+
+        return run_menu()
+
+    if args.command == "version":
+        if getattr(args, "json", False):
             print(json.dumps({"tool": "boardmodeler", "version": __version__}, indent=2))
         else:
             print(f"boardmodeler {__version__}")
@@ -1560,28 +1573,28 @@ def main(argv: list[str] | None = None) -> int:
             print(_render_doctor_human(payload))
         return 0
 
-    if args.command == "ui":
-        from boardmodeler.ui.app import main as ui_main
-
-        forwarded: list[str] = []
-        if getattr(args, "installer", False):
-            forwarded.append("--installer")
-        return ui_main(forwarded)
-
     if args.command == "setup":
         if getattr(args, "json", False):
-            # Answered without Qt on purpose: the ``.venv`` the installer builds has no
-            # PySide6 (see ``installer/vendor_env.py``), and this command is documented as
-            # the way to read the resolved settings from that copy. Importing the dialog
-            # module here raised ModuleNotFoundError in exactly that environment.
             from boardmodeler.config import load_config
             from boardmodeler.settings_summary import describe_settings
 
             print(json.dumps(describe_settings(load_config()), indent=2))
             return 0
-        from boardmodeler.ui.setup_dialog import main as setup_main
+        from boardmodeler.setup_wizard import main as setup_main
 
-        return setup_main([])
+        forwarded: list[str] = []
+        for option, value in (
+            ("--ltspice", args.ltspice),
+            ("--model-dir", args.model_dir),
+            ("--provider", args.provider),
+            ("--internet", args.internet),
+            ("--key-env", args.key_env),
+        ):
+            if value is not None:
+                forwarded.extend((option, value))
+        if args.yes:
+            forwarded.append("--yes")
+        return setup_main(forwarded)
 
     if args.command == "run" and args.run_command == "tests":
         return _cmd_run_tests(args)
