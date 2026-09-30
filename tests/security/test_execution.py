@@ -15,7 +15,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
 import pytest
@@ -35,6 +35,7 @@ from boardmodeler.security.execution import (
     system_executable,
     validate,
 )
+from boardmodeler.ui.worker_client import WorkerClient
 
 SECRET = "test-only-token-not-a-real-key"
 
@@ -64,6 +65,12 @@ SPAWN_SITE_ALLOWLIST: dict[str, str] = {
         "honour a cancel event while streaming -- neither fits a buffered runner. Both "
         "calls execution.validate() first and spawn exactly the resolved "
         "executable/tail/cwd/env; -version and the tree kill go through execution.run()"
+    ),
+    "ui/worker_client.py": (
+        "the worker's stdout is a JSON-lines protocol that must be parsed as it arrives "
+        "(the window shows stages while the build runs), so this module owns the loop: "
+        "it calls execution.validate() first, enforces the spec's 8-hour deadline and "
+        "output cap in its own pumps, and kills through the policy's taskkill spec"
     ),
     "authoring/backends.py": (
         "the model-authoring backends still run their own guarded launch with their own "
@@ -1068,6 +1075,220 @@ def test_system_executable_names_a_real_allowlisted_tool() -> None:
     with pytest.raises(CommandRefused) as info:
         validate(unpermitted, argv=("/PID", "1", "/T", "/F"), cwd=scratch, root=scratch)
     assert info.value.code == "executable_not_allowed"
+
+
+# --------------------------------------------------------------------------- #
+# the worker spawn site: explicit environment, hard deadline, bounded stream
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+#: A controller the worker can import: it records its own environment and PID (so the
+#: tests can see exactly what reached the child), can flood a stream, and can hold.
+STUB_CONTROLLER = '''
+"""Stub controller for the worker spawn-site tests."""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+import time
+from dataclasses import dataclass
+from pathlib import Path
+
+
+@dataclass
+class PipelineRequest:
+    project_dir: Path
+    hold_s: float = 0.0
+    flood_bytes: int = 0
+
+
+class PipelineController:
+    def __init__(self, config: object | None = None) -> None:
+        self.config = config
+
+    def run(self, request, progress=None, cancel=None) -> dict:
+        Path("child-env.json").write_text(
+            json.dumps(dict(os.environ), sort_keys=True), encoding="utf-8"
+        )
+        Path("child-pid.txt").write_text(str(os.getpid()), encoding="utf-8")
+        if request.flood_bytes:
+            sys.stderr.write("x" * request.flood_bytes)
+            sys.stderr.flush()
+        if request.hold_s:
+            time.sleep(request.hold_s)
+        return {
+            "status": "PASS",
+            "stages": [],
+            "results": [],
+            "findings": [],
+            "review_items": [],
+            "artifacts": [],
+            "diagnostics": {},
+        }
+'''
+
+
+@pytest.fixture
+def worker_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A project directory plus an importable stub controller for the worker child."""
+    project = tmp_path / "project"
+    project.mkdir()
+    (tmp_path / "worker_stub_controller.py").write_text(STUB_CONTROLLER, encoding="utf-8")
+    existing = os.environ.get("PYTHONPATH", "")
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path) + (os.pathsep + existing if existing else ""))
+    return project
+
+
+def _start_worker(
+    client: WorkerClient,
+    project: Path,
+    payload: Mapping[str, object] | None = None,
+    **start: object,
+) -> None:
+    """Start the worker for ``payload``; ``start`` kwargs belong to the client, not the
+    request -- the worker rejects unknown request fields, which is the point of them."""
+    client.start(
+        {"project_dir": str(project), **(payload or {})},
+        project_dir=project,
+        **start,  # type: ignore[arg-type]
+    )
+
+
+def test_the_worker_child_cannot_see_unrelated_secrets(qapp, worker_project: Path) -> None:
+    """The child is this program's interpreter, not a copy of the operator's shell."""
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "fake-aws-secret")
+    monkeypatch.setenv("GITHUB_TOKEN", "fake-github-token")
+    monkeypatch.setenv("SOME_UNRELATED_VARIABLE", "fake-unrelated")
+    monkeypatch.setenv("LTSPICE_EXE", r"C:\fake\LTspice.exe")
+    monkeypatch.setenv("BOARDMODELER_TEST_ONLY", "kept")
+    try:
+        client = WorkerClient(
+            project_dir=worker_project, controller_module="worker_stub_controller"
+        )
+        _start_worker(client, worker_project)
+        outcome = client.wait(120)
+        assert outcome.exit_code == 0, (outcome.exit_code, outcome.stderr)
+        child_env = json.loads((worker_project / "child-env.json").read_text(encoding="utf-8"))
+    finally:
+        monkeypatch.undo()
+
+    assert "AWS_SECRET_ACCESS_KEY" not in child_env
+    assert "GITHUB_TOKEN" not in child_env
+    assert "SOME_UNRELATED_VARIABLE" not in child_env
+    assert "LTSPICE_EXE" not in child_env
+    assert child_env["BOARDMODELER_TEST_ONLY"] == "kept"
+    # ``os.environ`` uppercases every key on Windows, so the child reports the OS
+    # variable under its uppercase spelling whichever spelling the spec allowlists.
+    assert any(name.upper() == "SYSTEMROOT" for name in child_env)
+
+
+def test_the_worker_child_gets_only_the_selected_providers_key_variables(
+    qapp, worker_project: Path
+) -> None:
+    """Provider variables are read from the catalog, not hardcoded -- and per provider."""
+    from boardmodeler.ui.worker_client import _selected_provider_id, provider_env_names
+
+    selected = provider_env_names(_selected_provider_id())
+    candidates = ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "DEEPSEEK_API_KEY", "GEMINI_API_KEY")
+    other = next(name for name in candidates if name not in selected)
+
+    monkeypatch = pytest.MonkeyPatch()
+    for name in selected:
+        monkeypatch.setenv(name, "fake-selected-provider-key")
+    monkeypatch.setenv(other, "fake-other-provider-key")
+    try:
+        client = WorkerClient(
+            project_dir=worker_project, controller_module="worker_stub_controller"
+        )
+        _start_worker(client, worker_project)
+        outcome = client.wait(120)
+        assert outcome.exit_code == 0, (outcome.exit_code, outcome.stderr)
+        child_env = json.loads((worker_project / "child-env.json").read_text(encoding="utf-8"))
+    finally:
+        monkeypatch.undo()
+
+    assert selected, "a build with no provider variables would make this test vacuous"
+    for name in selected:
+        assert child_env.get(name) == "fake-selected-provider-key", name
+    assert other not in child_env
+
+
+def test_the_build_deadline_kills_the_worker_tree(qapp, worker_project: Path) -> None:
+    """A build that outlives its deadline is killed, and the detail names the deadline."""
+    import psutil
+
+    client = WorkerClient(project_dir=worker_project, controller_module="worker_stub_controller")
+    errors: list[dict] = []
+    client.error.connect(errors.append)
+
+    started = time.monotonic()
+    _start_worker(client, worker_project, {"hold_s": 120.0}, deadline_s=8.0)
+    assert _wait_until(lambda: (worker_project / "child-pid.txt").is_file(), timeout_s=30.0), (
+        "the worker child never started, so the deadline was not exercised"
+    )
+    pid = int((worker_project / "child-pid.txt").read_text(encoding="utf-8"))
+    outcome = client.wait(180)
+    elapsed = time.monotonic() - started
+    qapp.processEvents()
+
+    # The real default is 8 hours: nothing here may wait for it, and nothing may pass
+    # this test by killing the child before its deadline either.
+    assert 7.0 <= elapsed < 60.0, f"deadline did not fire at 8 s (took {elapsed:.1f}s)"
+    assert outcome.error is not None, outcome.stderr
+    assert outcome.error["code"] == "deadline_exceeded"
+    assert "8" in str(outcome.error["detail"]) and "deadline" in str(outcome.error["detail"])
+    assert any(event.get("code") == "deadline_exceeded" for event in errors)
+    assert not client.is_running()
+    assert _wait_until(lambda: not psutil.pid_exists(pid), timeout_s=20.0), (
+        "the worker survived its deadline; the process tree was not killed"
+    )
+
+
+def test_the_worker_stream_is_bounded(qapp, worker_project: Path) -> None:
+    """A child that floods a stream is stopped instead of filling this process."""
+    import psutil
+
+    client = WorkerClient(
+        project_dir=worker_project,
+        controller_module="worker_stub_controller",
+        max_output_bytes=4096,
+    )
+    _start_worker(client, worker_project, {"flood_bytes": 400_000, "hold_s": 120.0})
+    assert _wait_until(lambda: (worker_project / "child-pid.txt").is_file(), timeout_s=30.0)
+    pid = int((worker_project / "child-pid.txt").read_text(encoding="utf-8"))
+    outcome = client.wait(120)
+
+    assert outcome.error is not None
+    assert outcome.error["code"] == "output_too_large"
+    assert "4096" in str(outcome.error["detail"])
+    assert not client.is_running()
+    assert _wait_until(lambda: not psutil.pid_exists(pid), timeout_s=20.0), (
+        "the flooding worker was not killed"
+    )
+
+
+def test_the_worker_spawn_is_refused_before_it_exists(qapp, worker_project: Path) -> None:
+    """A missing interpreter is a policy refusal, not an OSError from a spawn."""
+    client = WorkerClient(
+        python=worker_project / "no-such-python.exe",
+        project_dir=worker_project,
+        controller_module="worker_stub_controller",
+    )
+    with pytest.raises(CommandRefused) as info:
+        _start_worker(client, worker_project)
+    assert info.value.code == "executable_not_found"
+    assert not client.is_running()
+
+
+def test_the_worker_spawn_requires_a_real_deadline(qapp, worker_project: Path) -> None:
+    """The deadline is not optional: the policy refuses a spec without one."""
+    client = WorkerClient(project_dir=worker_project, controller_module="worker_stub_controller")
+    with pytest.raises(CommandRefused) as info:
+        _start_worker(client, worker_project, deadline_s=0)
+    assert info.value.code == "timeout_missing"
 
 
 # --------------------------------------------------------------------------- #

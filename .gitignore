@@ -28,6 +28,7 @@ credentials.bin
 /.previous-*/
 /.install.lock
 /install-error.txt
+/Start.cmd
 
 # Agent/workflow checkpoints (pi session state, not project content)
 .pi/

@@ -2,7 +2,7 @@
 
 These tests do not stub the catalog or the factory. They exercise the objects the
 general build actually ships — the catalog, the backend constructor, the engine, the
-CLI parser and the text setup — and assert that Bob is absent or refused without a
+CLI parser and the setup page — and assert that Bob is absent or refused without a
 process being created, a PATH entry read or a key looked up. If any of those surfaces
 started reaching Bob again, this module fails first.
 """
@@ -10,10 +10,13 @@ started reaching Bob again, this module fails first.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
 import pytest
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 
 def _bomb(*args: object, **kwargs: object) -> object:
@@ -135,22 +138,37 @@ def test_the_cli_refuses_backend_bob_without_a_traceback(tmp_path: Path, capsys)
     assert "Traceback" not in message
 
 
-def test_terminal_setup_has_no_bob_shell_switch(capsys) -> None:
-    from boardmodeler.config import AppConfig
-    from boardmodeler.setup_wizard import main
+@pytest.mark.gui
+def test_the_legacy_settings_dialog_has_no_bob_shell_switch(qtbot, tmp_path: Path) -> None:
+    pytest.importorskip("PySide6")
+    from boardmodeler.ui.settings import SettingsDialog
 
-    assert "allow_bob_shell" not in AppConfig.model_fields
-    with pytest.raises(SystemExit) as info:
-        main(["--allow-bob-shell"])
-    assert info.value.code == 2
-    assert "unrecognized arguments" in capsys.readouterr().err
+    page = SettingsDialog(config_file=tmp_path / "config.json")
+    qtbot.addWidget(page)
+
+    assert not hasattr(page, "allow_bob_shell")
+    assert "allow_bob_shell" not in page.values()
+
+    rows = [page.provider.itemText(index) for index in range(page.provider.count())]
+    assert "bob_direct" not in rows
+    assert "bob_shell" not in rows
 
 
-def test_terminal_setup_refuses_bob_provider() -> None:
+@pytest.mark.gui
+def test_the_setup_page_offers_no_bob_row(qtbot, tmp_path: Path, monkeypatch) -> None:
+    pytest.importorskip("PySide6")
     from boardmodeler import agent_providers
-    from boardmodeler.config import AppConfig
-    from boardmodeler.setup_wizard import SetupError, _provider
+    from boardmodeler.ui.setup_dialog import SetupDialog
 
-    assert "bob" not in agent_providers.ids()
-    with pytest.raises(SetupError, match="unavailable"):
-        _provider("bob", AppConfig(), yes=True)
+    config_file = tmp_path / "config.json"
+    monkeypatch.setattr("boardmodeler.config.config_path", lambda: config_file)
+    monkeypatch.setattr("boardmodeler.ui.setup_dialog.config_path", lambda: config_file)
+
+    page = SetupDialog()
+    qtbot.addWidget(page)
+
+    combo = page.provider_combo
+    assert combo is not None
+    rows = [combo.itemData(index) for index in range(combo.count())]
+    assert rows == list(agent_providers.ids())
+    assert "bob" not in rows

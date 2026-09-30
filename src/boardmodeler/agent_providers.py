@@ -409,7 +409,8 @@ def endpoint_is_vendor(provider: str | None, url: str) -> tuple[bool, str]:
 def only_provider() -> AgentProvider | None:
     """The one provider a restricted build accepts, or ``None`` when there is a choice.
 
-    A build whose catalog holds a single entry offers no provider choice. The
-    setup wizard names that provider and asks for its own key label (D-015).
+    A build whose catalog holds a single entry offers no provider choice, so the surfaces
+    that would offer one say whose build this is instead: the SETUP page says it accepts
+    that provider's API only, and the window title carries the same fact (D-015).
     """
     return CATALOG[0] if len(CATALOG) == 1 else None
