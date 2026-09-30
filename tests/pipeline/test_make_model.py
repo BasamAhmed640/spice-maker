@@ -68,6 +68,18 @@ BOUND_IDS = (
 # helpers
 
 
+def stub_pinout_confirmation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Isolate unrelated pipeline tests from M6; never claim real pinout evidence.
+
+    Each caller explicitly opts in for its synthetic fixture. Dedicated M6 tests
+    use the production gate, and no application or conftest default is changed.
+    """
+    monkeypatch.setattr(engine._Run, "freeze_pinout", lambda self: None)
+    monkeypatch.setattr(
+        engine._Run, "_check_pinout_publication", lambda self, library, symbol, model_file: None
+    )
+
+
 def datasheet_for(tmp_path: Path) -> Path:
     """The real datasheet when the git-ignored original is present, else a stand-in.
 
@@ -218,6 +230,7 @@ def last_stage(result, stage: str):
 def test_scenario_a_scripted_template_passes_and_publishes_the_deliverables(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, ltspice_exe: Path
 ) -> None:
+    stub_pinout_confirmation(monkeypatch)
     use_backend(monkeypatch, ScriptedBackend(template_script()))
     result, _events, wall_s = run(tmp_path)
     print(f"\nscenario (a) wall time: {wall_s:.1f} s for {len(result.rows)} rows")
@@ -293,6 +306,7 @@ def test_scenario_b_one_failing_probe_is_unknown_and_keeps_every_row_status(
     row, so the model is not declared wrong — while every row keeps its own
     measured status.
     """
+    stub_pinout_confirmation(monkeypatch)
     use_backend(monkeypatch, ScriptedBackend(template_script(vref="0.5", drop_ports=("PG",))))
     result, _events, _wall = run(tmp_path, max_iterations=1)
 
@@ -321,6 +335,7 @@ def test_scenario_b_one_failing_probe_is_unknown_and_keeps_every_row_status(
 def test_scenario_c_missing_ltspice_is_blocked_and_never_runs_the_agent(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    stub_pinout_confirmation(monkeypatch)
     backend = use_backend(monkeypatch, ScriptedBackend(template_script()))
     monkeypatch.setattr(engine, "locate", lambda explicit=None: None)
 
@@ -354,6 +369,7 @@ def test_scenario_c_missing_ltspice_is_blocked_and_never_runs_the_agent(
 def test_an_unknown_backend_name_is_blocked_rather_than_substituted(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    stub_pinout_confirmation(monkeypatch)
     monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
     result, _events, _wall = run(tmp_path, backend_name="magic")
     assert result.status == "BLOCKED"
@@ -362,13 +378,14 @@ def test_an_unknown_backend_name_is_blocked_rather_than_substituted(
 
 @pytest.mark.ltspice
 def test_the_scripted_backend_authors_the_bundled_template_without_injection(
-    tmp_path: Path, ltspice_exe: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, ltspice_exe: Path
 ) -> None:
     """``backend_name="scripted"`` is the offline author: bundled template, no key.
 
-    Nothing is injected here: this is the path the GUI's integration run and any
-    user without an agent key take, judged by the same real LTspice harness.
+    The author backend is not injected. Only the synthetic fixture's pinout
+    approval is isolated; the bundled author uses the real LTspice harness.
     """
+    stub_pinout_confirmation(monkeypatch)
     result, events, _wall = run(tmp_path, backend_name="scripted")
 
     assert result.status == "UNKNOWN", result.detail
@@ -381,9 +398,10 @@ def test_the_scripted_backend_authors_the_bundled_template_without_injection(
 
 @pytest.mark.ltspice
 def test_the_scripted_backend_writes_nothing_for_a_subcircuit_it_cannot_author(
-    tmp_path: Path, ltspice_exe: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, ltspice_exe: Path
 ) -> None:
     """No bundled template declares this subcircuit, so no model is invented."""
+    stub_pinout_confirmation(monkeypatch)
     result, _events, _wall = run(tmp_path, backend_name="scripted", subckt="BM_NOT_A_TEMPLATE")
 
     assert result.status == "UNKNOWN"
@@ -399,6 +417,7 @@ def test_the_scripted_backend_writes_nothing_for_a_subcircuit_it_cannot_author(
 def test_scenario_e_cancellation_before_the_first_turn_is_unknown_with_the_stage_list(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    stub_pinout_confirmation(monkeypatch)
     monkeypatch.setattr(engine, "locate", lambda explicit=None: fake_ltspice(tmp_path))
     backend = use_backend(monkeypatch, ScriptedBackend(template_script()))
     cancel = threading.Event()
@@ -824,6 +843,7 @@ def test_each_operating_point_keeps_its_own_row_status(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """One probe, two corners: each row shows the outcome that judged it, not its twin's."""
+    stub_pinout_confirmation(monkeypatch)
     from boardmodeler.authoring import loop as loop_module
     from boardmodeler.authoring.harness import HarnessReport, ProbeOutcome
 
@@ -940,6 +960,7 @@ def test_rows_sharing_one_case_get_their_own_verdicts(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Rows sharing one probe case are judged separately, from one simulation."""
+    stub_pinout_confirmation(monkeypatch)
     from boardmodeler.authoring import loop as loop_module
     from boardmodeler.authoring.harness import HarnessReport, ProbeOutcome
 
@@ -1024,6 +1045,7 @@ def test_rows_sharing_one_case_get_their_own_verdicts(
 def test_scenario_g_every_turn_reports_its_own_counts_and_the_last_matches(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, ltspice_exe: Path
 ) -> None:
+    stub_pinout_confirmation(monkeypatch)
     use_backend(monkeypatch, ScriptedBackend(fail_then_pass_script()))
     result, events, _wall = run(tmp_path, max_iterations=2)
 
@@ -1206,6 +1228,7 @@ def test_a_stalled_agent_stops_the_build_and_keeps_the_measured_rows(
     involved: the harness is the same canned-report seam the author-loop tests
     use, so this pins the stopping rule, not the simulator.
     """
+    stub_pinout_confirmation(monkeypatch)
     from boardmodeler.authoring import loop as loop_module
 
     reports = []
@@ -1247,6 +1270,7 @@ def test_a_capped_run_with_every_row_measured_wrong_is_fail(
     so the cap is reached with every bound row fully judged — the one case the
     status ladder calls ``FAIL`` rather than ``UNKNOWN``.
     """
+    stub_pinout_confirmation(monkeypatch)
     from boardmodeler.authoring import loop as loop_module
 
     def canned_harness(*, model_lib, subckt, spec, workdir, ltspice, timeout_s=120.0, cancel=None):
@@ -1366,6 +1390,7 @@ def test_the_reinforcement_stage_runs_on_the_backend_the_author_loop_uses(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """One agent for both stages: the search may not pick a provider of its own."""
+    stub_pinout_confirmation(monkeypatch)
     from boardmodeler.authoring.reinforce import ReinforcementReport
 
     seen: list[object] = []
@@ -1440,6 +1465,7 @@ def test_a_broken_candidate_is_prechecked_once_without_a_spurious_judge_turn(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """An uncacheable UNKNOWN precheck must not make build_model simulate it again."""
+    stub_pinout_confirmation(monkeypatch)
     from boardmodeler.authoring import loop as loop_module
     from boardmodeler.authoring.harness import HarnessReport, ProbeOutcome
 
@@ -1554,6 +1580,8 @@ def test_a_missing_datasheet_is_blocked_not_raised(tmp_path: Path) -> None:
 def test_tampering_with_the_frozen_spec_is_unknown_not_raised(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    stub_pinout_confirmation(monkeypatch)
+
     def script(turn: int, workdir: Path, prompt: str) -> None:
         model_dir = workdir / "model"
         model_dir.mkdir(parents=True, exist_ok=True)
