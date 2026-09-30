@@ -11,6 +11,7 @@ surface and reports *only* observed facts (nothing is assumed about the machine)
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib
 import json
 import platform
@@ -1209,7 +1210,7 @@ def _cmd_model_build_from_datasheet(args: argparse.Namespace, *, subckt: str, em
     return emit(payload, 1 if (args.strict and result.status != "PASS") else 0)
 
 
-def _run_model_test(out_dir: Path, *, timeout_s: float) -> tuple[dict[str, Any], bool]:
+def _run_model_test(out_dir: Path, *, timeout_s: float, cancel=None) -> tuple[dict[str, Any], bool]:
     """The verification path ``model test`` runs, as ``(payload, ran)``.
 
     Extracted so ``model open --verify`` runs *this* code rather than a second copy of
@@ -1218,8 +1219,8 @@ def _run_model_test(out_dir: Path, *, timeout_s: float) -> tuple[dict[str, Any],
     simulator or the model files were missing, so a caller can exit non-zero instead of
     reporting a result that was never produced.
     """
-    from boardmodeler.authoring.card import write_deliverables
     from boardmodeler.authoring.harness import run_harness
+    from boardmodeler.authoring.retest import prepare_retest, save_retest
     from boardmodeler.authoring.spec import SpecSet
     from boardmodeler.simulation.ltspice import locate
 
@@ -1231,16 +1232,20 @@ def _run_model_test(out_dir: Path, *, timeout_s: float) -> tuple[dict[str, Any],
             "detail": detail,
         }, False
 
-    install = locate()
-    if install is None:
-        return blocked("LTspice is not configured; open SETUP and choose LTspice.exe")
-
     try:
         spec_json = _spec_json_in(out_dir)
         spec = SpecSet.from_json(spec_json.read_text(encoding="utf-8"))
         lib = _model_lib_in(out_dir, spec.subckt)
+        retest = prepare_retest(out_dir, spec, lib, spec_json)
     except (OSError, ValueError) as exc:
         return blocked(str(exc))
+
+    if retest.problem:
+        return save_retest(retest), False
+    install = locate()
+    if install is None:
+        retest.problem = "LTspice is not configured; open SETUP and choose LTspice.exe"
+        return save_retest(retest), False
 
     report = run_harness(
         model_lib=lib,
@@ -1249,29 +1254,22 @@ def _run_model_test(out_dir: Path, *, timeout_s: float) -> tuple[dict[str, Any],
         workdir=out_dir / "harness",
         ltspice=install.path,
         timeout_s=timeout_s,
+        cancel=cancel,
     )
-    report_path = out_dir / "harness-report.json"
-    report_path.write_text(report.to_json(), encoding="utf-8", newline="\n")
-    written = write_deliverables(
-        out_dir=out_dir,
-        part=spec.part,
-        subckt=spec.subckt,
-        spec=spec,
-        report=report,
-        document=spec.doc_id,
-    )
-    status = "PASS" if report.passed() else "UNKNOWN"
-    payload = {
-        "tool": "boardmodeler",
-        "command": "model test",
-        "part": spec.part,
-        "subckt": spec.subckt,
-        "status": status,
-        "counts": report.counts(),
-        "probes": [outcome.to_json() for outcome in report.outcomes],
-        "files": [str(report_path), *(str(path) for path in written)],
-    }
-    return payload, True
+    try:
+        if (
+            not retest.unchanged()
+            or report.spec_digest != spec.digest()
+            or report.model_sha256 != hashlib.sha256(retest.library).hexdigest()
+        ):
+            raise ValueError(
+                "retest_evidence_changed: library, symbol, or fixed spec changed while testing"
+            )
+    except (OSError, ValueError) as exc:
+        retest = prepare_retest(out_dir, spec, lib, spec_json)
+        retest.problem = str(exc)
+        return save_retest(retest), False
+    return save_retest(retest, report), True
 
 
 def _print_model_test(payload: dict[str, Any]) -> None:
@@ -1541,7 +1539,18 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command in (None, "version"):
         if args.command == "version" and getattr(args, "json", False):
-            print(json.dumps({"tool": "boardmodeler", "version": __version__}, indent=2))
+            from boardmodeler.engine_identity import engine_contract
+
+            print(
+                json.dumps(
+                    {
+                        "tool": "boardmodeler",
+                        "version": __version__,
+                        "engine_contract": engine_contract(),
+                    },
+                    indent=2,
+                )
+            )
         else:
             print(f"boardmodeler {__version__}")
         return 0

@@ -910,6 +910,28 @@ def _copy_python(ctx: Context) -> Path:
     return ctx.install_root / ".venv/Scripts/python.exe"
 
 
+def verify_engine_contract(payload, expected, surface):
+    """Reject an old same-version bundle before any expensive model build."""
+    actual = payload.get("engine_contract") if isinstance(payload, dict) else None
+    if not isinstance(actual, dict):
+        raise StageFailure(f"{surface} reports no engine contract; its packaged engine is stale")
+    if (
+        actual.get("schema_version") != 1
+        or actual.get("default_engine") != "behavioral"
+        or set(actual.get("engines") or ()) != {"behavioral", "pin_only", "legacy_ai"}
+        or actual.get("source_sha256") != expected.get("source_sha256")
+    ):
+        raise StageFailure(f"{surface} engine contract differs from the current release source")
+    return actual
+
+
+def verify_engine_choices(help_text, surface):
+    if "--engine" not in help_text or not all(
+        engine in help_text for engine in ("behavioral", "pin_only", "legacy_ai")
+    ):
+        raise StageFailure(f"{surface} cannot select the deterministic engine; its CLI is stale")
+
+
 def stage_environment(ctx: Context, stage: Stage) -> dict[str, Any]:
     """Drive the installed copy's own interpreter and prove it stays in its folder."""
     assert ctx.install_root is not None
@@ -935,6 +957,41 @@ def stage_environment(ctx: Context, stage: Stage) -> dict[str, Any]:
             f"the installed package reports {version_payload['version']!r} while the installer "
             f"carries {ctx.expected_version!r}"
         )
+
+    from boardmodeler.engine_identity import engine_contract
+
+    expected_contract = engine_contract()
+    installed_engine = verify_engine_contract(version_payload, expected_contract, "installed wheel")
+    installed_help = stage.run(
+        [str(python), "-m", "boardmodeler.cli", "model", "build", "--help"],
+        cwd=root,
+        env=env,
+        timeout=PROBE_TIMEOUT_S,
+        what="the installed wheel's engine choices",
+    )
+    verify_engine_choices(installed_help.stdout, "installed wheel")
+    frozen = root / "app/SpiceMaker.exe"
+    if not frozen.is_file():
+        raise StageFailure(f"the copy has no desktop executable at {frozen}")
+    frozen_version = stage.run(
+        [str(frozen), "--cli", "version", "--json"],
+        cwd=root,
+        env=env,
+        timeout=PROBE_TIMEOUT_S,
+        what="the desktop executable's engine identity",
+    )
+    frozen_payload = parse_json(frozen_version.stdout)
+    frozen_engine = verify_engine_contract(frozen_payload, expected_contract, "desktop executable")
+    if frozen_payload.get("version") != ctx.expected_version:
+        raise StageFailure("the desktop executable's version differs from the release")
+    frozen_help = stage.run(
+        [str(frozen), "--cli", "model", "build", "--help"],
+        cwd=root,
+        env=env,
+        timeout=PROBE_TIMEOUT_S,
+        what="the desktop executable's engine choices",
+    )
+    verify_engine_choices(frozen_help.stdout, "desktop executable")
 
     doctor_record = stage.run(
         [str(python), "-m", "boardmodeler.cli", "doctor", "--json", "--no-smoke"],
@@ -1025,6 +1082,12 @@ def stage_environment(ctx: Context, stage: Stage) -> dict[str, Any]:
             "python": str(python),
             "interpreter": interpreter,
             "package_version": version_payload["version"],
+            "engine_contract": {
+                "source": expected_contract,
+                "installed_wheel": installed_engine,
+                "desktop_executable": frozen_engine,
+                "cli_engine_choices": "behavioral, pin_only, legacy_ai on both surfaces",
+            },
             "doctor_config": {
                 "path": str(config_path),
                 "exists": (doctor.get("config") or {}).get("exists"),

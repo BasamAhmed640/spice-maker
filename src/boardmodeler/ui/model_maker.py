@@ -69,20 +69,21 @@ from boardmodeler.security.execution import (
 )
 from boardmodeler.storage import app_root, local_path, model_dir, portable
 from boardmodeler.ui.file_dialogs import starting_directory
-from boardmodeler.ui.theme import CGA, RETRO_STYLESHEET
+from boardmodeler.ui.retest_worker import RetestWorker
+from boardmodeler.ui.theme import DESKTOP, RETRO_STYLESHEET
 
 __all__ = ["DoctorView", "HourglassWidget", "ModelMakerWindow", "readable_doctor_report"]
 
 _STATUS_COLOUR = {
-    "PASS": "#55ff55",
-    "FAIL": "#ff5555",
-    "UNKNOWN": "#ffff55",
-    "BLOCKED": "#ff55ff",
-    "NOT_APPLICABLE": "#5555ff",
-    "running": "#55ffff",
-    "ok": "#55ff55",
-    "failed": "#ff5555",
-    "skipped": "#aaaaaa",
+    "PASS": DESKTOP["pass"],
+    "FAIL": DESKTOP["fail"],
+    "UNKNOWN": DESKTOP["unknown"],
+    "BLOCKED": DESKTOP["fail"],
+    "NOT_APPLICABLE": DESKTOP["muted"],
+    "running": DESKTOP["blue"],
+    "ok": DESKTOP["pass"],
+    "failed": DESKTOP["fail"],
+    "skipped": DESKTOP["muted"],
 }
 
 
@@ -326,7 +327,7 @@ class HourglassWidget(QWidget):
         bottom_bulb.lineTo(4.0, 19.5)
         bottom_bulb.closeSubpath()
 
-        glass = QPen(QColor(CGA["bright_cyan"]))
+        glass = QPen(QColor(DESKTOP["navy"]))
         glass.setWidthF(1.0)
         painter.setPen(glass)
         painter.drawLine(QPointF(2.5, 2.0), QPointF(15.5, 2.0))
@@ -336,7 +337,7 @@ class HourglassWidget(QWidget):
             QPolygonF([QPointF(14.0, 3.0), QPointF(9.0, 11.0), QPointF(14.0, 19.0)])
         )
 
-        sand = QColor(CGA["bright_cyan"])
+        sand = QColor(DESKTOP["navy"])
         sand.setAlpha(190)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(sand))
@@ -401,7 +402,7 @@ class DoctorView(QDialog):
         layout.setSpacing(6)
         self.summary_label = QLabel("")
         self.summary_label.setStyleSheet(
-            f"color: {CGA['bright_green']}; font-family: Consolas; font-size: 9pt;"
+            f"color: {DESKTOP['blue']}; font-family: 'Segoe UI'; font-size: 9pt;"
         )
         layout.addWidget(self.summary_label)
         self.report_view = QPlainTextEdit()
@@ -485,16 +486,16 @@ class ModelMakerWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(_window_title())
-        # The build window is resizable: 900x600 is where it opens, not a cage. The floor is
-        # the content's own minimum size, computed once the layout is built, so shrinking it
-        # can never hide a control; maximising is the user's to do.
-        self.resize(900, 600)
-        self._worker: MakeModelWorker | None = None
+        # Start at the content size; expanded diagnostics remain resizable.
+        self._worker: MakeModelWorker | RetestWorker | None = None
         self._result: object | None = None
         self._out_dir: Path | None = None
         self.doctor_view: DoctorView | None = None
         self._started_at: float | None = None
         self._elapsed_seconds = 0.0
+        self._model_root = Path(_default_model_dir())
+        self._automatic_output = True
+        self._setting_output = False
         self._elapsed_timer = QTimer(self)
         self._elapsed_timer.setInterval(250)
         self._elapsed_timer.timeout.connect(self._update_elapsed)
@@ -504,26 +505,52 @@ class ModelMakerWindow(QMainWindow):
         central.setObjectName("root")
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(7)
+        layout.setContentsMargins(14, 12, 14, 12)
+        layout.setSpacing(10)
+        self._content_layout = layout
 
         layout.addLayout(self._build_top_row())
-        layout.addWidget(self.readiness)
         layout.addLayout(self._build_inputs())
         layout.addLayout(self._build_actions())
-        layout.addWidget(QLabel("PROGRESS"))
-        layout.addWidget(self._build_stages(), 2)
         layout.addWidget(self._build_result_header())
-        layout.addWidget(self._build_rows(), 5)
+        layout.addWidget(self.progress)
+        self.counts_label = QLabel("")
+        self.counts_label.setWordWrap(True)
+        self.counts_label.hide()
+        layout.addWidget(self.counts_label)
         layout.addLayout(self._build_result_actions())
+        self.details_button = QPushButton("Show details")
+        self.details_button.setCheckable(True)
+        self.details_button.setToolTip(
+            "Tool readiness, build stages and the unchanged test results"
+        )
+        self.details_button.toggled.connect(self._toggle_details)
+        layout.addWidget(self.details_button)
+        self.details_panel = QWidget()
+        details = QVBoxLayout(self.details_panel)
+        details.setContentsMargins(0, 0, 0, 0)
+        details.setSpacing(8)
+        details.addWidget(self.readiness)
+        details.addWidget(self._build_stages())
+        details.addWidget(self._build_rows())
+        self.details_panel.hide()
+        layout.addWidget(self.details_panel, 1)
         self.engine_combo.currentIndexChanged.connect(self._engine_changed)
+        self.part_edit.textChanged.connect(self._part_changed)
+        self.package_combo.currentIndexChanged.connect(self._part_changed)
+        self.out_edit.textChanged.connect(self._output_changed)
         self._engine_changed()
+        self._part_changed()
         layout.activate()
         self.setMinimumSize(_smallest_useful(layout.minimumSize()))
+        self.adjustSize()
 
     # ------------------------------------------------------------------ widgets
     def _build_top_row(self) -> QHBoxLayout:
         row = QHBoxLayout()
+        banner = QLabel("Spice Maker")
+        banner.setObjectName("windowBanner")
+        row.addWidget(banner, 1)
         setup = QPushButton("SETUP")
         setup.setToolTip("LTspice path, agent key, model folder, INTERNET ACCESS")
         setup.clicked.connect(self._open_setup)
@@ -539,9 +566,8 @@ class ModelMakerWindow(QMainWindow):
         # Its own row (added in __init__), so the lights never widen the window's floor.
         self.readiness = ReadinessStrip()
         QTimer.singleShot(0, self.readiness, self.readiness.refresh_local)
-        row.addStretch(1)
         self.setup_hint = QLabel("")
-        self.setup_hint.setStyleSheet("color: #ff5555; font-family: Consolas;")
+        self.setup_hint.setStyleSheet(f"color: {DESKTOP['fail']};")
         row.addWidget(self.setup_hint)
         return row
 
@@ -551,31 +577,49 @@ class ModelMakerWindow(QMainWindow):
         grid.setVerticalSpacing(7)
 
         self.part_edit = QLineEdit()
-        self.part_edit.setPlaceholderText("TPS54320")
+        self.part_edit.setPlaceholderText("Part number, e.g. UCC28251")
         grid.addWidget(QLabel("PART NUMBER"), 0, 0)
         grid.addWidget(self.part_edit, 0, 1, 1, 2)
+
+        self.package_label = QLabel("PACKAGE")
+        self.package_combo = QComboBox()
+        self.package_combo.addItem("Choose the package printed on your part", None)
+        self.package_combo.addItem("TSSOP · PW · UCC28251PW", "UCC28251PW")
+        self.package_combo.addItem("QFN · RGP · UCC28251RGP", "UCC28251RGP")
+        self.package_combo.setToolTip(
+            "These packages use different physical pin numbers. Choose explicitly; "
+            "the selected full part number is sent to the engine."
+        )
+        grid.addWidget(self.package_label, 1, 0)
+        grid.addWidget(self.package_combo, 1, 1, 1, 2)
 
         self.datasheet_edit = QLineEdit()
         self.datasheet_edit.setPlaceholderText("the manufacturer datasheet (PDF)")
         browse_pdf = QPushButton("Choose PDF…")
+        self.datasheet_button = browse_pdf
         browse_pdf.clicked.connect(self._choose_datasheet)
-        grid.addWidget(QLabel("DATASHEET"), 1, 0)
-        grid.addWidget(self.datasheet_edit, 1, 1)
-        grid.addWidget(browse_pdf, 1, 2)
+        grid.addWidget(QLabel("DATASHEET"), 2, 0)
+        grid.addWidget(self.datasheet_edit, 2, 1)
+        grid.addWidget(browse_pdf, 2, 2)
 
-        self.out_edit = QLineEdit(str(_default_model_dir()))
+        self.out_edit = QLineEdit(str(self._model_root))
+        self.out_edit.setToolTip(
+            "Each part gets a folder under your configured model folder. "
+            "Type or choose a different folder to use that exact location."
+        )
         browse_out = QPushButton("Choose folder…")
+        self.output_button = browse_out
         browse_out.clicked.connect(self._choose_out)
-        grid.addWidget(QLabel("SAVE MODEL TO"), 2, 0)
-        grid.addWidget(self.out_edit, 2, 1)
-        grid.addWidget(browse_out, 2, 2)
+        grid.addWidget(QLabel("SAVE MODEL TO"), 3, 0)
+        grid.addWidget(self.out_edit, 3, 1)
+        grid.addWidget(browse_out, 3, 2)
 
         self.engine_combo = QComboBox()
         self.engine_combo.addItem("Code-built behavioral (default)", "behavioral")
         self.engine_combo.addItem("AI authored (legacy)", "legacy_ai")
         self.engine_combo.addItem("Pins only (no functional behavior)", "pin_only")
-        grid.addWidget(QLabel("BUILD ENGINE"), 3, 0)
-        grid.addWidget(self.engine_combo, 3, 1, 1, 2)
+        grid.addWidget(QLabel("BUILD ENGINE"), 4, 0)
+        grid.addWidget(self.engine_combo, 4, 1, 1, 2)
 
         from boardmodeler.models.support import ORDINARY_FAMILIES
 
@@ -586,19 +630,20 @@ class ModelMakerWindow(QMainWindow):
         self.family_combo.setToolTip(
             "Optional classification hint for this build. Choosing a family does not add model support."
         )
-        grid.addWidget(QLabel("FAMILY (OPTIONAL)"), 4, 0)
-        grid.addWidget(self.family_combo, 4, 1, 1, 2)
+        grid.addWidget(QLabel("FAMILY (OPTIONAL)"), 5, 0)
+        grid.addWidget(self.family_combo, 5, 1, 1, 2)
 
         self.engine_hint = QLabel()
         self.engine_hint.setWordWrap(True)
         self.engine_hint.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
-        grid.addWidget(self.engine_hint, 5, 0, 1, 3)
+        grid.addWidget(self.engine_hint, 6, 0, 1, 3)
         return grid
 
     def _build_actions(self) -> QHBoxLayout:
         row = QHBoxLayout()
         self.go_button = QPushButton("GO")
         self.go_button.setToolTip("Build using the selected engine and verification mode")
+        self.go_button.setDefault(True)
         self.go_button.clicked.connect(self._make_model)
         self.cancel_button = QPushButton("CANCEL")
         self.cancel_button.clicked.connect(self._cancel)
@@ -610,9 +655,9 @@ class ModelMakerWindow(QMainWindow):
         # the box itself, and the box is what changes the setting back.
         self.full_check = QCheckBox("FULL VERIFICATION")
         self.full_check.setToolTip(
-            "On: plan test circuits and run LTspice verification for this build (slower). "
-            "Off: create the model and check its structure locally; electrical accuracy "
-            "remains unverified. Remembered for the next build."
+            "On: run LTspice checks against the datasheet facts. "
+            "Off: the explicit legacy route only checks structure; electrical accuracy "
+            "remains unverified. Remembered for the next legacy build."
         )
         self.full_check.setChecked(_configured_full_verification())
         self._legacy_full_verification = self.full_check.isChecked()
@@ -624,7 +669,9 @@ class ModelMakerWindow(QMainWindow):
         self.hourglass.setObjectName("hourglass")
         row.addWidget(self.hourglass)
         self.elapsed_label = QLabel("ELAPSED 00:00:00")
-        self.elapsed_label.setStyleSheet("color: #55ffff; font-family: Consolas;")
+        self.elapsed_label.setStyleSheet(
+            f"color: {DESKTOP['navy']}; font-family: Consolas; font-weight: 600;"
+        )
         self.elapsed_label.setToolTip(
             "Time since this build started (hours:minutes:seconds). "
             "Includes waiting for the agent and cancellation; not an estimate of time remaining."
@@ -654,13 +701,15 @@ class ModelMakerWindow(QMainWindow):
         # Wrapped, not clipped: a status line can carry a whole failure reason, and an
         # unwrapped QLabel would force the window's minimum width to the full sentence.
         self.status_label.setWordWrap(True)
-        self.status_label.setStyleSheet("color: #ffffff; font-family: Consolas; font-size: 10pt;")
+        self.status_label.setStyleSheet(f"color: {DESKTOP['text']};")
         row.addWidget(self.status_label, 1)
         self.progress = QProgressBar()
-        self.progress.setRange(0, 0)
-        self.progress.setVisible(False)
-        self.progress.setMaximumWidth(140)
-        row.addWidget(self.progress)
+        self.progress.setRange(0, 1)
+        self.progress.setValue(0)
+        self.progress.setFormat("Ready")
+        self.progress.setToolTip(
+            "The moving blocks show work is active. They do not estimate percentage or time remaining."
+        )
         return holder
 
     def _build_rows(self) -> QTableWidget:
@@ -680,16 +729,16 @@ class ModelMakerWindow(QMainWindow):
         row = QHBoxLayout()
         # Reopening is a results action like the others, and it is always available:
         # a model built in an earlier session is exactly what this button is for.
-        self.open_model_button = QPushButton("OPEN MODEL…")
+        self.open_model_button = QPushButton("Open saved model…")
         self.open_model_button.setToolTip(
             "Reopen a model folder that is already on disk: its recorded rows, status and "
             "files are read back from that folder, not from this session's memory."
         )
         self.open_model_button.clicked.connect(self._open_model)
         row.addWidget(self.open_model_button)
-        self.open_button = QPushButton("Open model folder")
+        self.open_button = QPushButton("Open folder")
         self.open_button.clicked.connect(self._open_folder)
-        self.install_button = QPushButton("Install into LTspice")
+        self.install_button = QPushButton("Add to LTspice")
         self.install_button.clicked.connect(self._install)
         for button in (self.open_button, self.install_button):
             button.setEnabled(False)
@@ -702,6 +751,45 @@ class ModelMakerWindow(QMainWindow):
         return row
 
     # ------------------------------------------------------------------ helpers
+    def _part_changed(self) -> None:
+        needs_package = self.part_edit.text().strip().upper() == "UCC28251"
+        self.package_label.setVisible(needs_package)
+        self.package_combo.setVisible(needs_package)
+        if not needs_package:
+            previous = self.package_combo.blockSignals(True)
+            self.package_combo.setCurrentIndex(0)
+            self.package_combo.blockSignals(previous)
+        if self._automatic_output:
+            part = self.part_edit.text().strip().upper()
+            if needs_package and self.package_combo.currentData() is not None:
+                part = str(self.package_combo.currentData())
+            name = "".join(
+                character if character.isalnum() or character in "_-" else "_" for character in part
+            )
+            self._setting_output = True
+            try:
+                self.out_edit.setText(
+                    str(self._model_root / name) if name else str(self._model_root)
+                )
+            finally:
+                self._setting_output = False
+        self._content_layout.activate()
+        self.setMinimumSize(_smallest_useful(self._content_layout.minimumSize()))
+
+    def _output_changed(self) -> None:
+        if not self._setting_output:
+            self._automatic_output = False
+
+    def _toggle_details(self, visible: bool) -> None:
+        self.details_panel.setVisible(visible)
+        self.details_button.setText("Hide details" if visible else "Show details")
+        self._content_layout.activate()
+        self.setMinimumSize(_smallest_useful(self._content_layout.minimumSize()))
+        if visible:
+            self.resize(
+                max(self.width(), self.minimumWidth()), max(self.height(), self.sizeHint().height())
+            )
+
     def _engine_changed(self) -> None:
         engine = self.engine_combo.currentData()
         legacy = engine == "legacy_ai"
@@ -717,7 +805,8 @@ class ModelMakerWindow(QMainWindow):
                 "This legacy route sends datasheet and model text to that provider."
             ),
             "behavioral": (
-                "Builds supported behavioral templates in code; unsupported parts stop. "
+                "Reviewed functions: TPS54332DDA, LM358, UCC28251PW (TSSOP). "
+                "Other parts stop; RGP is not supported. "
                 "Full verification is required. Extraction may still need the configured provider."
             ),
             "pin_only": (
@@ -752,13 +841,26 @@ class ModelMakerWindow(QMainWindow):
             self.out_edit.setText(path)
 
     def _set_busy(self, busy: bool) -> None:
+        for widget in (
+            self.part_edit,
+            self.datasheet_edit,
+            self.out_edit,
+            self.datasheet_button,
+            self.output_button,
+        ):
+            widget.setEnabled(not busy)
         self.go_button.setEnabled(not busy)
         self.engine_combo.setEnabled(not busy)
         self.family_combo.setEnabled(not busy)
+        self.package_combo.setEnabled(not busy)
         self.full_check.setEnabled(not busy and self.engine_combo.currentData() == "legacy_ai")
         self.cancel_button.setEnabled(busy)
         self.again_button.setEnabled(not busy and self._result is not None)
-        self.progress.setVisible(busy)
+        self.progress.setRange(0, 0 if busy else 1)
+        self.progress.setTextVisible(not busy)
+        if not busy:
+            self.progress.setValue(0)
+            self.progress.setFormat("Stopped")
         if busy:
             self._started_at = time.monotonic()
             self._elapsed_seconds = 0.0
@@ -766,6 +868,8 @@ class ModelMakerWindow(QMainWindow):
             self.hourglass.start()
             self.stages.setRowCount(0)
             self.rows.setRowCount(0)
+            self.counts_label.clear()
+            self.counts_label.hide()
             self._result = None
             self.install_button.setEnabled(False)
             self.open_button.setEnabled(False)
@@ -791,6 +895,17 @@ class ModelMakerWindow(QMainWindow):
     # ------------------------------------------------------------------ actions
     def _make_model(self) -> None:
         part = self.part_edit.text().strip()
+        if part.upper() == "UCC28251":
+            package_part = self.package_combo.currentData()
+            if package_part is None:
+                QMessageBox.warning(
+                    self,
+                    "Choose the package",
+                    "UCC28251 has different pin numbers in PW and RGP. "
+                    "Choose the package before starting the build.",
+                )
+                return
+            part = str(package_part)
         datasheet = Path(self.datasheet_edit.text().strip())
         out_dir = Path(self.out_edit.text().strip() or _default_model_dir())
         try:
@@ -877,7 +992,7 @@ class ModelMakerWindow(QMainWindow):
     def _start(self, request: object) -> None:
         self._set_busy(True)
         self.status_label.setText("working…")
-        self.status_label.setStyleSheet("color: #55ffff; font-family: Consolas; font-size: 10pt;")
+        self.status_label.setStyleSheet(f"color: {DESKTOP['blue']};")
         worker = MakeModelWorker(request, self)
         worker.progressed.connect(self._on_stage)
         worker.finished_result.connect(self._on_result)
@@ -889,10 +1004,17 @@ class ModelMakerWindow(QMainWindow):
         if self._out_dir is None:
             return
         request = getattr(self._result, "request", None)
-        if request is not None:
+        if request is not None and getattr(request, "verification", "full") == "sanity":
             self._start(replace(request, verification="full"))
         else:
-            self._run_cli(["model", "test", "--out", str(self._out_dir), "--json"])
+            self._set_busy(True)
+            self.status_label.setText("Testing saved model…")
+            worker = RetestWorker(self._out_dir, request, self)
+            worker.progressed.connect(self._on_stage)
+            worker.finished_result.connect(self._on_result)
+            worker.failed.connect(self._on_failed)
+            self._worker = worker
+            worker.start()
 
     def _install(self) -> None:
         if self._out_dir is None:
@@ -995,7 +1117,7 @@ class ModelMakerWindow(QMainWindow):
             ]
         )
         self.status_label.setToolTip(summary.results_problem or "")
-        self.status_label.setStyleSheet("color: #ffff55; font-family: Consolas; font-size: 10pt;")
+        self.status_label.setStyleSheet(f"color: {DESKTOP['unknown']};")
         self.again_button.setText("Run tests again")
         self.again_button.setEnabled(True)
         self.open_button.setEnabled(True)
@@ -1088,7 +1210,7 @@ class ModelMakerWindow(QMainWindow):
             if state.text() != "running" and not (fallback and stage == "author"):
                 continue
             state.setText(status)
-            state.setForeground(_colour(_STATUS_COLOUR.get(status, "#ffffff")))
+            state.setForeground(_colour(_STATUS_COLOUR.get(status, DESKTOP["text"])))
             final_detail = previous_detail if fallback and stage == "author" else detail
             final_detail = final_detail or f"Build ended: {status}"
             self._stage_item(row, 2).setText(final_detail)
@@ -1105,7 +1227,7 @@ class ModelMakerWindow(QMainWindow):
             if self._stage_item(row, 0).text() == stage:
                 self._stage_item(row, 1).setText(status)
                 self._stage_item(row, 1).setForeground(
-                    _colour(_STATUS_COLOUR.get(status, "#ffffff"))
+                    _colour(_STATUS_COLOUR.get(status, DESKTOP["text"]))
                 )
                 self._stage_item(row, 2).setText(detail)
                 self._stage_item(row, 2).setToolTip(detail)
@@ -1115,7 +1237,7 @@ class ModelMakerWindow(QMainWindow):
             self.stages.insertRow(row)
             self.stages.setItem(row, 0, QTableWidgetItem(stage))
             item = QTableWidgetItem(status)
-            item.setForeground(_colour(_STATUS_COLOUR.get(status, "#ffffff")))
+            item.setForeground(_colour(_STATUS_COLOUR.get(status, DESKTOP["text"])))
             self.stages.setItem(row, 1, item)
             self.stages.setItem(row, 2, QTableWidgetItem(detail))
             self._stage_item(row, 2).setToolTip(detail)
@@ -1129,16 +1251,25 @@ class ModelMakerWindow(QMainWindow):
         counts = getattr(result, "counts", {}) or {}
         detail = getattr(result, "detail", "")
         self._finish_stages(str(status), str(detail))
-        self.status_label.setText(f"{status} — {counts} — {detail}"[:200])
-        self.status_label.setToolTip(detail)
-        self.status_label.setStyleSheet(
-            f"color: {_STATUS_COLOUR.get(status, '#ffffff')}; font-family: Consolas; "
-            "font-size: 10pt;"
+        headline = (
+            "Model saved — UNKNOWN (limited coverage)"
+            if status == "UNKNOWN" and getattr(result, "lib_path", None) is not None
+            else str(status)
         )
+        self.status_label.setText(f"{headline} — {detail}"[:200])
+        self.status_label.setToolTip(detail)
+        self.counts_label.setText(
+            " · ".join(
+                f"{count} {str(state).lower().replace('_', ' ')}" for state, count in counts.items()
+            )
+        )
+        self.counts_label.setVisible(bool(counts))
+        self.progress.setFormat("Finished")
+        self.status_label.setStyleSheet(f"color: {_STATUS_COLOUR.get(status, DESKTOP['text'])};")
         quick = getattr(getattr(result, "request", None), "verification", "full") == "sanity"
         if quick and getattr(result, "lib_path", None) is not None:
             self.status_label.setText("SANITY CHECKED — electrical accuracy unverified")
-            self.status_label.setStyleSheet("color: #55ffff;")
+            self.status_label.setStyleSheet(f"color: {DESKTOP['blue']};")
         self.again_button.setText("Run full verification" if quick else "Run tests again")
         rows = getattr(result, "rows", ()) or ()
         self.rows.setRowCount(len(rows))
@@ -1153,7 +1284,7 @@ class ModelMakerWindow(QMainWindow):
             for column, value in enumerate(values):
                 item = QTableWidgetItem(str(value))
                 if column == 3:
-                    item.setForeground(_colour(_STATUS_COLOUR.get(str(value), "#ffffff")))
+                    item.setForeground(_colour(_STATUS_COLOUR.get(str(value), DESKTOP["text"])))
                 if column == 0:
                     item.setToolTip(getattr(row, "statement", ""))
                 self.rows.setItem(index, column, item)
@@ -1166,7 +1297,7 @@ class ModelMakerWindow(QMainWindow):
         self._set_busy(False)
         self._finish_stages("failed", "Build stopped with an error")
         self.status_label.setText("failed — " + message[:160])
-        self.status_label.setStyleSheet("color: #ff5555; font-family: Consolas; font-size: 10pt;")
+        self.status_label.setStyleSheet(f"color: {DESKTOP['fail']};")
         QMessageBox.critical(self, "The run failed", message)
         self._worker = None
 
@@ -1215,13 +1346,12 @@ def _window_stylesheet() -> str:
     return (
         RETRO_STYLESHEET
         + f"""
-QMainWindow, #root {{ background: {CGA["black"]}; }}
-QMainWindow QLabel {{ color: {CGA["grey"]}; font-family: Consolas; font-size: 10pt; }}
-QTableWidget {{ background: {CGA["black"]}; color: {CGA["bright_green"]};
-                gridline-color: {CGA["dark_grey"]}; font-family: Consolas; font-size: 10pt;
-                border: 2px solid {CGA["bright_blue"]}; }}
-QHeaderView::section {{ background: {CGA["blue"]}; color: {CGA["white"]};
-                        border: 0; padding: 3px; font-family: Consolas; }}
-QTableCornerButton::section {{ background: {CGA["blue"]}; }}
+QMainWindow, #root {{ background: {DESKTOP["face"]}; }}
+QTableWidget {{ background: white; color: {DESKTOP["text"]};
+    gridline-color: #dedede; font-family: "Segoe UI"; font-size: 10pt;
+    border: 2px inset {DESKTOP["shadow"]}; }}
+QHeaderView::section {{ background: {DESKTOP["face"]}; color: {DESKTOP["text"]};
+    border: 1px solid {DESKTOP["shadow"]}; padding: 5px; font-family: "Segoe UI"; }}
+QTableCornerButton::section {{ background: {DESKTOP["face"]}; }}
 """
     )

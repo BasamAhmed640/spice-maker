@@ -88,6 +88,20 @@ def test_failed_batch_is_reported_as_failed_not_completed():
     assert "0/1 batches complete" in messages[-1] and "1 failed" in messages[-1]
 
 
+def test_cancellation_stops_queued_batches_before_their_provider_call():
+    cancel = threading.Event()
+    cancel.set()
+    calls = []
+
+    def run(job, report):
+        calls.append(job)
+        return "unused"
+
+    with pytest.raises(ProviderError, match="cancelled"):
+        _run_batches([[SimpleNamespace(snippets=[])] for _ in range(8)], run, None, cancel)
+    assert calls == []
+
+
 def test_a_batch_that_returns_nothing_is_named_here_not_returned_as_none():
     """A ``None`` result must not travel to a caller that reads a field from it.
 

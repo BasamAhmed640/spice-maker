@@ -1,12 +1,12 @@
-# Portable storage in 1.5.0
+# Portable storage
 
 The folder extracted from GitHub is the storage boundary for this copy:
 
-- `Install.exe`: animated installer, included in Code > Download ZIP on main.
+- `Install.exe`: portable installer with a progress bar and timer, included in the release ZIP.
 - `app/`: the frozen application and the Python it is bundled with.
 - `env/python/`: the vendored CPython runtime; no Python is required from outside this folder.
 - `env/wheels/`, `env/requirements.txt`, `env/wheels.sha256`: the pinned wheel set and its checksums.
-- `.venv/`: this copy's own environment, created once from `env/` and then kept.
+- `.venv/`: this copy's own environment; stale packages upgrade from checked local wheels.
 - `Start.cmd`, `Boardmodeler.cmd`, `Spice Maker.lnk`: folder-local launchers for the app and the command line.
 - `.setup.log`: observed steps and exit codes of the last setup; `.venv-setup-error.txt` appears only when the environment could not be created.
 - `data/config.json`: first-launch settings, selected executable path and relative model folder.
@@ -29,8 +29,10 @@ moving the entire folder on the same Windows account preserves that preference.
 Setup builds `.venv` from `env/` alone: pip runs with `--no-index --find-links env/wheels`
 after every wheel has been checked against `env/wheels.sha256`, so no package index is
 contacted and no wheel is installed unchecked. A caller's `PYTHONHOME`, `PYTHONPATH` or
-`VIRTUAL_ENV` is stripped from the child environment first, and an existing `.venv` is kept
-as it is. The wheel set carries no Qt: the GUI runs from the frozen `app/`, commands that
+`VIRTUAL_ENV` is stripped from the child environment first. A matching engine stays unchanged;
+a stale version or source fingerprint upgrades packages in staging and validates before activation,
+with rollback on failure. The interpreter, configuration and user data are preserved.
+The wheel set carries no Qt: the GUI runs from the frozen `app/`, commands that
 open a window (`ui`, `setup`) are served by `app\SpiceMaker.exe --cli ...`, and `.venv`
 serves the script and command line surface that does not need a window.
 
@@ -51,7 +53,8 @@ entries, installer registration, desktop/Start Menu shortcuts, global updater, o
 telemetry are created. There is no automatic import of an older installation's key.
 Delete the entire extracted folder for a fresh start. Replacing only Install.exe or
 running it again inside an existing folder updates app/ and env/ and preserves data/,
-models/ and .venv/. Keep the editions in separate folders; the installer rejects mixing
+models/ and the .venv interpreter, while bringing stale packages to the delivered engine.
+Keep the editions in separate folders; the installer rejects mixing
 them in one folder. An older AppData-era install (for example a Velopack `Update.exe` entry
 under `HKCU\...\Uninstall`) is not read, changed or removed by this installer.
 
