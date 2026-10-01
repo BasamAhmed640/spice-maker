@@ -26,7 +26,7 @@ import time
 from dataclasses import replace
 from pathlib import Path
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QThread, QTimer, QUrl, Signal
+from PySide6.QtCore import QPointF, QRectF, QSize, QStandardPaths, Qt, QThread, QTimer, QUrl, Signal
 from PySide6.QtGui import (
     QBrush,
     QColor,
@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QHeaderView,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -68,7 +69,8 @@ from boardmodeler.security.execution import (
     command_line,
 )
 from boardmodeler.storage import app_root, local_path, model_dir, portable
-from boardmodeler.ui.file_dialogs import starting_directory
+from boardmodeler.ui.file_dialogs import normalize_path_text, starting_directory
+from boardmodeler.ui.pdf_input import PdfPathEdit, dropped_pdf, readable_pdf
 from boardmodeler.ui.retest_worker import RetestWorker
 from boardmodeler.ui.theme import DESKTOP, RETRO_STYLESHEET
 
@@ -496,6 +498,10 @@ class ModelMakerWindow(QMainWindow):
         self._model_root = Path(_default_model_dir())
         self._automatic_output = True
         self._setting_output = False
+        self._datasheet_folder = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.DownloadLocation
+        )
+        self.setAcceptDrops(True)
         self._elapsed_timer = QTimer(self)
         self._elapsed_timer.setInterval(250)
         self._elapsed_timer.timeout.connect(self._update_elapsed)
@@ -519,6 +525,15 @@ class ModelMakerWindow(QMainWindow):
         self.counts_label.hide()
         layout.addWidget(self.counts_label)
         layout.addLayout(self._build_result_actions())
+        self.saved_location = QLabel()
+        self.saved_location.setWordWrap(True)
+        self.saved_location.hide()
+        layout.addWidget(self.saved_location)
+        self.advanced_button = QPushButton("Advanced")
+        self.advanced_button.setCheckable(True)
+        self.advanced_button.toggled.connect(self._toggle_advanced)
+        layout.addWidget(self.advanced_button)
+        layout.addWidget(self.advanced_panel)
         self.details_button = QPushButton("Show details")
         self.details_button.setCheckable(True)
         self.details_button.setToolTip(
@@ -531,13 +546,13 @@ class ModelMakerWindow(QMainWindow):
         details.setContentsMargins(0, 0, 0, 0)
         details.setSpacing(8)
         details.addWidget(self.readiness)
+        details.addWidget(self.environment_button)
         details.addWidget(self._build_stages())
         details.addWidget(self._build_rows())
         self.details_panel.hide()
         layout.addWidget(self.details_panel, 1)
         self.engine_combo.currentIndexChanged.connect(self._engine_changed)
         self.part_edit.textChanged.connect(self._part_changed)
-        self.package_combo.currentIndexChanged.connect(self._part_changed)
         self.out_edit.textChanged.connect(self._output_changed)
         self._engine_changed()
         self._part_changed()
@@ -558,7 +573,7 @@ class ModelMakerWindow(QMainWindow):
         check.setToolTip("Where LTspice, the reader backend and the agent key stand")
         check.clicked.connect(self._run_doctor)
         row.addWidget(setup)
-        row.addWidget(check)
+        self.environment_button = check
         # Readiness lights + VERIFY KEY & TOOLS: the key, the model's reply format,
         # LTspice, the PDF reader, OCR and the network switch, visible before GO.
         from boardmodeler.ui.readiness_strip import ReadinessStrip
@@ -577,32 +592,31 @@ class ModelMakerWindow(QMainWindow):
         grid.setVerticalSpacing(7)
 
         self.part_edit = QLineEdit()
-        self.part_edit.setPlaceholderText("Part number, e.g. UCC28251")
+        self.part_edit.setPlaceholderText("Full part number, e.g. UCC28251PW")
+        self.part_edit.setAcceptDrops(False)
         grid.addWidget(QLabel("PART NUMBER"), 0, 0)
         grid.addWidget(self.part_edit, 0, 1, 1, 2)
 
-        self.package_label = QLabel("PACKAGE")
-        self.package_combo = QComboBox()
-        self.package_combo.addItem("Choose the package printed on your part", None)
-        self.package_combo.addItem("TSSOP · PW · UCC28251PW", "UCC28251PW")
-        self.package_combo.addItem("QFN · RGP · UCC28251RGP", "UCC28251RGP")
-        self.package_combo.setToolTip(
-            "These packages use different physical pin numbers. Choose explicitly; "
-            "the selected full part number is sent to the engine."
-        )
-        grid.addWidget(self.package_label, 1, 0)
-        grid.addWidget(self.package_combo, 1, 1, 1, 2)
-
-        self.datasheet_edit = QLineEdit()
-        self.datasheet_edit.setPlaceholderText("the manufacturer datasheet (PDF)")
+        self.datasheet_edit = PdfPathEdit()
+        self.datasheet_edit.setPlaceholderText("Drop a PDF here, or choose a file")
+        self.datasheet_edit.pdf_dropped.connect(self._select_datasheet)
         browse_pdf = QPushButton("Choose PDF…")
         self.datasheet_button = browse_pdf
         browse_pdf.clicked.connect(self._choose_datasheet)
-        grid.addWidget(QLabel("DATASHEET"), 2, 0)
-        grid.addWidget(self.datasheet_edit, 2, 1)
-        grid.addWidget(browse_pdf, 2, 2)
+        grid.addWidget(QLabel("DATASHEET"), 1, 0)
+        grid.addWidget(self.datasheet_edit, 1, 1)
+        grid.addWidget(browse_pdf, 1, 2)
+
+        self.advanced_panel = QWidget()
+        advanced = QGridLayout(self.advanced_panel)
+        advanced.setContentsMargins(0, 0, 0, 0)
+        advanced.setHorizontalSpacing(8)
+        advanced.setVerticalSpacing(7)
+        self.advanced_panel.hide()
+        self._advanced_layout = advanced
 
         self.out_edit = QLineEdit(str(self._model_root))
+        self.out_edit.setAcceptDrops(False)
         self.out_edit.setToolTip(
             "Each part gets a folder under your configured model folder. "
             "Type or choose a different folder to use that exact location."
@@ -610,16 +624,16 @@ class ModelMakerWindow(QMainWindow):
         browse_out = QPushButton("Choose folder…")
         self.output_button = browse_out
         browse_out.clicked.connect(self._choose_out)
-        grid.addWidget(QLabel("SAVE MODEL TO"), 3, 0)
-        grid.addWidget(self.out_edit, 3, 1)
-        grid.addWidget(browse_out, 3, 2)
+        advanced.addWidget(QLabel("SAVE MODEL TO"), 0, 0)
+        advanced.addWidget(self.out_edit, 0, 1)
+        advanced.addWidget(browse_out, 0, 2)
 
         self.engine_combo = QComboBox()
-        self.engine_combo.addItem("Code-built behavioral (default)", "behavioral")
+        self.engine_combo.addItem("Automatic (recommended)", "behavioral")
         self.engine_combo.addItem("AI authored (legacy)", "legacy_ai")
         self.engine_combo.addItem("Pins only (no functional behavior)", "pin_only")
-        grid.addWidget(QLabel("BUILD ENGINE"), 4, 0)
-        grid.addWidget(self.engine_combo, 4, 1, 1, 2)
+        advanced.addWidget(QLabel("BUILD MODE"), 1, 0)
+        advanced.addWidget(self.engine_combo, 1, 1, 1, 2)
 
         from boardmodeler.models.support import ORDINARY_FAMILIES
 
@@ -630,19 +644,19 @@ class ModelMakerWindow(QMainWindow):
         self.family_combo.setToolTip(
             "Optional classification hint for this build. Choosing a family does not add model support."
         )
-        grid.addWidget(QLabel("FAMILY (OPTIONAL)"), 5, 0)
-        grid.addWidget(self.family_combo, 5, 1, 1, 2)
+        advanced.addWidget(QLabel("FAMILY HINT"), 2, 0)
+        advanced.addWidget(self.family_combo, 2, 1, 1, 2)
 
         self.engine_hint = QLabel()
         self.engine_hint.setWordWrap(True)
         self.engine_hint.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
-        grid.addWidget(self.engine_hint, 6, 0, 1, 3)
+        advanced.addWidget(self.engine_hint, 4, 0, 1, 3)
         return grid
 
     def _build_actions(self) -> QHBoxLayout:
         row = QHBoxLayout()
-        self.go_button = QPushButton("GO")
-        self.go_button.setToolTip("Build using the selected engine and verification mode")
+        self.go_button = QPushButton("Make Model")
+        self.go_button.setToolTip("Find or build a model for this part")
         self.go_button.setDefault(True)
         self.go_button.clicked.connect(self._make_model)
         self.cancel_button = QPushButton("CANCEL")
@@ -650,9 +664,8 @@ class ModelMakerWindow(QMainWindow):
         self.cancel_button.setEnabled(False)
         row.addWidget(self.go_button, 3)
         row.addWidget(self.cancel_button, 1)
-        # The full/sanity choice is a per-build decision, so it lives beside GO rather than
-        # in SETUP. The persisted setting is only the default it opens with; the build uses
-        # the box itself, and the box is what changes the setting back.
+        # This legacy-only per-build choice stays in Advanced. Its remembered setting
+        # never changes the full-verification policy of the automatic route.
         self.full_check = QCheckBox("FULL VERIFICATION")
         self.full_check.setToolTip(
             "On: run LTspice checks against the datasheet facts. "
@@ -662,7 +675,7 @@ class ModelMakerWindow(QMainWindow):
         self.full_check.setChecked(_configured_full_verification())
         self._legacy_full_verification = self.full_check.isChecked()
         self.full_check.toggled.connect(self._full_verification_toggled)
-        row.addWidget(self.full_check)
+        self._advanced_layout.addWidget(self.full_check, 3, 0, 1, 3)
         # The hourglass sits immediately beside the clock it belongs to, and both are driven
         # by the same two places: _set_busy starts them on GO and stops them on every exit.
         self.hourglass = HourglassWidget()
@@ -697,7 +710,7 @@ class ModelMakerWindow(QMainWindow):
         holder = QWidget()
         row = QHBoxLayout(holder)
         row.setContentsMargins(0, 0, 0, 0)
-        self.status_label = QLabel("Choose a build engine, then press GO")
+        self.status_label = QLabel("Choose a datasheet and enter the part number.")
         # Wrapped, not clipped: a status line can carry a whole failure reason, and an
         # unwrapped QLabel would force the window's minimum width to the full sentence.
         self.status_label.setWordWrap(True)
@@ -752,17 +765,8 @@ class ModelMakerWindow(QMainWindow):
 
     # ------------------------------------------------------------------ helpers
     def _part_changed(self) -> None:
-        needs_package = self.part_edit.text().strip().upper() == "UCC28251"
-        self.package_label.setVisible(needs_package)
-        self.package_combo.setVisible(needs_package)
-        if not needs_package:
-            previous = self.package_combo.blockSignals(True)
-            self.package_combo.setCurrentIndex(0)
-            self.package_combo.blockSignals(previous)
         if self._automatic_output:
-            part = self.part_edit.text().strip().upper()
-            if needs_package and self.package_combo.currentData() is not None:
-                part = str(self.package_combo.currentData())
+            part = normalize_path_text(self.part_edit.text()).upper()
             name = "".join(
                 character if character.isalnum() or character in "_-" else "_" for character in part
             )
@@ -790,6 +794,16 @@ class ModelMakerWindow(QMainWindow):
                 max(self.width(), self.minimumWidth()), max(self.height(), self.sizeHint().height())
             )
 
+    def _toggle_advanced(self, visible: bool) -> None:
+        self.advanced_panel.setVisible(visible)
+        self.advanced_button.setText("Hide advanced" if visible else "Advanced")
+        self._content_layout.activate()
+        self.setMinimumSize(_smallest_useful(self._content_layout.minimumSize()))
+        if visible:
+            self.resize(
+                max(self.width(), self.minimumWidth()), max(self.height(), self.sizeHint().height())
+            )
+
     def _engine_changed(self) -> None:
         engine = self.engine_combo.currentData()
         legacy = engine == "legacy_ai"
@@ -799,15 +813,16 @@ class ModelMakerWindow(QMainWindow):
         self.full_check.setChecked(self._legacy_full_verification if legacy else True)
         self.full_check.blockSignals(previous)
         self.full_check.setEnabled(legacy and self.go_button.isEnabled())
+        self.full_check.setVisible(legacy)
         hints = {
             "legacy_ai": (
                 "The provider selected in SETUP writes and repairs model text. "
                 "This legacy route sends datasheet and model text to that provider."
             ),
             "behavioral": (
-                "Reviewed functions: TPS54332DDA, LM358, UCC28251PW (TSSOP). "
-                "Other parts stop; RGP is not supported. "
-                "Full verification is required. Extraction may still need the configured provider."
+                "Use a compatible manufacturer model first; otherwise use reviewed generation. "
+                "Generated functions are limited to TPS54332DDA, LM358 and UCC28251PW. "
+                "Extraction may still need the configured provider."
             ),
             "pin_only": (
                 "Creates a pin interface without functional behavior or an electrical accuracy "
@@ -822,13 +837,41 @@ class ModelMakerWindow(QMainWindow):
             "Choose the datasheet",
             # A folder, always: the field holds a PDF path, and Qt's third argument is
             # where the dialog opens, so a PDF (or a stale one) would fall back to C:\\.
-            starting_directory(self.datasheet_edit.text()),
-            "PDF (*.pdf)",
+            starting_directory(self.datasheet_edit.text(), fallback=self._datasheet_folder),
+            "PDF (*.pdf);;All files (*)",
         )
         if path:
-            self.datasheet_edit.setText(path)
-            if not self.part_edit.text().strip():
-                self.part_edit.setText(Path(path).stem.split("_")[0].upper())
+            self._select_datasheet(path)
+
+    def _select_datasheet(self, value: str) -> None:
+        path = Path(normalize_path_text(value))
+        self.datasheet_edit.setText(str(path))
+        self.datasheet_edit.setToolTip(str(path))
+        self._datasheet_folder = str(path.parent)
+
+    def dragEnterEvent(self, event) -> None:
+        if (
+            self.go_button.isEnabled()
+            and event.possibleActions() & Qt.DropAction.CopyAction
+            and dropped_pdf(event.mimeData()) is not None
+        ):
+            event.setDropAction(Qt.DropAction.CopyAction)
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event) -> None:
+        path = dropped_pdf(event.mimeData())
+        if (
+            self.go_button.isEnabled()
+            and event.possibleActions() & Qt.DropAction.CopyAction
+            and path is not None
+        ):
+            self._select_datasheet(str(path))
+            event.setDropAction(Qt.DropAction.CopyAction)
+            event.accept()
+        else:
+            event.ignore()
 
     def _choose_out(self) -> None:
         path = QFileDialog.getExistingDirectory(
@@ -852,10 +895,11 @@ class ModelMakerWindow(QMainWindow):
         self.go_button.setEnabled(not busy)
         self.engine_combo.setEnabled(not busy)
         self.family_combo.setEnabled(not busy)
-        self.package_combo.setEnabled(not busy)
         self.full_check.setEnabled(not busy and self.engine_combo.currentData() == "legacy_ai")
         self.cancel_button.setEnabled(busy)
-        self.again_button.setEnabled(not busy and self._result is not None)
+        self.again_button.setEnabled(
+            not busy and self._result is not None and not self._official_original(self._result)
+        )
         self.progress.setRange(0, 0 if busy else 1)
         self.progress.setTextVisible(not busy)
         if not busy:
@@ -871,6 +915,7 @@ class ModelMakerWindow(QMainWindow):
             self.counts_label.clear()
             self.counts_label.hide()
             self._result = None
+            self.saved_location.hide()
             self.install_button.setEnabled(False)
             self.open_button.setEnabled(False)
         else:
@@ -894,20 +939,27 @@ class ModelMakerWindow(QMainWindow):
 
     # ------------------------------------------------------------------ actions
     def _make_model(self) -> None:
-        part = self.part_edit.text().strip()
+        part = normalize_path_text(self.part_edit.text())
         if part.upper() == "UCC28251":
-            package_part = self.package_combo.currentData()
-            if package_part is None:
+            ordering_code, accepted = QInputDialog.getText(
+                self,
+                "Full part number needed",
+                "UCC28251 uses different pin numbers in PW and RGP packages.\n"
+                "Enter the full ordering code, for example UCC28251PW or UCC28251RGP.",
+            )
+            if not accepted:
+                return
+            part = normalize_path_text(ordering_code).upper()
+            if part not in ("UCC28251PW", "UCC28251PWR", "UCC28251RGP", "UCC28251RGPR"):
                 QMessageBox.warning(
                     self,
-                    "Choose the package",
-                    "UCC28251 has different pin numbers in PW and RGP. "
-                    "Choose the package before starting the build.",
+                    "Full part number needed",
+                    "Enter a PW or RGP ordering code; the package cannot be guessed from this datasheet.",
                 )
                 return
-            part = str(package_part)
-        datasheet = Path(self.datasheet_edit.text().strip())
-        out_dir = Path(self.out_edit.text().strip() or _default_model_dir())
+            self.part_edit.setText(part)
+        datasheet = Path(normalize_path_text(self.datasheet_edit.text()))
+        out_dir = Path(normalize_path_text(self.out_edit.text()) or _default_model_dir())
         try:
             out_dir = local_path(out_dir)
         except ValueError as exc:
@@ -916,8 +968,8 @@ class ModelMakerWindow(QMainWindow):
         if not part:
             QMessageBox.warning(self, "Part number needed", "Which part should be modelled?")
             return
-        if not datasheet.is_file():
-            QMessageBox.warning(self, "Datasheet needed", f"Not a readable file: {datasheet}")
+        if not readable_pdf(datasheet):
+            QMessageBox.warning(self, "Datasheet needed", f"Choose a readable PDF: {datasheet}")
             return
 
         try:
@@ -1003,6 +1055,8 @@ class ModelMakerWindow(QMainWindow):
     def _rerun_tests(self) -> None:
         if self._out_dir is None:
             return
+        if self._official_original(self._result):
+            return
         request = getattr(self._result, "request", None)
         if request is not None and getattr(request, "verification", "full") == "sanity":
             self._start(replace(request, verification="full"))
@@ -1018,6 +1072,8 @@ class ModelMakerWindow(QMainWindow):
 
     def _install(self) -> None:
         if self._out_dir is None:
+            return
+        if self._official_original(self._result):
             return
         try:
             from boardmodeler.authoring.card import plan_install
@@ -1185,7 +1241,12 @@ class ModelMakerWindow(QMainWindow):
 
         dialog = SetupDialog(self)
         dialog.exec()
-        self.again_button.setEnabled(self._result is not None)
+        if self._automatic_output:
+            self._model_root = Path(_default_model_dir())
+            self._part_changed()
+        self.again_button.setEnabled(
+            self._result is not None and not self._official_original(self._result)
+        )
         self.readiness.refresh_local()
 
     def _run_doctor(self) -> None:
@@ -1244,6 +1305,16 @@ class ModelMakerWindow(QMainWindow):
         self.status_label.setText(f"{stage}: {detail}".strip()[:160])
         self.status_label.setToolTip(detail)
 
+    def _official_original(self, result: object) -> bool:
+        library = getattr(result, "lib_path", None)
+        folder = getattr(result, "out_dir", None) or self._out_dir
+        if library is None or folder is None:
+            return False
+        try:
+            return Path(library).relative_to(Path(folder)).parts[0] == "vendor-originals"
+        except ValueError, IndexError:
+            return False
+
     def _on_result(self, result: object) -> None:
         self._result = result
         self._set_busy(False)
@@ -1260,11 +1331,15 @@ class ModelMakerWindow(QMainWindow):
         self.status_label.setToolTip(detail)
         self.counts_label.setText(
             " · ".join(
-                f"{count} {str(state).lower().replace('_', ' ')}" for state, count in counts.items()
+                f"{count} {str(state).lower().replace('_', ' ')}"
+                for state, count in counts.items()
+                if count
             )
         )
         self.counts_label.setVisible(bool(counts))
         self.progress.setFormat("Finished")
+        self.saved_location.setText(f"Saved to: {self._out_dir or getattr(result, 'out_dir', '')}")
+        self.saved_location.setVisible(getattr(result, "lib_path", None) is not None)
         self.status_label.setStyleSheet(f"color: {_STATUS_COLOUR.get(status, DESKTOP['text'])};")
         quick = getattr(getattr(result, "request", None), "verification", "full") == "sanity"
         if quick and getattr(result, "lib_path", None) is not None:
@@ -1289,8 +1364,21 @@ class ModelMakerWindow(QMainWindow):
                     item.setToolTip(getattr(row, "statement", ""))
                 self.rows.setItem(index, column, item)
         self.open_button.setEnabled(True)
-        self.install_button.setEnabled(getattr(result, "lib_path", None) is not None)
-        self.again_button.setEnabled(True)
+        official = self._official_original(result)
+        self.install_button.setEnabled(
+            getattr(result, "lib_path", None) is not None and not official
+        )
+        self.again_button.setEnabled(not official)
+        self.install_button.setToolTip(
+            "Manufacturer originals are saved with their supporting files. Open the model folder to use them."
+            if official
+            else ""
+        )
+        self.again_button.setToolTip(
+            "This route checks compatibility only; datasheet verification is unavailable for the original model."
+            if official
+            else ""
+        )
         self._worker = None
 
     def _on_failed(self, message: str) -> None:

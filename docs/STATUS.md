@@ -1,3 +1,24 @@
+## 2026-09-30 — automatic workflow / official-original 1.8.1 (D-066)
+
+General final offline suite: `python -m pytest -q -m "not ltspice and not network"`:
+**2485 passed, 24 skipped, 193 deselected** in 235.14 s. Ruff check/format and diff checks
+pass. Shared manifest: **72 identical files**. Manufacturer acquisition/reinforcement:
+127 focused controls pass; actual original subcircuit and diode fixtures load in LTspice
+with unchanged bytes and UNKNOWN electrical accuracy. Current generated scope stays narrow.
+
+`installer/build.ps1 -Version 1.8.1` passes for General, including actual frozen GUI,
+fresh/update/isolation and matching source/wheel/desktop fingerprints. Actual installed
+default UCC28251PW wheel/frozen builds take 50.161 / 49.289 s, retain 15 PASS / 0 FAIL /
+21 UNKNOWN / 8 N/A and zero AI calls, and produce identical library bytes. The live
+manufacturer-first source route takes 62.842 s and records why TI's average candidates
+were inconclusive/uninspectable before deterministic generation. The normal UI has two
+inputs, local PDF copy drops, quoted paths, native chooser and fixed popup contrast.
+
+Bob full pre-package run: 2247 passed with three named failures. Two edition-specific
+legacy authoring/message regressions are restored and verified by 82 passing focused
+tests; final installer verification is in progress. Unrelated copied flavor files were
+restored before packaging. See [scoped evidence and remaining work](evidence/2026-09-30-automatic-delivery/REPORT.md).
+
 ## 2026-09-30 — public 1.8.0 and owner model delivered
 
 Both main engine milestones and GitHub Windows CI pass; both versioned public releases are published. Actual public ZIP/installer bytes match checked builds and fresh installations open responsive desktop windows. The owner's public frozen default model took 50.655 s, with 15 PASS / 0 FAIL / 21 UNKNOWN / 8 N/A, zero AI calls and exact design/pinout provenance. The actual 45.445-s saved-file retest preserves those files, scope and counts. The generated amplifier-feedback example runs in LTspice. Current app: Downloads/SpiceMaker-1.8.0/Start.cmd; model:models/UCC28251PW. Identified old app downloads/settings/models/logs are archived without deletion. Private config/key bytes were not published. See [final public delivery evidence](evidence/2026-09-30-pwm-release/REPORT.md#public-release-and-owner-folder-completion).

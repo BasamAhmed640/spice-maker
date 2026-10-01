@@ -759,7 +759,7 @@ class Sandbox:
     def _set_credential(self, name: str, value: str) -> None:
         self.record("credential_write", name=name, characters=len(value))
 
-    def _starting_directory(self, value: str) -> str:
+    def _starting_directory(self, value: str, *, fallback=None) -> str:
         returned = str(self.root)
         self.record("starting_directory", value=str(value), returned=returned)
         return returned
@@ -1006,11 +1006,16 @@ def surface_specs() -> list[SurfaceSpec]:
     from boardmodeler.ui.settings import SettingsDialog
     from boardmodeler.ui.setup_dialog import SetupDialog
 
+    def prepare_model_maker(surface) -> None:
+        # The normal picker deliberately does not infer an ordering code from a title.
+        surface.part_edit.setText("SWEEP_TEST")
+
     return [
         SurfaceSpec(
             name="ModelMakerWindow",
             factory=ModelMakerWindow,
             reachable="the product: `boardmodeler ui`",
+            prepare=prepare_model_maker,
         ),
         SurfaceSpec(
             name="SetupDialog",

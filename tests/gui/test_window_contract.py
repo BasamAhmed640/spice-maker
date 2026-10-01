@@ -66,7 +66,9 @@ def test_the_window_holds_the_build_inputs_and_nothing_from_setup(window) -> Non
     assert window.part_edit.isEnabled()
     assert window.datasheet_edit.isEnabled()
     assert window.out_edit.isEnabled()
-    assert window.go_button.text() == "GO"
+    assert window.go_button.text() == "Make Model"
+    assert not window.out_edit.isVisible()
+    assert not window.engine_combo.isVisible() and not window.family_combo.isVisible()
     assert window.out_edit.text(), "a default save location must be offered"
     for gone in ("key_edit", "team_edit", "credential_label"):
         assert not hasattr(window, gone), f"{gone} belongs to the setup page, not here"

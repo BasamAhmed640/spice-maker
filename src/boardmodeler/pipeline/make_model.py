@@ -87,7 +87,7 @@ from pathlib import Path
 from typing import Any
 
 from boardmodeler.authoring.api_backend import DEFAULT_TIMEOUT_S as DEFAULT_API_TIMEOUT_S
-from boardmodeler.authoring.api_backend import ApiKeyBackend, build_api_backend
+from boardmodeler.authoring.api_backend import build_api_backend
 from boardmodeler.authoring.backends import (
     AuthorBackend,
     BobShellBackend,
@@ -128,6 +128,13 @@ from boardmodeler.security.network import (
     require_network,
 )
 from boardmodeler.simulation.ltspice import locate
+
+if BOB_ONLY:
+    _API_BACKEND_TYPES = ()
+else:
+    from boardmodeler.authoring.api_backend import ApiKeyBackend
+
+    _API_BACKEND_TYPES = (ApiKeyBackend,)
 
 __all__ = [
     "MakeModelRequest",
@@ -1540,7 +1547,7 @@ class _Run:
         """Keep one backend so extraction, planning and authoring share one meter."""
         if self.backend is None:
             self.backend = build_backend(self.request)
-            if isinstance(self.backend, ApiKeyBackend):
+            if isinstance(self.backend, _API_BACKEND_TYPES):
                 self._backend_counter_start = self.backend.provider_calls
             elif isinstance(self.backend, BobShellBackend):
                 self._backend_counter_start = self.backend.shell_invocations
@@ -1555,7 +1562,7 @@ class _Run:
             "provider_calls_complete": True,
             "provider_calls": 0,
         }
-        if isinstance(backend, ApiKeyBackend):
+        if isinstance(backend, _API_BACKEND_TYPES):
             calls = backend.provider_calls - self._backend_counter_start
             fields["provider_calls_observed"] = calls
             fields["provider_calls"] = calls
@@ -1650,6 +1657,11 @@ class _Run:
         refusal = classify(request.part, text=self.record.title)
         if not refusal.supported:
             raise _Stop("read", Status.BLOCKED.value, refusal.detail)
+        from boardmodeler.models.support import decide_support
+
+        identity = decide_support(request.part, title=self.record.title, head=self.head_text)
+        if identity.state == "blocked_class":
+            raise _Stop("read", Status.BLOCKED.value, identity.refusal(request.engine))
         self.store = store
         self.supplied = supplied
         self.declared = declared
@@ -2876,7 +2888,14 @@ class _Run:
             TIMING_NAME,
         }
         if include_diagnostics:
-            names.update((SUPPORT_RECORD_NAME, "reviewed-extraction.json", PINOUT_REPORT_NAME))
+            names.update(
+                (
+                    SUPPORT_RECORD_NAME,
+                    "reviewed-extraction.json",
+                    PINOUT_REPORT_NAME,
+                    "official-model.json",
+                )
+            )
         # A reused output directory can switch subcircuit names. Only recorded
         # direct-child libraries/symbols count; a results file cannot name outsiders.
         try:
@@ -3720,6 +3739,28 @@ def make_model(
             )
         with ledger.stage("read"):
             run.read()
+        from boardmodeler.pipeline.official_delivery import try_official_delivery
+
+        with ledger.stage("official"):
+            try:
+                official = try_official_delivery(
+                    request, run.record, run.head_text, run.out_dir, log, cancel
+                )
+            except (OSError, ValueError) as exc:
+                raise _Stop(
+                    "official", Status.BLOCKED.value, f"official_delivery_failed: {exc}"
+                ) from exc
+        if official is not None:
+            timing = ledger.payload(
+                part=request.part,
+                status=official.status,
+                route="official_manufacturer_original",
+                **run._provider_call_fields(),
+            )
+            run._write_text(
+                run.out_dir / TIMING_NAME, json.dumps(timing, indent=2, sort_keys=True) + "\n"
+            )
+            return official
         with ledger.stage("preflight"):
             run.preflight()
         with ledger.stage("extract"):
@@ -3967,6 +4008,88 @@ def _spec_parts(path: Path) -> tuple[str | None, str | None, str | None]:
     return spec.part or None, spec.subckt or None, None
 
 
+def _summary_local_path(directory: Path | None, value: str | Path) -> Path:
+    """Refuse network names and links before resolving saved artifact paths."""
+    raw = str(value)
+    if raw.replace("\\", "/").startswith("//") or "://" in raw:
+        raise ValueError("saved model path is a network/device location")
+    candidate = Path(raw)
+    if directory is not None:
+        if ".." in candidate.parts:
+            raise ValueError("saved artifact path contains parent traversal")
+        candidate = candidate if candidate.is_absolute() else directory / candidate
+        if not candidate.is_relative_to(directory):
+            raise ValueError("saved artifact path is outside the selected model folder")
+        parts = candidate.relative_to(directory).parts
+        if any(":" in part for part in parts):
+            raise ValueError("saved artifact path names an alternate stream")
+        cursor = directory
+    else:
+        candidate = candidate.absolute()
+        cursor = Path(candidate.anchor)
+        parts = candidate.parts[1:]
+    for part in parts:
+        cursor /= part
+        if cursor.is_symlink() or cursor.is_junction():
+            raise ValueError("saved model path passes through a link or junction")
+    resolved = candidate.resolve()
+    if directory is not None and not resolved.is_relative_to(directory):
+        raise ValueError("saved artifact resolves outside the selected model folder")
+    return resolved
+
+
+def _summary_official_artifacts(directory: Path) -> tuple[Path, Path]:
+    """Reopen exact imported files, including dependencies, without inventing accuracy."""
+    receipt_path = _summary_local_path(directory, "official-model.json")
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(receipt, dict)
+        or receipt.get("status") != "delivered"
+        or receipt.get("adaptation_applied") is not False
+        or receipt.get("electrical_accuracy_verified") is not False
+    ):
+        raise ValueError("official saved receipt does not describe an unchanged delivered original")
+    root = _summary_local_path(directory, receipt["bundle_root"])
+    model = _summary_local_path(directory, receipt["model_path"])
+    if not model.is_relative_to(root):
+        raise ValueError("official model is outside its recorded bundle")
+    files = receipt.get("files")
+    if not isinstance(files, dict) or not 0 < len(files) <= 200:
+        raise ValueError("official dependency manifest is missing or excessive")
+    total = 0
+    for relative, expected in files.items():
+        if (
+            not isinstance(relative, str)
+            or Path(relative).is_absolute()
+            or not isinstance(expected, str)
+            or re.fullmatch(r"[0-9a-f]{64}", expected) is None
+        ):
+            raise ValueError("official dependency manifest has an invalid path or digest")
+        artifact = _summary_local_path(root, relative)
+        size = artifact.stat().st_size
+        total += size
+        if size > 8 * 1024 * 1024 or total > 32 * 1024 * 1024:
+            raise ValueError("official saved bundle exceeds acquisition limits")
+        if hashlib.sha256(artifact.read_bytes()).hexdigest() != expected:
+            raise ValueError("official original or dependency bytes changed since delivery")
+    relative_model = model.relative_to(root).as_posix()
+    if files.get(relative_model) != receipt.get("model_sha256"):
+        raise ValueError("official model identity is not bound to the dependency manifest")
+    package_path = receipt.get("source_package_path")
+    if package_path is not None:
+        package = _summary_local_path(directory, package_path)
+        if package.stat().st_size > 32 * 1024 * 1024 or (
+            hashlib.sha256(package.read_bytes()).hexdigest() != receipt.get("source_sha256")
+        ):
+            raise ValueError("official original source package bytes changed since delivery")
+    symbol = _summary_local_path(directory, receipt["symbol_path"])
+    if symbol.stat().st_size > 1024 * 1024 or (
+        hashlib.sha256(symbol.read_bytes()).hexdigest() != receipt.get("symbol_sha256")
+    ):
+        raise ValueError("official saved symbol bytes changed since delivery")
+    return model, symbol
+
+
 def load_model_summary(out_dir: str | Path) -> ModelSummary:
     """Read an existing model directory: what it holds, and what it recorded.
 
@@ -3978,15 +4101,26 @@ def load_model_summary(out_dir: str | Path) -> ModelSummary:
     writes, and requiring all of them would refuse the half-finished directory a user is
     most likely to ask about.
     """
-    directory = Path(out_dir)
+    try:
+        directory = _summary_local_path(None, out_dir)
+    except (OSError, ValueError) as exc:
+        return ModelSummary(out_dir=Path(out_dir), reason=f"model_directory_refused: {exc}")
     if not directory.is_dir():
         return ModelSummary(
             out_dir=directory, reason=f"not_a_directory: {directory} does not exist"
         )
-    results_path = directory / RESULTS_NAME
-    spec_path = spec_json_in(directory)
-    card = directory / MODEL_CARD_NAME
-    report = directory / HARNESS_REPORT_NAME
+    try:
+        results_path = _summary_local_path(directory, RESULTS_NAME)
+        spec_path = None
+        for relative in (f"spec/{CHARACTERISTICS_NAME}", f"build/spec/{CHARACTERISTICS_NAME}"):
+            candidate = _summary_local_path(directory, relative)
+            if candidate.is_file():
+                spec_path = candidate
+                break
+        card = _summary_local_path(directory, MODEL_CARD_NAME)
+        report = _summary_local_path(directory, HARNESS_REPORT_NAME)
+    except (OSError, ValueError) as exc:
+        return ModelSummary(out_dir=directory, reason=f"model_directory_refused: {exc}")
     markers = [path for path in (results_path, spec_path, card, report) if path is not None]
     if not any(path.is_file() for path in markers):
         return ModelSummary(
@@ -4021,18 +4155,61 @@ def load_model_summary(out_dir: str | Path) -> ModelSummary:
         subckt = subckt or spec_subckt
         problem = problem or spec_problem
 
+    def saved_file(value):
+        if value is None:
+            return None
+        try:
+            path = _summary_local_path(directory, value)
+            return path if path.is_file() else None
+        except OSError, ValueError:
+            return None
+
     published_lib = None if result is None else result.lib_path
     published_asy = None if result is None else result.asy_path
-    lib_path = published_lib if published_lib is not None and published_lib.is_file() else None
-    asy_path = published_asy if published_asy is not None and published_asy.is_file() else None
-    lib_path = lib_path or model_lib_in(directory, subckt)
+    lib_path = saved_file(published_lib)
+    asy_path = saved_file(published_asy)
+    official = directory / "official-model.json"
+    official_problem = None
+    if official.is_symlink() or official.is_file():
+        try:
+            receipt = json.loads(
+                _summary_local_path(directory, official).read_text(encoding="utf-8")
+            )
+            if isinstance(receipt, dict) and receipt.get("status") == "delivered":
+                lib_path, asy_path = _summary_official_artifacts(directory)
+                if result is not None:
+                    result = dataclasses.replace(
+                        result,
+                        status="UNKNOWN",
+                        counts={"PASS": 0, "FAIL": 0, "UNKNOWN": 1, "NOT_APPLICABLE": 0},
+                    )
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            official_problem = f"official saved artifacts could not be verified: {exc}"
+            problem = official_problem
+            lib_path = asy_path = None
+            if result is not None:
+                result = dataclasses.replace(result, status="BLOCKED", detail=official_problem)
+    simple_subckt = bool(subckt) and not any(char in subckt for char in "/\\:")
+    lib_path = lib_path or (
+        None
+        if official_problem or not simple_subckt
+        else saved_file(model_lib_in(directory, subckt))
+    )
     if asy_path is None and subckt:
         candidate = directory / f"{subckt}.asy"
-        if candidate.is_file():
-            asy_path = candidate
+        if not official_problem:
+            asy_path = saved_file(candidate)
     card_path = None if not card.is_file() else card
     if card_path is None and result is not None and result.card_path is not None:
-        card_path = result.card_path if result.card_path.is_file() else None
+        card_path = saved_file(result.card_path)
+    if result is not None:
+        result = dataclasses.replace(
+            result,
+            out_dir=directory,
+            card_path=card_path,
+            lib_path=lib_path,
+            asy_path=asy_path,
+        )
 
     manifest_path = directory / WORK_DIRNAME / "project.json"
     return ModelSummary(

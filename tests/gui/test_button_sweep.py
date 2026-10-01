@@ -99,7 +99,7 @@ def test_no_traceback_was_captured(report: Any) -> None:
 def test_default_behavioral_go_reaches_the_sandbox_without_starting_a_thread(report: Any) -> None:
     surface = report.surface("ModelMakerWindow")
     assert surface is not None
-    go = next(control for control in surface["controls"] if control["label"] == "GO")
+    go = next(control for control in surface["controls"] if control["label"] == "Make Model")
     assert go["clicked"] and go["error"] is None
     assert "MakeModelWorker.start requested (sandboxed: no thread runs)" in go["effects"]
     assert report.sandbox["kinds"]["thread_start"] >= 1
