@@ -56,7 +56,7 @@ The compact desktop keeps
 the elapsed timer; finished models and their reports stay together in the output folder.
 
 For the supplied UCC28251 Rev. E PDF, choose **UCC28251PW** or **UCC28251PWR** for TSSOP-20.
-The reviewed primary-side configuration ties VSENSE to VREF, connects COMP to FB/EAâˆ’,
+The reviewed primary-side configuration ties VSENSE to VREF, connects COMP to FB/EA−,
 and drives REF/EA+ from the external control signal. Read the generated model card before
 connecting a power stage; RGP/QFN and an unspecified package are blocked.
 
@@ -73,7 +73,7 @@ This single run is not a promise for every part or computer. See
 | Component | Reviewed scope |
 | --- | --- |
 | Official TI / Analog Devices model downloads | Product-page discovery, unchanged original bytes/dependencies, observed LTspice load check; electrical accuracy UNKNOWN, model ports only |
-| UCC28251PW / PWR | TSSOP-20, primary-side, resistor-timed, level enable, 25 Â°C; limited UNKNOWN coverage |
+| UCC28251PW / PWR | TSSOP-20, primary-side, resistor-timed, level enable, 25 °C; limited UNKNOWN coverage |
 | TPS54332 / TPS54332DDA | DDA buck model with required exposed-pad connection; limited UNKNOWN coverage |
 | LM358 | Reviewed common eight-pin D / DGK / P / PS / PW electrical pinout; partial dual-op-amp coverage, no PCB-footprint claim |
 | TPS54331 | Reviewed partial evidence; missing essential coverage/package evidence still blocks delivery |
@@ -89,7 +89,7 @@ a successful simulator exit or correct pinout alone does not prove device accura
 The [engine guide](docs/ENGINE_GUIDE.md) is the implementation contract. The unchanged
 [original review page](docs/engine-refactor.html) is preserved for reference and RAG.
 
-- `behavioral` is the default: official manufacturer download lookup first, then cited facts â†’ typed design â†’ deterministic library â†’ independent
+- `behavioral` is the default: official manufacturer download lookup first, then cited facts → typed design → deterministic library → independent
   LTspice checks. AI extraction is the only default AI stage; exact reviewed evidence or validated
   caches can avoid it. No AI authoring, test planning or repair runs as a silent fallback.
 - `pin_only` is an explicit limited pin interface, with no component-function claim.

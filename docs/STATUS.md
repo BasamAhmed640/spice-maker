@@ -1,23 +1,27 @@
 ## 2026-09-30 — automatic workflow / official-original 1.8.1 (D-066)
 
-General final offline suite: `python -m pytest -q -m "not ltspice and not network"`:
-**2485 passed, 24 skipped, 193 deselected** in 235.14 s. Ruff check/format and diff checks
-pass. Shared manifest: **72 identical files**. Manufacturer acquisition/reinforcement:
-127 focused controls pass; actual original subcircuit and diode fixtures load in LTspice
-with unchanged bytes and UNKNOWN electrical accuracy. Current generated scope stays narrow.
+Both current 1.8.1 installers pass actual fresh/update/two-copy isolation, frozen GUI
+responsiveness and source/wheel/desktop fingerprint checks. The normal desktop requires
+datasheet + part number, retains the retro timer, fixes menus, quoted paths, native local
+chooser and safe PDF copy drops. Official TI/ADI downloads precede generated routing;
+original bytes/dependencies are immutable and hashed. Imported electrical accuracy stays
+UNKNOWN after the bounded real LTspice load check. Generated scope is still three reviewed
+implementations; broad PCB behavior composition and imported electrical qualification
+remain unfinished. MCU/FPGA/CPLD/processor/SoC are excluded.
 
-`installer/build.ps1 -Version 1.8.1` passes for General, including actual frozen GUI,
-fresh/update/isolation and matching source/wheel/desktop fingerprints. Actual installed
-default UCC28251PW wheel/frozen builds take 50.161 / 49.289 s, retain 15 PASS / 0 FAIL /
-21 UNKNOWN / 8 N/A and zero AI calls, and produce identical library bytes. The live
-manufacturer-first source route takes 62.842 s and records why TI's average candidates
-were inconclusive/uninspectable before deterministic generation. The normal UI has two
-inputs, local PDF copy drops, quoted paths, native chooser and fixed popup contrast.
+Final full command per edition: `python -m pytest -q -m "not ltspice and not network"`.
+General: **2485 passed, 24 skipped, 193 deselected**, 235.14 s.
+Bob: **2250 passed, 30 skipped, 190 deselected, 4 warnings in 228.48s (0:03:48)**. Installation instruction controls: 9 pass each. Ruff check/format and
+diff checks pass; 72 shared files are identical. Two real LTspice original model fixture
+checks pass separately; neither grants electrical accuracy PASS.
 
-Bob full pre-package run: 2247 passed with three named failures. Two edition-specific
-legacy authoring/message regressions are restored and verified by 82 passing focused
-tests; final installer verification is in progress. Unrelated copied flavor files were
-restored before packaging. See [scoped evidence and remaining work](evidence/2026-09-30-automatic-delivery/REPORT.md).
+Actual installed default UCC28251PW totals: General 50.161 / 49.289 s; Bob 52.506 /
+49.873 s (wheel / frozen desktop). All four produce the identical library hash, exact
+design association, zero AI calls and 15 PASS / 0 FAIL / 21 UNKNOWN / 8 N/A. Both editions'
+generated examples run in LTspice. Live source manufacturer-first run: 62.842 s; supplier
+candidate failures/inconclusive checks remain recorded before deterministic generation.
+See [full scoped evidence and remaining work](evidence/2026-09-30-automatic-delivery/REPORT.md).
+The owner's current running installation and Downloads files were not changed this hour.
 
 ## 2026-09-30 — public 1.8.0 and owner model delivered
 
