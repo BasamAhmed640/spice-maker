@@ -86,3 +86,5 @@ General GUI/setup/file-input suite: 106 passed; Bob: 99 passed. Final focused GU
 ![Pixel dissolve frames](pixel-fade-montage.png)
 
 The existing user installation and Downloads files were not changed. Already installed older copies do not auto-update; use the verified 1.8.2 installer for these fixes. No provider calls or unbounded AI repair were requested.
+
+Final mirroring review retains Bob's existing early stale-wheel packaging guard. The built application wheel matches all 140 current Python modules byte-for-byte; three new missing-wheel/module/stale-module controls and nine installation-instruction controls pass. Edition-specific packaging scripts/tests are excluded from automatic mirroring. Restoring this build-time check changes no runtime payload, installer resource or source fingerprint.
